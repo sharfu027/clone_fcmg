@@ -29,9 +29,12 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       adminService.getRoles().then((roles) => {
-        setAllRoles(roles || []);
-        if (roles && roles.length > 0) {
-          setSelectedRoleId(roles[0].id);
+        const filtered = (roles || []).filter(
+          (r) => r.name !== 'Super Administrator' && r.code !== 'SUPER_ADMINISTRATOR' && r.code !== 'SUPERADMIN'
+        );
+        setAllRoles(filtered);
+        if (filtered && filtered.length > 0) {
+          setSelectedRoleId(filtered[0].id);
         }
       }).catch(() => {
         setAllRoles([]);

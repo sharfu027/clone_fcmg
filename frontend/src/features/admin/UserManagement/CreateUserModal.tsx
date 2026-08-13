@@ -11,9 +11,8 @@ interface CreateUserModalProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
 }
 
-// 13 Standard ERP Login Types / Roles required including Super Administrator
+// 12 Standard ERP Login Types / Roles required (Super Administrator is a unique root system account)
 export const ERP_LOGIN_ROLES = [
-  { code: 'SUPER_ADMINISTRATOR', name: 'Super Administrator', desc: 'Root System & Multi-Admin Access' },
   { code: 'ADMINISTRATOR', name: 'Administrator', desc: 'Sub-Admin with Tailored Module Access' },
   { code: 'SALES_MANAGER', name: 'Sales Manager', desc: 'Regional Sales & Team Control' },
   { code: 'SALES_REP', name: 'Sales Representative', desc: 'Field Orders & Customer Visits' },

@@ -166,11 +166,17 @@ public sealed class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand
         var user = await userRepo.GetByIdAsync(request.UserId, cancellationToken);
         var role = await roleRepo.GetByIdAsync(request.RoleId, cancellationToken);
 
-        // Security Protection: Only Super Administrator can assign Super Administrator or Administrator roles
+        // Security Protection: Only one system Super Administrator account is permitted
         var targetRoleName = role?.Name ?? role?.Code ?? string.Empty;
-        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+        if (targetRoleName.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase) ||
+            targetRoleName.Equals("SUPER_ADMINISTRATOR", StringComparison.OrdinalIgnoreCase) ||
+            targetRoleName.Equals("SUPERADMIN", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Failure<Unit>(Error.Validation("IAM.SuperAdminSingletonRestriction", "Only one system Super Administrator account is permitted. Additional Super Administrator accounts cannot be created or assigned."));
+        }
 
-        if (!isSuperAdmin && (targetRoleName.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase) || targetRoleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase)))
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+        if (!isSuperAdmin && targetRoleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
         {
             return Result.Failure<Unit>(Error.Unauthorized("IAM.PrivilegeEscalation", "Only Super Administrators can create or assign administrative roles."));
         }
