@@ -1,0 +1,25 @@
+namespace INK.ERP.Application.Features.MasterData.Customers.DTOs;
+
+public record CustomerDto(
+    Guid Id,
+    Guid CompanyId,
+    string? CompanyName,
+    string Code,
+    string LegalName,
+    string? TradeName,
+    string CustomerType,
+    string? Gstin,
+    string? Pan,
+    string Email,
+    string Phone,
+    string AddressLine1,
+    string? AddressLine2,
+    string City,
+    string State,
+    string PostalCode,
+    string Country,
+    decimal CreditLimit,
+    int CreditDays,
+    Guid? RouteId,
+    bool IsActive,
+    DateTime CreatedAtUtc);

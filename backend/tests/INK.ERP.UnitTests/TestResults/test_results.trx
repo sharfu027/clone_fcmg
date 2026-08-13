@@ -1,0 +1,806 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c9ac1be3-17ed-4b66-be51-083b793beb0d" name="shadow@OP-SHADOW 2026-08-05 21:27:57" runUser="OP-SHADOW\shadow" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-08-05T21:27:57.3539164+05:30" queuing="2026-08-05T21:27:57.3539169+05:30" start="2026-08-05T21:27:56.7336505+05:30" finish="2026-08-05T21:27:58.0215601+05:30" />
+  <TestSettings name="default" id="b1678637-20bc-4535-9745-9b2154c3dc26">
+    <Deployment runDeploymentRoot="shadow_OP-SHADOW_2026-08-05_21_27_57" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="44890140-907c-4f31-bab5-d295e41b13e6" testId="5be183a9-18e1-6e7f-f40f-8f25d40e3dad" testName="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_ValidEmbedding_AddsTemplateAndRaisesEvent" computerName="OP-SHADOW" duration="00:00:00.0016343" startTime="2026-08-05T21:27:57.4328314+05:30" endTime="2026-08-05T21:27:57.4329534+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="44890140-907c-4f31-bab5-d295e41b13e6" />
+    <UnitTestResult executionId="593b0122-8ad8-44ce-ac84-c78b6039689d" testId="791559c2-d03f-4d0f-129f-ed2db81b7822" testName="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateRefreshToken_ReturnsTokenWithFamilyId" computerName="OP-SHADOW" duration="00:00:00.0008922" startTime="2026-08-05T21:27:57.4183288+05:30" endTime="2026-08-05T21:27:57.4189769+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="593b0122-8ad8-44ce-ac84-c78b6039689d" />
+    <UnitTestResult executionId="1bda1ebd-e0d9-4c5d-8211-c365f15e8ff4" testId="2308a3e8-74f7-0043-bb14-1ad386c364ac" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Approve_PendingDevice_SetsStatusToApprovedAndRaisesEvent" computerName="OP-SHADOW" duration="00:00:00.0015619" startTime="2026-08-05T21:27:57.3978847+05:30" endTime="2026-08-05T21:27:57.3994560+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1bda1ebd-e0d9-4c5d-8211-c365f15e8ff4" />
+    <UnitTestResult executionId="dcab3db6-1e6f-4606-a7ed-87adae7c49ad" testId="e3b3be10-76c1-c8b0-01cd-56c71e340bbc" testName="INK.ERP.UnitTests.ArchitectureTests.Infrastructure_Should_NotHaveDependencyOnApi" computerName="OP-SHADOW" duration="00:00:00.1929558" startTime="2026-08-05T21:27:57.6007896+05:30" endTime="2026-08-05T21:27:57.7935855+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dcab3db6-1e6f-4606-a7ed-87adae7c49ad" />
+    <UnitTestResult executionId="93459ed0-8686-4a89-be38-0c0c6c064040" testId="7a933a5a-431f-f4c3-cf12-1939131a5d1d" testName="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_InactiveUser_ReturnsFailureError" computerName="OP-SHADOW" duration="00:00:00.0016877" startTime="2026-08-05T21:27:57.3944557+05:30" endTime="2026-08-05T21:27:57.3958944+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="93459ed0-8686-4a89-be38-0c0c6c064040" />
+    <UnitTestResult executionId="4584a0fa-b3a4-483e-9643-d208adafa612" testId="ea82aca8-213b-91ce-c6c7-f30c44637d7a" testName="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.FaceTemplateProtectionService_EncryptAndDecrypt_ReturnsOriginalString" computerName="OP-SHADOW" duration="00:00:00.0003109" startTime="2026-08-05T21:27:57.3861398+05:30" endTime="2026-08-05T21:27:57.3861850+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4584a0fa-b3a4-483e-9643-d208adafa612" />
+    <UnitTestResult executionId="848b3154-79ca-4151-93b9-421db27cf149" testId="475c8ef8-da20-1dd4-918d-d269c79bf4db" testName="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests.Handle_PermissionGroupNotFound_ReturnsNotFoundError" computerName="OP-SHADOW" duration="00:00:00.0019172" startTime="2026-08-05T21:27:57.4150557+05:30" endTime="2026-08-05T21:27:57.4172297+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="848b3154-79ca-4151-93b9-421db27cf149" />
+    <UnitTestResult executionId="6e875811-d455-4986-aed8-a5da74efa2f8" testId="5d2bc58a-012d-5855-96b5-ea0713b726a1" testName="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_UserNotFound_ReturnsNotFoundError" computerName="OP-SHADOW" duration="00:00:00.0213938" startTime="2026-08-05T21:27:57.3644496+05:30" endTime="2026-08-05T21:27:57.3863053+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6e875811-d455-4986-aed8-a5da74efa2f8" />
+    <UnitTestResult executionId="d81cb852-b053-44a1-a86e-fb3796a00f47" testId="f42b25af-4e4e-5b60-8a53-0defceb4af88" testName="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests.Handle_ValidationPasses_CallsNext" computerName="OP-SHADOW" duration="00:00:00.0618812" startTime="2026-08-05T21:27:57.2927519+05:30" endTime="2026-08-05T21:27:57.3411059+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d81cb852-b053-44a1-a86e-fb3796a00f47" />
+    <UnitTestResult executionId="3a464a31-48be-4d5a-9525-fbb17d526247" testId="bb1b67ce-793d-f658-5bc0-5d6426b41ef2" testName="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests.Handle_ValidCommand_ReturnsSuccess" computerName="OP-SHADOW" duration="00:00:00.0090755" startTime="2026-08-05T21:27:57.3642635+05:30" endTime="2026-08-05T21:27:57.3723338+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3a464a31-48be-4d5a-9525-fbb17d526247" />
+    <UnitTestResult executionId="c63260bd-b2fb-42df-8d1a-8aca9d12a025" testId="fcc5592d-4aa2-49be-0e98-b25988c454f9" testName="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests.Handle_ValidCommand_ReturnsSuccessWithPermissionId" computerName="OP-SHADOW" duration="00:00:00.0361089" startTime="2026-08-05T21:27:57.3824274+05:30" endTime="2026-08-05T21:27:57.4134969+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c63260bd-b2fb-42df-8d1a-8aca9d12a025" />
+    <UnitTestResult executionId="31e57145-5b02-432a-86c3-6a5852173cff" testId="842214cc-a839-8c71-c0aa-6b7d7f2f964c" testName="INK.ERP.UnitTests.ArchitectureTests.Services_Should_HaveNameEndingWithService" computerName="OP-SHADOW" duration="00:00:00.0033590" startTime="2026-08-05T21:27:57.8639520+05:30" endTime="2026-08-05T21:27:57.8673940+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31e57145-5b02-432a-86c3-6a5852173cff">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected result.IsSuccessful to be True, but found False.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.ArchitectureTests.Services_Should_HaveNameEndingWithService() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\ArchitectureTests.cs:line 129&#xD;
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6774a776-e164-4375-b2af-50df939ec595" testId="8654b133-b23f-7972-7f52-e967c131c919" testName="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.FaceModelHealthCheck_LoadedModel_ReturnsHealthy" computerName="OP-SHADOW" duration="00:00:00.0121216" startTime="2026-08-05T21:27:57.3746857+05:30" endTime="2026-08-05T21:27:57.3852603+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6774a776-e164-4375-b2af-50df939ec595" />
+    <UnitTestResult executionId="57e33a66-a962-48ee-8158-ce0f33d62e24" testId="2e5bc418-630f-6126-8fe1-038869b38476" testName="INK.ERP.UnitTests.Controllers.UsersControllerTests.CreateUser_ValidCommand_Returns201Created" computerName="OP-SHADOW" duration="00:00:00.0252235" startTime="2026-08-05T21:27:57.3623560+05:30" endTime="2026-08-05T21:27:57.3668033+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="57e33a66-a962-48ee-8158-ce0f33d62e24" />
+    <UnitTestResult executionId="21f1b65d-6642-411b-88de-93f59ee5852b" testId="f4ad7522-3cf2-3d1c-046e-a0d2f5009c57" testName="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.RecordVerification_InactiveProfile_ThrowsInvalidOperationException" computerName="OP-SHADOW" duration="00:00:00.0012816" startTime="2026-08-05T21:27:57.4330171+05:30" endTime="2026-08-05T21:27:57.4330841+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="21f1b65d-6642-411b-88de-93f59ee5852b" />
+    <UnitTestResult executionId="af4d06b1-c6fb-44c0-91b4-021659670123" testId="6329de49-2348-f039-91c1-699bd91bdf9d" testName="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_SecuredRequestUnauthenticated_ThrowsUnauthorizedException" computerName="OP-SHADOW" duration="00:00:00.0198218" startTime="2026-08-05T21:27:57.3624369+05:30" endTime="2026-08-05T21:27:57.3639501+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="af4d06b1-c6fb-44c0-91b4-021659670123" />
+    <UnitTestResult executionId="3ec60ea3-5ea9-4429-a88c-f6b08a984edd" testId="43d1a02d-74e4-a778-0960-8336882930f5" testName="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.GeofenceService_CircularGeofence_ValidatesCoordinateInside" computerName="OP-SHADOW" duration="00:00:00.0501262" startTime="2026-08-05T21:27:57.2926820+05:30" endTime="2026-08-05T21:27:57.3240015+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3ec60ea3-5ea9-4429-a88c-f6b08a984edd" />
+    <UnitTestResult executionId="cc71f519-7fdd-4c2b-9927-965c07cd8daf" testId="d2720b97-5c75-a724-04ad-b7075cfedb2d" testName="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests.Handle_DuplicateCode_ReturnsConflictError" computerName="OP-SHADOW" duration="00:00:00.0013408" startTime="2026-08-05T21:27:57.4136357+05:30" endTime="2026-08-05T21:27:57.4149100+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cc71f519-7fdd-4c2b-9927-965c07cd8daf" />
+    <UnitTestResult executionId="e1063fd0-d768-4da6-87a5-a8d1bd5cf3b2" testId="d7fb5e3a-5023-9e43-0666-5e1641fa96d4" testName="INK.ERP.UnitTests.ArchitectureTests.Handlers_Should_HaveNameEndingWithHandler" computerName="OP-SHADOW" duration="00:00:00.0448389" startTime="2026-08-05T21:27:57.8901935+05:30" endTime="2026-08-05T21:27:57.9124389+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e1063fd0-d768-4da6-87a5-a8d1bd5cf3b2" />
+    <UnitTestResult executionId="e885fb38-afe6-4ac0-8107-9064463a1585" testId="8f38ff49-bb55-b403-4d8c-3e5154f02e48" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.SecurityRiskAssessmentService_ImpossibleTravel_CalculatesHighRiskScore" computerName="OP-SHADOW" duration="00:00:00.0011663" startTime="2026-08-05T21:27:57.4092866+05:30" endTime="2026-08-05T21:27:57.4104091+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e885fb38-afe6-4ac0-8107-9064463a1585" />
+    <UnitTestResult executionId="ebcad840-9325-4716-b49a-b5f5c3483115" testId="a7ba4737-036f-6bf5-2667-62f6803aecc2" testName="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_ValidCommand_ReturnsSuccess" computerName="OP-SHADOW" duration="00:00:00.0082752" startTime="2026-08-05T21:27:57.3864550+05:30" endTime="2026-08-05T21:27:57.3941502+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ebcad840-9325-4716-b49a-b5f5c3483115" />
+    <UnitTestResult executionId="1008f7d4-5ab8-4d44-a712-ec8a7f6f2be2" testId="6b5ea93b-fc50-8180-a5ff-f9204d161bd5" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Trust_UnapprovedDevice_ThrowsInvalidOperationException" computerName="OP-SHADOW" duration="00:00:00.0009259" startTime="2026-08-05T21:27:57.4062194+05:30" endTime="2026-08-05T21:27:57.4069536+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1008f7d4-5ab8-4d44-a712-ec8a7f6f2be2" />
+    <UnitTestResult executionId="ad2d8eda-d081-4a13-a604-9d28e24637a8" testId="27d5684b-10df-5d9c-edc7-bf3590236cf2" testName="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.RiskEngine_AggregatesRegisteredStrategies_CalculatesCombinedScore" computerName="OP-SHADOW" duration="00:00:00.0098247" startTime="2026-08-05T21:27:57.3640819+05:30" endTime="2026-08-05T21:27:57.3739246+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ad2d8eda-d081-4a13-a604-9d28e24637a8" />
+    <UnitTestResult executionId="aed9ce9c-2c4e-43f0-938f-b1160e319d52" testId="b0d3bd75-2dd4-d792-8170-b0a8e37e42aa" testName="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.ApproveDevice_ValidDevice_SetsStatusApproved" computerName="OP-SHADOW" duration="00:00:00.0123468" startTime="2026-08-05T21:27:57.3689323+05:30" endTime="2026-08-05T21:27:57.3839853+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aed9ce9c-2c4e-43f0-938f-b1160e319d52" />
+    <UnitTestResult executionId="c7c8bbd0-3deb-4f54-b15f-140c41ce526f" testId="b0f2d519-4583-0b90-3574-ed75b2738762" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.GpsCoordinate_HaversineDistance_CalculatesDistanceCorrectly" computerName="OP-SHADOW" duration="00:00:00.0005442" startTime="2026-08-05T21:27:57.4055019+05:30" endTime="2026-08-05T21:27:57.4059673+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c7c8bbd0-3deb-4f54-b15f-140c41ce526f" />
+    <UnitTestResult executionId="0e84722e-88a9-470e-8dc3-b888ba94f291" testId="51ab5356-9bba-a8a7-f0fa-57d6583869b9" testName="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests.Handle_ValidCommand_ReturnsSuccessWithUserId" computerName="OP-SHADOW" duration="00:00:00.1074599" startTime="2026-08-05T21:27:57.2927354+05:30" endTime="2026-08-05T21:27:57.3833755+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0e84722e-88a9-470e-8dc3-b888ba94f291" />
+    <UnitTestResult executionId="e8139d42-7dc3-43ed-937e-af94fa016f7d" testId="481f8d71-ea05-ebfb-820c-39d24c0c9096" testName="INK.ERP.UnitTests.Behaviors.LoggingBehaviorTests.Handle_SuccessfulExecution_LogsExecutionAndCompletion" computerName="OP-SHADOW" duration="00:00:00.0259251" startTime="2026-08-05T21:27:57.3622706+05:30" endTime="2026-08-05T21:27:57.3672124+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e8139d42-7dc3-43ed-937e-af94fa016f7d" />
+    <UnitTestResult executionId="bd9074fe-8170-4f25-9acd-b57b15a1d23e" testId="9f9e0ed6-06d1-9a26-4230-5fad196ffe37" testName="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_DuplicateRole_ReturnsConflictError" computerName="OP-SHADOW" duration="00:00:00.0017001" startTime="2026-08-05T21:27:57.3961845+05:30" endTime="2026-08-05T21:27:57.3976658+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bd9074fe-8170-4f25-9acd-b57b15a1d23e" />
+    <UnitTestResult executionId="34e847bb-1a99-4ecb-9ffc-abe896948adb" testId="f4397196-56c8-1282-a9da-86bd9c778b30" testName="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_EmptyUsername_ShouldHaveError" computerName="OP-SHADOW" duration="00:00:00.0011341" startTime="2026-08-05T21:27:57.3222115+05:30" endTime="2026-08-05T21:27:57.3231852+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="34e847bb-1a99-4ecb-9ffc-abe896948adb" />
+    <UnitTestResult executionId="fe2681b1-337b-476c-b2c9-8d99eb09d47f" testId="5d547bbc-1ed1-a952-bfdc-681b7594998e" testName="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.FaceEnrollmentWorkflow_ComposesValidationAndEmbedding_PublishesApplicationEvent" computerName="OP-SHADOW" duration="00:00:00.0045186" startTime="2026-08-05T21:27:57.4256203+05:30" endTime="2026-08-05T21:27:57.4328564+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fe2681b1-337b-476c-b2c9-8d99eb09d47f" />
+    <UnitTestResult executionId="1e68b72c-d63b-416f-8394-90fe8d126946" testId="81c28faf-dc37-8969-1a80-3a3b02c497b5" testName="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.AuthenticationContextBuilder_FluentChaining_BuildsImmutableContext" computerName="OP-SHADOW" duration="00:00:00.0008099" startTime="2026-08-05T21:27:57.4248185+05:30" endTime="2026-08-05T21:27:57.4253910+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1e68b72c-d63b-416f-8394-90fe8d126946" />
+    <UnitTestResult executionId="73e99f5a-a41e-41e8-a5f0-b96ba97e0f39" testId="a18319d0-57b5-347a-0562-2ff4573800ad" testName="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_InvalidEmail_ShouldHaveError" computerName="OP-SHADOW" duration="00:00:00.0157557" startTime="2026-08-05T21:27:57.3130737+05:30" endTime="2026-08-05T21:27:57.3207553+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="73e99f5a-a41e-41e8-a5f0-b96ba97e0f39" />
+    <UnitTestResult executionId="ad10a8f1-2cad-4e9c-bb4f-4a9fc4a20bba" testId="0ea51235-9bcd-f6dd-6245-55486c53cff5" testName="INK.ERP.UnitTests.Behaviors.PerformanceBehaviorTests.Handle_SlowRequest_ExecutesAndLogsPerformanceWarning" computerName="OP-SHADOW" duration="00:00:00.5640577" startTime="2026-08-05T21:27:57.3965885+05:30" endTime="2026-08-05T21:27:57.9620860+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ad10a8f1-2cad-4e9c-bb4f-4a9fc4a20bba" />
+    <UnitTestResult executionId="6c84f2b4-02a2-4718-91f9-8b40f0f3a4eb" testId="00b4203a-1de6-1259-0d91-b7cbfe248425" testName="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests.Handle_PasswordPolicyViolation_ReturnsValidationError" computerName="OP-SHADOW" duration="00:00:00.0034460" startTime="2026-08-05T21:27:57.3838666+05:30" endTime="2026-08-05T21:27:57.3841222+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6c84f2b4-02a2-4718-91f9-8b40f0f3a4eb" />
+    <UnitTestResult executionId="23635729-9d76-4137-8604-46e7b0642c6b" testId="4ee3f109-6a2e-81d7-fc17-a2726355e6e2" testName="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_ShortPassword_ShouldHaveError" computerName="OP-SHADOW" duration="00:00:00.0011180" startTime="2026-08-05T21:27:57.3210764+05:30" endTime="2026-08-05T21:27:57.3219508+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="23635729-9d76-4137-8604-46e7b0642c6b" />
+    <UnitTestResult executionId="213dd1aa-9183-4867-bc28-760fea0a66fe" testId="d0a17cfa-b834-cf31-c3c2-cf290e9ae221" testName="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandSuccess_BeginsAndCommitsTransaction" computerName="OP-SHADOW" duration="00:00:00.0502963" startTime="2026-08-05T21:27:57.3833085+05:30" endTime="2026-08-05T21:27:57.4293011+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="213dd1aa-9183-4867-bc28-760fea0a66fe">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected result to be "CommandResult", but found &lt;null&gt;.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+   at FluentAssertions.Primitives.StringValidator.ValidateAgainstNulls()&#xD;
+   at FluentAssertions.Primitives.StringValidator.Validate()&#xD;
+   at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandSuccess_BeginsAndCommitsTransaction() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Behaviors\TransactionBehaviorTests.cs:line 51&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="83337068-64b9-44ce-8074-8a9b94868b91" testId="af4063cd-ecc5-5922-68e9-803ffff413b9" testName="INK.ERP.UnitTests.Controllers.AuthControllerTests.Login_ValidCredentials_ReturnsOkResultWithAuthResponse" computerName="OP-SHADOW" duration="00:00:00.0050644" startTime="2026-08-05T21:27:57.3751253+05:30" endTime="2026-08-05T21:27:57.3835453+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="83337068-64b9-44ce-8074-8a9b94868b91" />
+    <UnitTestResult executionId="a23a779e-078f-4d83-893e-9fd13f7635ae" testId="615bcdcd-6fec-dd0e-138e-95f1981dd1d9" testName="INK.ERP.UnitTests.Infrastructure.PermissionResolverTests.HasPermissionAsync_UserHasPermission_ReturnsTrue" computerName="OP-SHADOW" duration="00:00:00.0060466" startTime="2026-08-05T21:27:57.4171858+05:30" endTime="2026-08-05T21:27:57.4224078+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a23a779e-078f-4d83-893e-9fd13f7635ae" />
+    <UnitTestResult executionId="ccfa34f3-04d9-43d0-8d93-a951c838a9d5" testId="13acd6df-2dbf-1b03-11b5-aaa81c43b511" testName="INK.ERP.UnitTests.Infrastructure.PermissionResolverTests.GetPermissionsForUserAsync_CachedPermissionsExist_ReturnsCachedList" computerName="OP-SHADOW" duration="00:00:00.1447360" startTime="2026-08-05T21:27:57.2926268+05:30" endTime="2026-08-05T21:27:57.4162641+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ccfa34f3-04d9-43d0-8d93-a951c838a9d5" />
+    <UnitTestResult executionId="7f3ec8a0-ff7e-49fe-ba22-73786a582487" testId="6173f629-fc2f-9256-a1fb-2e9382e89480" testName="INK.ERP.UnitTests.ArchitectureTests.Validators_Should_HaveNameEndingWithValidator" computerName="OP-SHADOW" duration="00:00:00.0146251" startTime="2026-08-05T21:27:57.9128531+05:30" endTime="2026-08-05T21:27:57.9270946+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7f3ec8a0-ff7e-49fe-ba22-73786a582487" />
+    <UnitTestResult executionId="4b01778e-d953-4fe9-bd68-01780d1a1bac" testId="152d88c6-6407-e8fe-2661-e5b79635bfcd" testName="INK.ERP.UnitTests.ArchitectureTests.Repositories_Should_HaveNameEndingWithRepository" computerName="OP-SHADOW" duration="00:00:00.0064120" startTime="2026-08-05T21:27:57.8575428+05:30" endTime="2026-08-05T21:27:57.8637637+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b01778e-d953-4fe9-bd68-01780d1a1bac" />
+    <UnitTestResult executionId="e89d62ea-84a0-4604-972e-2ffd7f029f40" testId="98599a3d-8ae5-c992-3e1c-4224e5dcbfa2" testName="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests.EnrollFaceCommand_WorkflowQualityFails_ReturnsQualityError" computerName="OP-SHADOW" duration="00:00:00.0605658" startTime="2026-08-05T21:27:57.2927027+05:30" endTime="2026-08-05T21:27:57.3391551+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e89d62ea-84a0-4604-972e-2ffd7f029f40" />
+    <UnitTestResult executionId="0840a227-5a94-4d13-b63b-7fd6dcf889f2" testId="8189fbbc-5ef2-1b3b-642d-66c406b94518" testName="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests.Handle_SystemRole_ReturnsFailureError" computerName="OP-SHADOW" duration="00:00:00.0017942" startTime="2026-08-05T21:27:57.4079987+05:30" endTime="2026-08-05T21:27:57.4102549+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0840a227-5a94-4d13-b63b-7fd6dcf889f2" />
+    <UnitTestResult executionId="f5565263-3744-4155-8d5d-7b00ad48e6fb" testId="73a196e6-f699-461c-421f-a778001b1221" testName="INK.ERP.UnitTests.ArchitectureTests.API_Should_NotDependOnDirectInternalTestingProjects" computerName="OP-SHADOW" duration="00:00:00.0353296" startTime="2026-08-05T21:27:57.8218975+05:30" endTime="2026-08-05T21:27:57.8572774+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f5565263-3744-4155-8d5d-7b00ad48e6fb" />
+    <UnitTestResult executionId="f51fa720-f912-4c9e-b52a-b003bc2c808a" testId="de779631-69a4-1192-19f4-7b361208b586" testName="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_RoleSecuredRequestUserHasRole_CallsNext" computerName="OP-SHADOW" duration="00:00:00.0010215" startTime="2026-08-05T21:27:57.3641019+05:30" endTime="2026-08-05T21:27:57.3643095+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f51fa720-f912-4c9e-b52a-b003bc2c808a" />
+    <UnitTestResult executionId="8f2093e4-f07a-4f90-a87c-7435743cc9e6" testId="476a2e22-4a8c-6a9e-e738-d5671f31fac0" testName="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandFailure_RollsBackTransactionAndRethrows" computerName="OP-SHADOW" duration="00:00:00.0029614" startTime="2026-08-05T21:27:57.4323137+05:30" endTime="2026-08-05T21:27:57.4331600+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8f2093e4-f07a-4f90-a87c-7435743cc9e6">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected a &lt;System.InvalidOperationException&gt; to be thrown, but no exception was thrown.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message)&#xD;
+   at FluentAssertions.Specialized.DelegateAssertionsBase`2.ThrowInternal[TException](Exception exception, String because, Object[] becauseArgs)&#xD;
+   at FluentAssertions.Specialized.AsyncFunctionAssertions`2.ThrowAsync[TException](String because, Object[] becauseArgs)&#xD;
+   at FluentAssertions.ExceptionAssertionsExtensions.WithMessage[TException](Task`1 task, String expectedWildcardPattern, String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandFailure_RollsBackTransactionAndRethrows() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Behaviors\TransactionBehaviorTests.cs:line 67&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5d8a3de1-62f3-454f-b6d9-ab02f3518820" testId="bcc029e7-f265-52b2-9a3c-31f9cfff24d4" testName="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.FaceEnrollmentWorkflow_ValidImage_ReturnsFaceProfileDto" computerName="OP-SHADOW" duration="00:00:00.0082325" startTime="2026-08-05T21:27:57.3667344+05:30" endTime="2026-08-05T21:27:57.3779013+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d8a3de1-62f3-454f-b6d9-ab02f3518820">
+      <Output>
+        <ErrorInfo>
+          <Message>System.NullReferenceException : Object reference not set to an instance of an object.</Message>
+          <StackTrace>   at INK.ERP.Application.Features.Security.Face.Workflows.FaceEnrollmentWorkflow.ExecuteAsync(EnrollFaceCommand command, CancellationToken cancellationToken) in X:\cursor ai\backend\src\INK.ERP.Application\Features\Security\Face\Workflows\FaceEnrollmentWorkflow.cs:line 44&#xD;
+   at INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.FaceEnrollmentWorkflow_ValidImage_ReturnsFaceProfileDto() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Features\Security\WorkflowAndRiskRefinementTests.cs:line 75&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e77ca59a-9492-4c72-823a-942741c75555" testId="0013079a-d1ea-1671-becb-67b4c566fbb6" testName="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests.Handle_DuplicateUsername_ReturnsConflictError" computerName="OP-SHADOW" duration="00:00:00.0015442" startTime="2026-08-05T21:27:57.3835139+05:30" endTime="2026-08-05T21:27:57.3837384+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e77ca59a-9492-4c72-823a-942741c75555" />
+    <UnitTestResult executionId="51ae95fb-744d-4501-9683-e218bd26577f" testId="4ec6dd57-a428-0a95-4f20-80ac50a9c53d" testName="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.HealthChecks_AllIndividualHealthChecks_ReturnHealthy" computerName="OP-SHADOW" duration="00:00:00.0036302" startTime="2026-08-05T21:27:57.4323272+05:30" endTime="2026-08-05T21:27:57.4336821+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="51ae95fb-744d-4501-9683-e218bd26577f" />
+    <UnitTestResult executionId="f7ba9167-bf10-49ce-9ac7-6d4afbc0a45f" testId="15004f32-affc-e0b2-c584-c42f197d2c57" testName="INK.ERP.UnitTests.Behaviors.PerformanceBehaviorTests.Handle_FastRequest_ExecutesNormallyWithoutWarning" computerName="OP-SHADOW" duration="00:00:00.0121200" startTime="2026-08-05T21:27:57.3842459+05:30" endTime="2026-08-05T21:27:57.3964580+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f7ba9167-bf10-49ce-9ac7-6d4afbc0a45f" />
+    <UnitTestResult executionId="95fc6b7a-c931-490c-a78e-42fc23531bd0" testId="3ff4cf8c-46d5-ea9d-6fa7-fc6c236847e1" testName="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.GpsVerificationService_ExceedsMaxSpeed_DetectsSpoofing" computerName="OP-SHADOW" duration="00:00:00.0081327" startTime="2026-08-05T21:27:57.3657493+05:30" endTime="2026-08-05T21:27:57.3744201+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="95fc6b7a-c931-490c-a78e-42fc23531bd0" />
+    <UnitTestResult executionId="12087f42-4c37-43e8-95b2-3fa193c6f965" testId="8fc44169-1436-be8a-4b8a-82aad9076daf" testName="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests.Handle_ValidationFails_ThrowsValidationException" computerName="OP-SHADOW" duration="00:00:00.0042924" startTime="2026-08-05T21:27:57.3441236+05:30" endTime="2026-08-05T21:27:57.3621037+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="12087f42-4c37-43e8-95b2-3fa193c6f965" />
+    <UnitTestResult executionId="042258ac-08d7-48f8-9e1f-38a42667bd9a" testId="1d8cc2ee-d4da-3b71-ec25-8c347090cb90" testName="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_RoleSecuredRequestUserLacksRole_ThrowsUnauthorizedException" computerName="OP-SHADOW" duration="00:00:00.0249242" startTime="2026-08-05T21:27:57.3189380+05:30" endTime="2026-08-05T21:27:57.3623801+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="042258ac-08d7-48f8-9e1f-38a42667bd9a" />
+    <UnitTestResult executionId="6e51264e-4c56-496f-80b5-3ab9a28056b3" testId="cfa040de-397c-b026-bcdb-4d3a64e9e3d9" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Raise_HighSeverityIncident_AutomaticallyEscalates" computerName="OP-SHADOW" duration="00:00:00.0012190" startTime="2026-08-05T21:27:57.4082863+05:30" endTime="2026-08-05T21:27:57.4091366+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6e51264e-4c56-496f-80b5-3ab9a28056b3" />
+    <UnitTestResult executionId="9c04eac8-7ffa-4518-9632-0acbb9edd3b5" testId="c2b7f610-0966-c74d-853e-f4c9dcca88a8" testName="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_ValidCommand_ShouldNotHaveErrors" computerName="OP-SHADOW" duration="00:00:00.0314479" startTime="2026-08-05T21:27:57.2927849+05:30" endTime="2026-08-05T21:27:57.3049847+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9c04eac8-7ffa-4518-9632-0acbb9edd3b5" />
+    <UnitTestResult executionId="83e6c029-53bf-4e14-81dd-bd6cd6e66781" testId="830dca80-88d3-988f-1a81-7d10d33225bc" testName="INK.ERP.UnitTests.ArchitectureTests.Application_Should_NotHaveDependencyOnInfrastructureOrApi" computerName="OP-SHADOW" duration="00:00:00.1896641" startTime="2026-08-05T21:27:57.4106002+05:30" endTime="2026-08-05T21:27:57.6004931+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="83e6c029-53bf-4e14-81dd-bd6cd6e66781" />
+    <UnitTestResult executionId="29b14f68-b554-49fa-87c2-92b2f5efc151" testId="3f789a1c-7ba3-381e-7043-a47704ac18aa" testName="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests.Handle_UserNotFound_ReturnsNotFoundError" computerName="OP-SHADOW" duration="00:00:00.0016703" startTime="2026-08-05T21:27:57.3737702+05:30" endTime="2026-08-05T21:27:57.3747827+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="29b14f68-b554-49fa-87c2-92b2f5efc151" />
+    <UnitTestResult executionId="06056dd3-2ea4-4c0f-bf3c-436539a214af" testId="ddb84c28-0041-6d67-3b91-7ee9c87f8285" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.PolicyResolutionDomainService_ActiveUserOverride_OverridesGlobalPolicy" computerName="OP-SHADOW" duration="00:00:00.0002821" startTime="2026-08-05T21:27:57.4071864+05:30" endTime="2026-08-05T21:27:57.4072742+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="06056dd3-2ea4-4c0f-bf3c-436539a214af" />
+    <UnitTestResult executionId="7bfaba6b-23c9-4f34-837a-243653130348" testId="48fc1071-0d6f-fae5-e2e7-7fca252180de" testName="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests.EnrollFaceCommand_WorkflowFails_ReturnsFailure" computerName="OP-SHADOW" duration="00:00:00.0014516" startTime="2026-08-05T21:27:57.3394676+05:30" endTime="2026-08-05T21:27:57.3398927+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7bfaba6b-23c9-4f34-837a-243653130348" />
+    <UnitTestResult executionId="6a347b46-1e80-40a1-ae65-f426b24a6b5d" testId="a7713747-8c8f-6c3a-fa4c-1b0b5f2fbc2f" testName="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests.EnrollFaceCommand_ValidImage_EnrollsSuccessfully" computerName="OP-SHADOW" duration="00:00:00.0011231" startTime="2026-08-05T21:27:57.3401241+05:30" endTime="2026-08-05T21:27:57.3405498+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6a347b46-1e80-40a1-ae65-f426b24a6b5d" />
+    <UnitTestResult executionId="b3c4d3c4-939a-4780-893d-3dc318c40ed1" testId="f18f1b64-6162-e84c-6962-ef7854b16530" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.PolicyResolutionDomainService_ExpiredUserOverride_UsesGlobalPolicy" computerName="OP-SHADOW" duration="00:00:00.0058150" startTime="2026-08-05T21:27:57.4052625+05:30" endTime="2026-08-05T21:27:57.4053378+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b3c4d3c4-939a-4780-893d-3dc318c40ed1" />
+    <UnitTestResult executionId="ad57e05e-7071-4f04-8da0-40c0732849a7" testId="8666af0e-924d-bc4f-6021-062c02cce2d7" testName="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.FaceTemplateProtection_RotateKey_EncryptsWithTargetKeyVersion" computerName="OP-SHADOW" duration="00:00:00.0049866" startTime="2026-08-05T21:27:57.3263195+05:30" endTime="2026-08-05T21:27:57.3306526+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ad57e05e-7071-4f04-8da0-40c0732849a7" />
+    <UnitTestResult executionId="0519008e-06dd-4fc4-9446-e107555aafa3" testId="15b5e503-5451-a18b-dbf3-af10c658f3cc" testName="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.AuthenticationContext_Initialization_StoresContextValuesData" computerName="OP-SHADOW" duration="00:00:00.0014894" startTime="2026-08-05T21:27:57.3658128+05:30" endTime="2026-08-05T21:27:57.3664538+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0519008e-06dd-4fc4-9446-e107555aafa3" />
+    <UnitTestResult executionId="aa7f02a8-ebd8-4043-a701-758dbe4b3f98" testId="d4478b5a-99d2-76b2-7fe6-7deed04df603" testName="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.RotateRefreshToken_ReusedToken_DetectsBreachAndRevokesFamily" computerName="OP-SHADOW" duration="00:00:00.0322278" startTime="2026-08-05T21:27:57.3864249+05:30" endTime="2026-08-05T21:27:57.4180427+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa7f02a8-ebd8-4043-a701-758dbe4b3f98" />
+    <UnitTestResult executionId="e41d6b8a-68b9-401a-9b1f-cede314d71eb" testId="f95dbfad-6425-83f8-b6e2-0948a0053718" testName="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests.Handle_ValidCommand_ReturnsSuccess" computerName="OP-SHADOW" duration="00:00:00.0028624" startTime="2026-08-05T21:27:57.4103713+05:30" endTime="2026-08-05T21:27:57.4124815+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e41d6b8a-68b9-401a-9b1f-cede314d71eb" />
+    <UnitTestResult executionId="ce0973b8-083a-4d47-b4bb-e8b58005f647" testId="9160826e-96ca-88d1-6dcd-b13a067ff9f1" testName="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests.Handle_LockingSelf_ReturnsFailureError" computerName="OP-SHADOW" duration="00:00:00.0917200" startTime="2026-08-05T21:27:57.2912328+05:30" endTime="2026-08-05T21:27:57.3641614+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ce0973b8-083a-4d47-b4bb-e8b58005f647" />
+    <UnitTestResult executionId="51f9c101-5130-484e-ab14-bfb808a39ad3" testId="5c4c9a42-7978-2c23-91d9-f5fbfe135b0e" testName="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_UnsecuredRequest_PassesThrough" computerName="OP-SHADOW" duration="00:00:00.0465664" startTime="2026-08-05T21:27:57.2927688+05:30" endTime="2026-08-05T21:27:57.3181616+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="51f9c101-5130-484e-ab14-bfb808a39ad3" />
+    <UnitTestResult executionId="d7e32b93-e2b7-48b6-9056-6eeeca6eca08" testId="6d3f0ed1-8420-1046-7a42-44bc2881d515" testName="INK.ERP.UnitTests.Controllers.AuthControllerTests.Login_InvalidCredentials_ReturnsProblemDetails401" computerName="OP-SHADOW" duration="00:00:00.0012240" startTime="2026-08-05T21:27:57.3836560+05:30" endTime="2026-08-05T21:27:57.3837077+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d7e32b93-e2b7-48b6-9056-6eeeca6eca08" />
+    <UnitTestResult executionId="1f15de9c-8d04-477d-9369-5ab3124fff8e" testId="f22cd0ae-69dc-ca9e-64df-0d24aed93d2e" testName="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests.Handle_RoleNotFound_ReturnsNotFoundError" computerName="OP-SHADOW" duration="00:00:00.0269097" startTime="2026-08-05T21:27:57.3839482+05:30" endTime="2026-08-05T21:27:57.4077371+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1f15de9c-8d04-477d-9369-5ab3124fff8e" />
+    <UnitTestResult executionId="2896c4a4-9eb7-4020-a66e-2bcbcd4b8046" testId="90b9e5a5-9a42-aa39-dd0c-8a07bf75387e" testName="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.FaceComparisonService_IdenticalVectors_ReturnsCosineSimilarityOne" computerName="OP-SHADOW" duration="00:00:00.0288603" startTime="2026-08-05T21:27:57.3438137+05:30" endTime="2026-08-05T21:27:57.3648463+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2896c4a4-9eb7-4020-a66e-2bcbcd4b8046" />
+    <UnitTestResult executionId="b581b86b-9036-491a-86aa-be9ae77c5096" testId="ace2f0be-9794-1855-8a33-bbc43ecc95d5" testName="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.FaceComparisonService_ConsumesEuclideanStrategy_EvaluatesCorrectly" computerName="OP-SHADOW" duration="00:00:00.0299348" startTime="2026-08-05T21:27:57.3398031+05:30" endTime="2026-08-05T21:27:57.3630229+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b581b86b-9036-491a-86aa-be9ae77c5096" />
+    <UnitTestResult executionId="dcbaa5e5-45e2-434e-947d-57c1c8d99ec2" testId="a16eb61f-b503-322e-f222-e7ace1f8b51f" testName="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.RecordVerification_Success_RaisesFaceVerifiedEvent" computerName="OP-SHADOW" duration="00:00:00.0007905" startTime="2026-08-05T21:27:57.4331331+05:30" endTime="2026-08-05T21:27:57.4337304+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dcbaa5e5-45e2-434e-947d-57c1c8d99ec2" />
+    <UnitTestResult executionId="bd806ea9-0174-4b8f-ac36-5e0333c0e0a7" testId="5d560493-93a8-4377-59a9-1089ae09a887" testName="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.DeviceFingerprintService_GeneratesConsistentSHA256Hash" computerName="OP-SHADOW" duration="00:00:00.0119047" startTime="2026-08-05T21:27:57.3242637+05:30" endTime="2026-08-05T21:27:57.3435569+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bd806ea9-0174-4b8f-ac36-5e0333c0e0a7" />
+    <UnitTestResult executionId="e000df7b-1c3a-49d2-ba05-d68ccc4a0b92" testId="3075e802-60bb-2a5d-af80-9cebe2e5ddae" testName="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_NonCommandRequest_SkipsTransactionAndCallsNext" computerName="OP-SHADOW" duration="00:00:00.0090484" startTime="2026-08-05T21:27:57.3694856+05:30" endTime="2026-08-05T21:27:57.3824652+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e000df7b-1c3a-49d2-ba05-d68ccc4a0b92" />
+    <UnitTestResult executionId="5b83630f-dd37-4b73-a5b3-144b333bd28a" testId="7669d2ef-f390-9a77-00c7-58714d4e598a" testName="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_MoreThan5Templates_ThrowsInvalidOperationException" computerName="OP-SHADOW" duration="00:00:00.0942616" startTime="2026-08-05T21:27:57.3410161+05:30" endTime="2026-08-05T21:27:57.4323819+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5b83630f-dd37-4b73-a5b3-144b333bd28a">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected a &lt;System.InvalidOperationException&gt; to be thrown, but no exception was thrown.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message)&#xD;
+   at FluentAssertions.Specialized.DelegateAssertionsBase`2.ThrowInternal[TException](Exception exception, String because, Object[] becauseArgs)&#xD;
+   at FluentAssertions.Specialized.DelegateAssertions`2.Throw[TException](String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_MoreThan5Templates_ThrowsInvalidOperationException() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Domain\Security\FaceProfileTests.cs:line 43&#xD;
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="debf7219-1f11-4d37-8ad6-08a9de3c3e7c" testId="31c45f3f-0325-5b17-3a85-ff861a968d90" testName="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Approve_RevokedDevice_ThrowsInvalidOperationException" computerName="OP-SHADOW" duration="00:00:00.0005728" startTime="2026-08-05T21:27:57.4074876+05:30" endTime="2026-08-05T21:27:57.4080621+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="debf7219-1f11-4d37-8ad6-08a9de3c3e7c" />
+    <UnitTestResult executionId="cfb4e98b-e9d4-4130-8398-a8fb8dc8c42e" testId="600eac29-bd70-d31a-7ce7-19abc26f365a" testName="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.CalculateRiskQuery_ValidIncidents_CalculatesRiskScore" computerName="OP-SHADOW" duration="00:00:00.0197582" startTime="2026-08-05T21:27:57.4101760+05:30" endTime="2026-08-05T21:27:57.4317206+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cfb4e98b-e9d4-4130-8398-a8fb8dc8c42e">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected result.Value.HighRiskDetected to be True, but found False.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.CalculateRiskQuery_ValidIncidents_CalculatesRiskScore() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Features\Security\DeviceAndIncidentHandlerTests.cs:line 91&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ceb9479e-6714-43d8-9b47-46f2092152c8" testId="aa3ab005-060f-3fbf-43a0-a2ba8bba3c79" testName="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.RaiseSecurityIncident_HighSeverity_CreatesIncident" computerName="OP-SHADOW" duration="00:00:00.0277262" startTime="2026-08-05T21:27:57.3840757+05:30" endTime="2026-08-05T21:27:57.4093305+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ceb9479e-6714-43d8-9b47-46f2092152c8" />
+    <UnitTestResult executionId="efd976a1-9d0d-46f2-a79d-d7777807227b" testId="3ef3df57-216b-074a-730e-b81464ccad9a" testName="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateJwtToken_ValidUser_ReturnsNonEmptyJwt" computerName="OP-SHADOW" duration="00:00:00.0353153" startTime="2026-08-05T21:27:57.4191969+05:30" endTime="2026-08-05T21:27:57.4544645+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="efd976a1-9d0d-46f2-a79d-d7777807227b">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected _jwtTokenService.ValidateToken(token) to be True, but found False.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateJwtToken_ValidUser_ReturnsNonEmptyJwt() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Infrastructure\JwtTokenServiceTests.cs:line 73&#xD;
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5cc5a1a3-be25-4967-a25a-3edf13a9aa00" testId="c5dbfa9d-f79a-0a4a-bd07-bfe369ade685" testName="INK.ERP.UnitTests.Controllers.UsersControllerTests.CreateUser_DuplicateUsername_ReturnsProblemDetails409Conflict" computerName="OP-SHADOW" duration="00:00:00.0018694" startTime="2026-08-05T21:27:57.3671047+05:30" endTime="2026-08-05T21:27:57.3685193+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5cc5a1a3-be25-4967-a25a-3edf13a9aa00" />
+    <UnitTestResult executionId="44ef391f-cd60-47a2-976c-f6c15a279c62" testId="6c063d15-841e-9667-0fdb-cb465e8187fa" testName="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests.Handle_NoValidators_CallsNext" computerName="OP-SHADOW" duration="00:00:00.0005781" startTime="2026-08-05T21:27:57.3434367+05:30" endTime="2026-08-05T21:27:57.3439018+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="44ef391f-cd60-47a2-976c-f6c15a279c62" />
+    <UnitTestResult executionId="c7a5cef9-86c4-4fe5-838b-784480d6268d" testId="f1c9cb11-2ef2-fdac-eb37-000ce4fe4786" testName="INK.ERP.UnitTests.Behaviors.LoggingBehaviorTests.Handle_FailingExecution_LogsErrorAndRethrows" computerName="OP-SHADOW" duration="00:00:00.0024418" startTime="2026-08-05T21:27:57.3674798+05:30" endTime="2026-08-05T21:27:57.3693215+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c7a5cef9-86c4-4fe5-838b-784480d6268d" />
+    <UnitTestResult executionId="065a1860-ec80-4000-9c7c-e90df7ab28e6" testId="cc16028f-e9b9-fd6c-a3de-d8bca167e4c1" testName="INK.ERP.UnitTests.Controllers.UsersControllerTests.GetUserById_UserNotFound_ReturnsProblemDetails404" computerName="OP-SHADOW" duration="00:00:00.0072675" startTime="2026-08-05T21:27:57.3404550+05:30" endTime="2026-08-05T21:27:57.3622899+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="065a1860-ec80-4000-9c7c-e90df7ab28e6" />
+    <UnitTestResult executionId="82c66ad0-8cf1-4cc9-bee2-f9de354cede0" testId="155d54c0-804a-05cf-0264-43bd803b2d72" testName="INK.ERP.UnitTests.ArchitectureTests.Domain_Should_NotHaveDependencyOnOtherProjects" computerName="OP-SHADOW" duration="00:00:00.0281730" startTime="2026-08-05T21:27:57.8006724+05:30" endTime="2026-08-05T21:27:57.8217477+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="82c66ad0-8cf1-4cc9-bee2-f9de354cede0" />
+    <UnitTestResult executionId="a505146d-fbca-45b9-8949-4ce77c70af47" testId="2a955e3f-9ee8-2f5d-de7c-9cef4ae327ba" testName="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.FaceValidationWorkflow_ValidImage_ReturnsValidResult" computerName="OP-SHADOW" duration="00:00:00.0019214" startTime="2026-08-05T21:27:57.4329153+05:30" endTime="2026-08-05T21:27:57.4330403+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a505146d-fbca-45b9-8949-4ce77c70af47" />
+    <UnitTestResult executionId="5d040413-1e9a-488a-b786-7443a10122a2" testId="8e871575-82d0-8491-6fdf-82829cdf567f" testName="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.GeofenceDto_CircularShape_InstantiatesCorrectly" computerName="OP-SHADOW" duration="00:00:00.0933310" startTime="2026-08-05T21:27:57.2927194+05:30" endTime="2026-08-05T21:27:57.3648938+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d040413-1e9a-488a-b786-7443a10122a2" />
+    <UnitTestResult executionId="81eb1626-3800-4dc5-8029-425ddcee3e22" testId="83cecf12-4455-2a73-699c-6cb555374a06" testName="INK.ERP.UnitTests.Controllers.UsersControllerTests.GetUserById_UserExists_ReturnsOkResultWithUserDto" computerName="OP-SHADOW" duration="00:00:00.0624563" startTime="2026-08-05T21:27:57.2928015+05:30" endTime="2026-08-05T21:27:57.3402198+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="81eb1626-3800-4dc5-8029-425ddcee3e22" />
+    <UnitTestResult executionId="7955fe4c-dbb9-48bd-9201-ce6292e40699" testId="e604793b-1753-ceb6-c46a-1ff09d76fa93" testName="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.SecurityMetrics_ExposesCustomDiagnosticCounters" computerName="OP-SHADOW" duration="00:00:00.0023148" startTime="2026-08-05T21:27:57.3390278+05:30" endTime="2026-08-05T21:27:57.3395638+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7955fe4c-dbb9-48bd-9201-ce6292e40699" />
+    <UnitTestResult executionId="0c91bb47-19b6-491e-a753-0cdba2ac6719" testId="1c264fa2-02ab-4e8d-bf50-098a76b13d9d" testName="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.ImagePipeline_ExecutesStagesInOrder_ReturnsPreprocessedResult" computerName="OP-SHADOW" duration="00:00:00.0559167" startTime="2026-08-05T21:27:57.3743123+05:30" endTime="2026-08-05T21:27:57.4302779+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0c91bb47-19b6-491e-a753-0cdba2ac6719">
+      <Output>
+        <ErrorInfo>
+          <Message>Expected result.IsSuccess to be True, but found False.</Message>
+          <StackTrace>   at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+   at INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.ImagePipeline_ExecutesStagesInOrder_ReturnsPreprocessedResult() in X:\cursor ai\backend\tests\INK.ERP.UnitTests\Infrastructure\Security\ProductionHardeningUnitTests.cs:line 41&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5d1fc883-22cd-43f6-bd70-697d7a14fa07" testId="3a59692f-683a-b2b6-766d-b5fcb48cd390" testName="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.FaceValidationWorkflow_QualityScoreLow_ReturnsInvalidResult" computerName="OP-SHADOW" duration="00:00:00.0118397" startTime="2026-08-05T21:27:57.4126815+05:30" endTime="2026-08-05T21:27:57.4245354+05:30" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d1fc883-22cd-43f6-bd70-697d7a14fa07" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests.Handle_ValidationFails_ThrowsValidationException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="8fc44169-1436-be8a-4b8a-82aad9076daf">
+      <Execution id="12087f42-4c37-43e8-95b2-3fa193c6f965" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests" name="Handle_ValidationFails_ThrowsValidationException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.RiskEngine_AggregatesRegisteredStrategies_CalculatesCombinedScore" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="27d5684b-10df-5d9c-edc7-bf3590236cf2">
+      <Execution id="ad2d8eda-d081-4a13-a604-9d28e24637a8" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests" name="RiskEngine_AggregatesRegisteredStrategies_CalculatesCombinedScore" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateJwtToken_ValidUser_ReturnsNonEmptyJwt" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="3ef3df57-216b-074a-730e-b81464ccad9a">
+      <Execution id="efd976a1-9d0d-46f2-a79d-d7777807227b" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests" name="GenerateJwtToken_ValidUser_ReturnsNonEmptyJwt" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.ApproveDevice_ValidDevice_SetsStatusApproved" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="b0d3bd75-2dd4-d792-8170-b0a8e37e42aa">
+      <Execution id="aed9ce9c-2c4e-43f0-938f-b1160e319d52" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests" name="ApproveDevice_ValidDevice_SetsStatusApproved" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests.Handle_ValidCommand_ReturnsSuccessWithPermissionId" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="fcc5592d-4aa2-49be-0e98-b25988c454f9">
+      <Execution id="c63260bd-b2fb-42df-8d1a-8aca9d12a025" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests" name="Handle_ValidCommand_ReturnsSuccessWithPermissionId" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandSuccess_BeginsAndCommitsTransaction" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="d0a17cfa-b834-cf31-c3c2-cf290e9ae221">
+      <Execution id="213dd1aa-9183-4867-bc28-760fea0a66fe" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests" name="Handle_CommandSuccess_BeginsAndCommitsTransaction" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.RaiseSecurityIncident_HighSeverity_CreatesIncident" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="aa3ab005-060f-3fbf-43a0-a2ba8bba3c79">
+      <Execution id="ceb9479e-6714-43d8-9b47-46f2092152c8" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests" name="RaiseSecurityIncident_HighSeverity_CreatesIncident" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.ImagePipeline_ExecutesStagesInOrder_ReturnsPreprocessedResult" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="1c264fa2-02ab-4e8d-bf50-098a76b13d9d">
+      <Execution id="0c91bb47-19b6-491e-a753-0cdba2ac6719" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests" name="ImagePipeline_ExecutesStagesInOrder_ReturnsPreprocessedResult" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Controllers.AuthControllerTests.Login_ValidCredentials_ReturnsOkResultWithAuthResponse" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="af4063cd-ecc5-5922-68e9-803ffff413b9">
+      <Execution id="83337068-64b9-44ce-8074-8a9b94868b91" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Controllers.AuthControllerTests" name="Login_ValidCredentials_ReturnsOkResultWithAuthResponse" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.RecordVerification_Success_RaisesFaceVerifiedEvent" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="a16eb61f-b503-322e-f222-e7ace1f8b51f">
+      <Execution id="dcbaa5e5-45e2-434e-947d-57c1c8d99ec2" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.FaceProfileTests" name="RecordVerification_Success_RaisesFaceVerifiedEvent" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.GpsCoordinate_HaversineDistance_CalculatesDistanceCorrectly" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="b0f2d519-4583-0b90-3574-ed75b2738762">
+      <Execution id="c7c8bbd0-3deb-4f54-b15f-140c41ce526f" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="GpsCoordinate_HaversineDistance_CalculatesDistanceCorrectly" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Controllers.UsersControllerTests.GetUserById_UserNotFound_ReturnsProblemDetails404" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="cc16028f-e9b9-fd6c-a3de-d8bca167e4c1">
+      <Execution id="065a1860-ec80-4000-9c7c-e90df7ab28e6" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Controllers.UsersControllerTests" name="GetUserById_UserNotFound_ReturnsProblemDetails404" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests.Handle_SystemRole_ReturnsFailureError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="8189fbbc-5ef2-1b3b-642d-66c406b94518">
+      <Execution id="0840a227-5a94-4d13-b63b-7fd6dcf889f2" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests" name="Handle_SystemRole_ReturnsFailureError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.RotateRefreshToken_ReusedToken_DetectsBreachAndRevokesFamily" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="d4478b5a-99d2-76b2-7fe6-7deed04df603">
+      <Execution id="aa7f02a8-ebd8-4043-a701-758dbe4b3f98" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests" name="RotateRefreshToken_ReusedToken_DetectsBreachAndRevokesFamily" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests.Handle_ValidCommand_ReturnsSuccessWithUserId" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="51ab5356-9bba-a8a7-f0fa-57d6583869b9">
+      <Execution id="0e84722e-88a9-470e-8dc3-b888ba94f291" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests" name="Handle_ValidCommand_ReturnsSuccessWithUserId" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Controllers.UsersControllerTests.CreateUser_ValidCommand_Returns201Created" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="2e5bc418-630f-6126-8fe1-038869b38476">
+      <Execution id="57e33a66-a962-48ee-8158-ce0f33d62e24" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Controllers.UsersControllerTests" name="CreateUser_ValidCommand_Returns201Created" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests.Handle_ValidCommand_ReturnsSuccess" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="bb1b67ce-793d-f658-5bc0-5d6426b41ef2">
+      <Execution id="3a464a31-48be-4d5a-9525-fbb17d526247" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests" name="Handle_ValidCommand_ReturnsSuccess" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_UserNotFound_ReturnsNotFoundError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="5d2bc58a-012d-5855-96b5-ea0713b726a1">
+      <Execution id="6e875811-d455-4986-aed8-a5da74efa2f8" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests" name="Handle_UserNotFound_ReturnsNotFoundError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.PerformanceBehaviorTests.Handle_SlowRequest_ExecutesAndLogsPerformanceWarning" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="0ea51235-9bcd-f6dd-6245-55486c53cff5">
+      <Execution id="ad10a8f1-2cad-4e9c-bb4f-4a9fc4a20bba" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.PerformanceBehaviorTests" name="Handle_SlowRequest_ExecutesAndLogsPerformanceWarning" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.PermissionResolverTests.HasPermissionAsync_UserHasPermission_ReturnsTrue" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="615bcdcd-6fec-dd0e-138e-95f1981dd1d9">
+      <Execution id="a23a779e-078f-4d83-893e-9fd13f7635ae" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.PermissionResolverTests" name="HasPermissionAsync_UserHasPermission_ReturnsTrue" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Trust_UnapprovedDevice_ThrowsInvalidOperationException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="6b5ea93b-fc50-8180-a5ff-f9204d161bd5">
+      <Execution id="1008f7d4-5ab8-4d44-a712-ec8a7f6f2be2" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="Trust_UnapprovedDevice_ThrowsInvalidOperationException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Infrastructure_Should_NotHaveDependencyOnApi" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="e3b3be10-76c1-c8b0-01cd-56c71e340bbc">
+      <Execution id="dcab3db6-1e6f-4606-a7ed-87adae7c49ad" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Infrastructure_Should_NotHaveDependencyOnApi" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_UnsecuredRequest_PassesThrough" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="5c4c9a42-7978-2c23-91d9-f5fbfe135b0e">
+      <Execution id="51f9c101-5130-484e-ab14-bfb808a39ad3" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests" name="Handle_UnsecuredRequest_PassesThrough" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.PolicyResolutionDomainService_ExpiredUserOverride_UsesGlobalPolicy" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f18f1b64-6162-e84c-6962-ef7854b16530">
+      <Execution id="b3c4d3c4-939a-4780-893d-3dc318c40ed1" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="PolicyResolutionDomainService_ExpiredUserOverride_UsesGlobalPolicy" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.FaceEnrollmentWorkflow_ValidImage_ReturnsFaceProfileDto" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="bcc029e7-f265-52b2-9a3c-31f9cfff24d4">
+      <Execution id="5d8a3de1-62f3-454f-b6d9-ab02f3518820" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests" name="FaceEnrollmentWorkflow_ValidImage_ReturnsFaceProfileDto" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Services_Should_HaveNameEndingWithService" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="842214cc-a839-8c71-c0aa-6b7d7f2f964c">
+      <Execution id="31e57145-5b02-432a-86c3-6a5852173cff" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Services_Should_HaveNameEndingWithService" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.FaceComparisonService_ConsumesEuclideanStrategy_EvaluatesCorrectly" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="ace2f0be-9794-1855-8a33-bbc43ecc95d5">
+      <Execution id="b581b86b-9036-491a-86aa-be9ae77c5096" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests" name="FaceComparisonService_ConsumesEuclideanStrategy_EvaluatesCorrectly" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests.Handle_DuplicateCode_ReturnsConflictError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="d2720b97-5c75-a724-04ad-b7075cfedb2d">
+      <Execution id="cc71f519-7fdd-4c2b-9927-965c07cd8daf" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests" name="Handle_DuplicateCode_ReturnsConflictError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.FaceTemplateProtection_RotateKey_EncryptsWithTargetKeyVersion" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="8666af0e-924d-bc4f-6021-062c02cce2d7">
+      <Execution id="ad57e05e-7071-4f04-8da0-40c0732849a7" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests" name="FaceTemplateProtection_RotateKey_EncryptsWithTargetKeyVersion" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests.Handle_DuplicateUsername_ReturnsConflictError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="0013079a-d1ea-1671-becb-67b4c566fbb6">
+      <Execution id="e77ca59a-9492-4c72-823a-942741c75555" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests" name="Handle_DuplicateUsername_ReturnsConflictError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.SecurityRiskAssessmentService_ImpossibleTravel_CalculatesHighRiskScore" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="8f38ff49-bb55-b403-4d8c-3e5154f02e48">
+      <Execution id="e885fb38-afe6-4ac0-8107-9064463a1585" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="SecurityRiskAssessmentService_ImpossibleTravel_CalculatesHighRiskScore" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Application_Should_NotHaveDependencyOnInfrastructureOrApi" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="830dca80-88d3-988f-1a81-7d10d33225bc">
+      <Execution id="83e6c029-53bf-4e14-81dd-bd6cd6e66781" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Application_Should_NotHaveDependencyOnInfrastructureOrApi" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests.Handle_ValidCommand_ReturnsSuccess" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f95dbfad-6425-83f8-b6e2-0948a0053718">
+      <Execution id="e41d6b8a-68b9-401a-9b1f-cede314d71eb" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests" name="Handle_ValidCommand_ReturnsSuccess" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandFailure_RollsBackTransactionAndRethrows" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="476a2e22-4a8c-6a9e-e738-d5671f31fac0">
+      <Execution id="8f2093e4-f07a-4f90-a87c-7435743cc9e6" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests" name="Handle_CommandFailure_RollsBackTransactionAndRethrows" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.HealthChecks_AllIndividualHealthChecks_ReturnHealthy" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="4ec6dd57-a428-0a95-4f20-80ac50a9c53d">
+      <Execution id="51ae95fb-744d-4501-9683-e218bd26577f" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests" name="HealthChecks_AllIndividualHealthChecks_ReturnHealthy" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.FaceValidationWorkflow_QualityScoreLow_ReturnsInvalidResult" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="3a59692f-683a-b2b6-766d-b5fcb48cd390">
+      <Execution id="5d1fc883-22cd-43f6-bd70-697d7a14fa07" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests" name="FaceValidationWorkflow_QualityScoreLow_ReturnsInvalidResult" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_ValidEmbedding_AddsTemplateAndRaisesEvent" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="5be183a9-18e1-6e7f-f40f-8f25d40e3dad">
+      <Execution id="44890140-907c-4f31-bab5-d295e41b13e6" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.FaceProfileTests" name="Enroll_ValidEmbedding_AddsTemplateAndRaisesEvent" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.FaceValidationWorkflow_ValidImage_ReturnsValidResult" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="2a955e3f-9ee8-2f5d-de7c-9cef4ae327ba">
+      <Execution id="a505146d-fbca-45b9-8949-4ce77c70af47" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests" name="FaceValidationWorkflow_ValidImage_ReturnsValidResult" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests.Handle_NoValidators_CallsNext" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="6c063d15-841e-9667-0fdb-cb465e8187fa">
+      <Execution id="44ef391f-cd60-47a2-976c-f6c15a279c62" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests" name="Handle_NoValidators_CallsNext" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_NonCommandRequest_SkipsTransactionAndCallsNext" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="3075e802-60bb-2a5d-af80-9cebe2e5ddae">
+      <Execution id="e000df7b-1c3a-49d2-ba05-d68ccc4a0b92" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests" name="Handle_NonCommandRequest_SkipsTransactionAndCallsNext" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests.Handle_PermissionGroupNotFound_ReturnsNotFoundError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="475c8ef8-da20-1dd4-918d-d269c79bf4db">
+      <Execution id="848b3154-79ca-4151-93b9-421db27cf149" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreatePermissionCommandHandlerTests" name="Handle_PermissionGroupNotFound_ReturnsNotFoundError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests.EnrollFaceCommand_WorkflowQualityFails_ReturnsQualityError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="98599a3d-8ae5-c992-3e1c-4224e5dcbfa2">
+      <Execution id="e89d62ea-84a0-4604-972e-2ffd7f029f40" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests" name="EnrollFaceCommand_WorkflowQualityFails_ReturnsQualityError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_ValidCommand_ReturnsSuccess" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="a7ba4737-036f-6bf5-2667-62f6803aecc2">
+      <Execution id="ebcad840-9325-4716-b49a-b5f5c3483115" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests" name="Handle_ValidCommand_ReturnsSuccess" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.RecordVerification_InactiveProfile_ThrowsInvalidOperationException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f4ad7522-3cf2-3d1c-046e-a0d2f5009c57">
+      <Execution id="21f1b65d-6642-411b-88de-93f59ee5852b" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.FaceProfileTests" name="RecordVerification_InactiveProfile_ThrowsInvalidOperationException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.AuthenticationContextBuilder_FluentChaining_BuildsImmutableContext" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="81c28faf-dc37-8969-1a80-3a3b02c497b5">
+      <Execution id="1e68b72c-d63b-416f-8394-90fe8d126946" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests" name="AuthenticationContextBuilder_FluentChaining_BuildsImmutableContext" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_MoreThan5Templates_ThrowsInvalidOperationException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="7669d2ef-f390-9a77-00c7-58714d4e598a">
+      <Execution id="5b83630f-dd37-4b73-a5b3-144b333bd28a" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.FaceProfileTests" name="Enroll_MoreThan5Templates_ThrowsInvalidOperationException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Approve_PendingDevice_SetsStatusToApprovedAndRaisesEvent" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="2308a3e8-74f7-0043-bb14-1ad386c364ac">
+      <Execution id="1bda1ebd-e0d9-4c5d-8211-c365f15e8ff4" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="Approve_PendingDevice_SetsStatusToApprovedAndRaisesEvent" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.FaceTemplateProtectionService_EncryptAndDecrypt_ReturnsOriginalString" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="ea82aca8-213b-91ce-c6c7-f30c44637d7a">
+      <Execution id="4584a0fa-b3a4-483e-9643-d208adafa612" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests" name="FaceTemplateProtectionService_EncryptAndDecrypt_ReturnsOriginalString" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Domain_Should_NotHaveDependencyOnOtherProjects" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="155d54c0-804a-05cf-0264-43bd803b2d72">
+      <Execution id="82c66ad0-8cf1-4cc9-bee2-f9de354cede0" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Domain_Should_NotHaveDependencyOnOtherProjects" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests.Handle_LockingSelf_ReturnsFailureError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="9160826e-96ca-88d1-6dcd-b13a067ff9f1">
+      <Execution id="ce0973b8-083a-4d47-b4bb-e8b58005f647" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests" name="Handle_LockingSelf_ReturnsFailureError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.CalculateRiskQuery_ValidIncidents_CalculatesRiskScore" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="600eac29-bd70-d31a-7ce7-19abc26f365a">
+      <Execution id="cfb4e98b-e9d4-4130-8398-a8fb8dc8c42e" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests" name="CalculateRiskQuery_ValidIncidents_CalculatesRiskScore" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.API_Should_NotDependOnDirectInternalTestingProjects" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="73a196e6-f699-461c-421f-a778001b1221">
+      <Execution id="f5565263-3744-4155-8d5d-7b00ad48e6fb" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="API_Should_NotDependOnDirectInternalTestingProjects" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests.Handle_ValidationPasses_CallsNext" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f42b25af-4e4e-5b60-8a53-0defceb4af88">
+      <Execution id="d81cb852-b053-44a1-a86e-fb3796a00f47" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.ValidationBehaviorTests" name="Handle_ValidationPasses_CallsNext" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Controllers.UsersControllerTests.GetUserById_UserExists_ReturnsOkResultWithUserDto" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="83cecf12-4455-2a73-699c-6cb555374a06">
+      <Execution id="81eb1626-3800-4dc5-8029-425ddcee3e22" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Controllers.UsersControllerTests" name="GetUserById_UserExists_ReturnsOkResultWithUserDto" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests.Handle_UserNotFound_ReturnsNotFoundError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="3f789a1c-7ba3-381e-7043-a47704ac18aa">
+      <Execution id="29b14f68-b554-49fa-87c2-92b2f5efc151" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.LockUserCommandHandlerTests" name="Handle_UserNotFound_ReturnsNotFoundError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests.Handle_PasswordPolicyViolation_ReturnsValidationError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="00b4203a-1de6-1259-0d91-b7cbfe248425">
+      <Execution id="6c84f2b4-02a2-4718-91f9-8b40f0f3a4eb" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandHandlerTests" name="Handle_PasswordPolicyViolation_ReturnsValidationError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_SecuredRequestUnauthenticated_ThrowsUnauthorizedException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="6329de49-2348-f039-91c1-699bd91bdf9d">
+      <Execution id="af4d06b1-c6fb-44c0-91b4-021659670123" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests" name="Handle_SecuredRequestUnauthenticated_ThrowsUnauthorizedException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests.FaceEnrollmentWorkflow_ComposesValidationAndEmbedding_PublishesApplicationEvent" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="5d547bbc-1ed1-a952-bfdc-681b7594998e">
+      <Execution id="fe2681b1-337b-476c-b2c9-8d99eb09d47f" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FinalSecurityArchitectureRefinementTests" name="FaceEnrollmentWorkflow_ComposesValidationAndEmbedding_PublishesApplicationEvent" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_ValidCommand_ShouldNotHaveErrors" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="c2b7f610-0966-c74d-853e-f4c9dcca88a8">
+      <Execution id="9c04eac8-7ffa-4518-9632-0acbb9edd3b5" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests" name="Validate_ValidCommand_ShouldNotHaveErrors" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.AuthenticationContext_Initialization_StoresContextValuesData" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="15b5e503-5451-a18b-dbf3-af10c658f3cc">
+      <Execution id="0519008e-06dd-4fc4-9446-e107555aafa3" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests" name="AuthenticationContext_Initialization_StoresContextValuesData" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Repositories_Should_HaveNameEndingWithRepository" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="152d88c6-6407-e8fe-2661-e5b79635bfcd">
+      <Execution id="4b01778e-d953-4fe9-bd68-01780d1a1bac" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Repositories_Should_HaveNameEndingWithRepository" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Handlers_Should_HaveNameEndingWithHandler" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="d7fb5e3a-5023-9e43-0666-5e1641fa96d4">
+      <Execution id="e1063fd0-d768-4da6-87a5-a8d1bd5cf3b2" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Handlers_Should_HaveNameEndingWithHandler" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_EmptyUsername_ShouldHaveError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f4397196-56c8-1282-a9da-86bd9c778b30">
+      <Execution id="34e847bb-1a99-4ecb-9ffc-abe896948adb" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests" name="Validate_EmptyUsername_ShouldHaveError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Approve_RevokedDevice_ThrowsInvalidOperationException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="31c45f3f-0325-5b17-3a85-ff861a968d90">
+      <Execution id="debf7219-1f11-4d37-8ad6-08a9de3c3e7c" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="Approve_RevokedDevice_ThrowsInvalidOperationException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.PolicyResolutionDomainService_ActiveUserOverride_OverridesGlobalPolicy" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="ddb84c28-0041-6d67-3b91-7ee9c87f8285">
+      <Execution id="06056dd3-2ea4-4c0f-bf3c-436539a214af" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="PolicyResolutionDomainService_ActiveUserOverride_OverridesGlobalPolicy" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests.EnrollFaceCommand_ValidImage_EnrollsSuccessfully" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="a7713747-8c8f-6c3a-fa4c-1b0b5f2fbc2f">
+      <Execution id="6a347b46-1e80-40a1-ae65-f426b24a6b5d" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests" name="EnrollFaceCommand_ValidImage_EnrollsSuccessfully" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.FaceModelHealthCheck_LoadedModel_ReturnsHealthy" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="8654b133-b23f-7972-7f52-e967c131c919">
+      <Execution id="6774a776-e164-4375-b2af-50df939ec595" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests" name="FaceModelHealthCheck_LoadedModel_ReturnsHealthy" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.GeofenceDto_CircularShape_InstantiatesCorrectly" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="8e871575-82d0-8491-6fdf-82829cdf567f">
+      <Execution id="5d040413-1e9a-488a-b786-7443a10122a2" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests" name="GeofenceDto_CircularShape_InstantiatesCorrectly" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_RoleSecuredRequestUserLacksRole_ThrowsUnauthorizedException" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="1d8cc2ee-d4da-3b71-ec25-8c347090cb90">
+      <Execution id="042258ac-08d7-48f8-9e1f-38a42667bd9a" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests" name="Handle_RoleSecuredRequestUserLacksRole_ThrowsUnauthorizedException" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.DeviceFingerprintService_GeneratesConsistentSHA256Hash" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="5d560493-93a8-4377-59a9-1089ae09a887">
+      <Execution id="bd806ea9-0174-4b8f-ac36-5e0333c0e0a7" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests" name="DeviceFingerprintService_GeneratesConsistentSHA256Hash" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.FaceComparisonService_IdenticalVectors_ReturnsCosineSimilarityOne" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="90b9e5a5-9a42-aa39-dd0c-8a07bf75387e">
+      <Execution id="2896c4a4-9eb7-4020-a66e-2bcbcd4b8046" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests" name="FaceComparisonService_IdenticalVectors_ReturnsCosineSimilarityOne" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests.EnrollFaceCommand_WorkflowFails_ReturnsFailure" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="48fc1071-0d6f-fae5-e2e7-7fca252180de">
+      <Execution id="7bfaba6b-23c9-4f34-837a-243653130348" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Features.Security.FaceCommandHandlerTests" name="EnrollFaceCommand_WorkflowFails_ReturnsFailure" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Controllers.AuthControllerTests.Login_InvalidCredentials_ReturnsProblemDetails401" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="6d3f0ed1-8420-1046-7a42-44bc2881d515">
+      <Execution id="d7e32b93-e2b7-48b6-9056-6eeeca6eca08" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Controllers.AuthControllerTests" name="Login_InvalidCredentials_ReturnsProblemDetails401" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.LoggingBehaviorTests.Handle_FailingExecution_LogsErrorAndRethrows" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f1c9cb11-2ef2-fdac-eb37-000ce4fe4786">
+      <Execution id="c7a5cef9-86c4-4fe5-838b-784480d6268d" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.LoggingBehaviorTests" name="Handle_FailingExecution_LogsErrorAndRethrows" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.GpsVerificationService_ExceedsMaxSpeed_DetectsSpoofing" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="3ff4cf8c-46d5-ea9d-6fa7-fc6c236847e1">
+      <Execution id="95fc6b7a-c931-490c-a78e-42fc23531bd0" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests" name="GpsVerificationService_ExceedsMaxSpeed_DetectsSpoofing" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_ShortPassword_ShouldHaveError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="4ee3f109-6a2e-81d7-fc17-a2726355e6e2">
+      <Execution id="23635729-9d76-4137-8604-46e7b0642c6b" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests" name="Validate_ShortPassword_ShouldHaveError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.SecurityMetrics_ExposesCustomDiagnosticCounters" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="e604793b-1753-ceb6-c46a-1ff09d76fa93">
+      <Execution id="7955fe4c-dbb9-48bd-9201-ce6292e40699" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests" name="SecurityMetrics_ExposesCustomDiagnosticCounters" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests.GeofenceService_CircularGeofence_ValidatesCoordinateInside" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="43d1a02d-74e4-a778-0960-8336882930f5">
+      <Execution id="3ec60ea3-5ea9-4429-a88c-f6b08a984edd" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.Security.SecurityInfrastructureUnitTests" name="GeofenceService_CircularGeofence_ValidatesCoordinateInside" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.LoggingBehaviorTests.Handle_SuccessfulExecution_LogsExecutionAndCompletion" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="481f8d71-ea05-ebfb-820c-39d24c0c9096">
+      <Execution id="e8139d42-7dc3-43ed-937e-af94fa016f7d" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.LoggingBehaviorTests" name="Handle_SuccessfulExecution_LogsExecutionAndCompletion" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_DuplicateRole_ReturnsConflictError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="9f9e0ed6-06d1-9a26-4230-5fad196ffe37">
+      <Execution id="bd9074fe-8170-4f25-9acd-b57b15a1d23e" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests" name="Handle_DuplicateRole_ReturnsConflictError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests.Raise_HighSeverityIncident_AutomaticallyEscalates" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="cfa040de-397c-b026-bcdb-4d3a64e9e3d9">
+      <Execution id="6e51264e-4c56-496f-80b5-3ab9a28056b3" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Domain.Security.RegisteredDeviceAndIncidentTests" name="Raise_HighSeverityIncident_AutomaticallyEscalates" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests.Handle_RoleNotFound_ReturnsNotFoundError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="f22cd0ae-69dc-ca9e-64df-0d24aed93d2e">
+      <Execution id="1f15de9c-8d04-477d-9369-5ab3124fff8e" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.DeleteRoleCommandHandlerTests" name="Handle_RoleNotFound_ReturnsNotFoundError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.PerformanceBehaviorTests.Handle_FastRequest_ExecutesNormallyWithoutWarning" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="15004f32-affc-e0b2-c584-c42f197d2c57">
+      <Execution id="f7ba9167-bf10-49ce-9ac7-6d4afbc0a45f" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.PerformanceBehaviorTests" name="Handle_FastRequest_ExecutesNormallyWithoutWarning" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateRefreshToken_ReturnsTokenWithFamilyId" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="791559c2-d03f-4d0f-129f-ed2db81b7822">
+      <Execution id="593b0122-8ad8-44ce-ac84-c78b6039689d" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests" name="GenerateRefreshToken_ReturnsTokenWithFamilyId" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Infrastructure.PermissionResolverTests.GetPermissionsForUserAsync_CachedPermissionsExist_ReturnsCachedList" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="13acd6df-2dbf-1b03-11b5-aaa81c43b511">
+      <Execution id="ccfa34f3-04d9-43d0-8d93-a951c838a9d5" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Infrastructure.PermissionResolverTests" name="GetPermissionsForUserAsync_CachedPermissionsExist_ReturnsCachedList" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Controllers.UsersControllerTests.CreateUser_DuplicateUsername_ReturnsProblemDetails409Conflict" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="c5dbfa9d-f79a-0a4a-bd07-bfe369ade685">
+      <Execution id="5cc5a1a3-be25-4967-a25a-3edf13a9aa00" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Controllers.UsersControllerTests" name="CreateUser_DuplicateUsername_ReturnsProblemDetails409Conflict" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests.Handle_RoleSecuredRequestUserHasRole_CallsNext" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="de779631-69a4-1192-19f4-7b361208b586">
+      <Execution id="f51fa720-f912-4c9e-b52a-b003bc2c808a" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.Behaviors.AuthorizationBehaviorTests" name="Handle_RoleSecuredRequestUserHasRole_CallsNext" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.ArchitectureTests.Validators_Should_HaveNameEndingWithValidator" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="6173f629-fc2f-9256-a1fb-2e9382e89480">
+      <Execution id="7f3ec8a0-ff7e-49fe-ba22-73786a582487" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.ArchitectureTests" name="Validators_Should_HaveNameEndingWithValidator" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests.Handle_InactiveUser_ReturnsFailureError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="7a933a5a-431f-f4c3-cf12-1939131a5d1d">
+      <Execution id="93459ed0-8686-4a89-be38-0c0c6c064040" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.AssignRoleCommandHandlerTests" name="Handle_InactiveUser_ReturnsFailureError" />
+    </UnitTest>
+    <UnitTest name="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests.Validate_InvalidEmail_ShouldHaveError" storage="x:\cursor ai\backend\tests\ink.erp.unittests\bin\debug\net9.0\ink.erp.unittests.dll" id="a18319d0-57b5-347a-0562-2ff4573800ad">
+      <Execution id="73e99f5a-a41e-41e8-a5f0-b96ba97e0f39" />
+      <TestMethod codeBase="X:\cursor ai\backend\tests\INK.ERP.UnitTests\bin\Debug\net9.0\INK.ERP.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="INK.ERP.UnitTests.IAM.CreateUserCommandValidatorTests" name="Validate_InvalidEmail_ShouldHaveError" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="5be183a9-18e1-6e7f-f40f-8f25d40e3dad" executionId="44890140-907c-4f31-bab5-d295e41b13e6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="791559c2-d03f-4d0f-129f-ed2db81b7822" executionId="593b0122-8ad8-44ce-ac84-c78b6039689d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2308a3e8-74f7-0043-bb14-1ad386c364ac" executionId="1bda1ebd-e0d9-4c5d-8211-c365f15e8ff4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e3b3be10-76c1-c8b0-01cd-56c71e340bbc" executionId="dcab3db6-1e6f-4606-a7ed-87adae7c49ad" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7a933a5a-431f-f4c3-cf12-1939131a5d1d" executionId="93459ed0-8686-4a89-be38-0c0c6c064040" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ea82aca8-213b-91ce-c6c7-f30c44637d7a" executionId="4584a0fa-b3a4-483e-9643-d208adafa612" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="475c8ef8-da20-1dd4-918d-d269c79bf4db" executionId="848b3154-79ca-4151-93b9-421db27cf149" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5d2bc58a-012d-5855-96b5-ea0713b726a1" executionId="6e875811-d455-4986-aed8-a5da74efa2f8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f42b25af-4e4e-5b60-8a53-0defceb4af88" executionId="d81cb852-b053-44a1-a86e-fb3796a00f47" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bb1b67ce-793d-f658-5bc0-5d6426b41ef2" executionId="3a464a31-48be-4d5a-9525-fbb17d526247" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fcc5592d-4aa2-49be-0e98-b25988c454f9" executionId="c63260bd-b2fb-42df-8d1a-8aca9d12a025" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="842214cc-a839-8c71-c0aa-6b7d7f2f964c" executionId="31e57145-5b02-432a-86c3-6a5852173cff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8654b133-b23f-7972-7f52-e967c131c919" executionId="6774a776-e164-4375-b2af-50df939ec595" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2e5bc418-630f-6126-8fe1-038869b38476" executionId="57e33a66-a962-48ee-8158-ce0f33d62e24" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f4ad7522-3cf2-3d1c-046e-a0d2f5009c57" executionId="21f1b65d-6642-411b-88de-93f59ee5852b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6329de49-2348-f039-91c1-699bd91bdf9d" executionId="af4d06b1-c6fb-44c0-91b4-021659670123" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="43d1a02d-74e4-a778-0960-8336882930f5" executionId="3ec60ea3-5ea9-4429-a88c-f6b08a984edd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d2720b97-5c75-a724-04ad-b7075cfedb2d" executionId="cc71f519-7fdd-4c2b-9927-965c07cd8daf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d7fb5e3a-5023-9e43-0666-5e1641fa96d4" executionId="e1063fd0-d768-4da6-87a5-a8d1bd5cf3b2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8f38ff49-bb55-b403-4d8c-3e5154f02e48" executionId="e885fb38-afe6-4ac0-8107-9064463a1585" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a7ba4737-036f-6bf5-2667-62f6803aecc2" executionId="ebcad840-9325-4716-b49a-b5f5c3483115" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6b5ea93b-fc50-8180-a5ff-f9204d161bd5" executionId="1008f7d4-5ab8-4d44-a712-ec8a7f6f2be2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="27d5684b-10df-5d9c-edc7-bf3590236cf2" executionId="ad2d8eda-d081-4a13-a604-9d28e24637a8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b0d3bd75-2dd4-d792-8170-b0a8e37e42aa" executionId="aed9ce9c-2c4e-43f0-938f-b1160e319d52" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b0f2d519-4583-0b90-3574-ed75b2738762" executionId="c7c8bbd0-3deb-4f54-b15f-140c41ce526f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="51ab5356-9bba-a8a7-f0fa-57d6583869b9" executionId="0e84722e-88a9-470e-8dc3-b888ba94f291" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="481f8d71-ea05-ebfb-820c-39d24c0c9096" executionId="e8139d42-7dc3-43ed-937e-af94fa016f7d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9f9e0ed6-06d1-9a26-4230-5fad196ffe37" executionId="bd9074fe-8170-4f25-9acd-b57b15a1d23e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f4397196-56c8-1282-a9da-86bd9c778b30" executionId="34e847bb-1a99-4ecb-9ffc-abe896948adb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5d547bbc-1ed1-a952-bfdc-681b7594998e" executionId="fe2681b1-337b-476c-b2c9-8d99eb09d47f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="81c28faf-dc37-8969-1a80-3a3b02c497b5" executionId="1e68b72c-d63b-416f-8394-90fe8d126946" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a18319d0-57b5-347a-0562-2ff4573800ad" executionId="73e99f5a-a41e-41e8-a5f0-b96ba97e0f39" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0ea51235-9bcd-f6dd-6245-55486c53cff5" executionId="ad10a8f1-2cad-4e9c-bb4f-4a9fc4a20bba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="00b4203a-1de6-1259-0d91-b7cbfe248425" executionId="6c84f2b4-02a2-4718-91f9-8b40f0f3a4eb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4ee3f109-6a2e-81d7-fc17-a2726355e6e2" executionId="23635729-9d76-4137-8604-46e7b0642c6b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d0a17cfa-b834-cf31-c3c2-cf290e9ae221" executionId="213dd1aa-9183-4867-bc28-760fea0a66fe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="af4063cd-ecc5-5922-68e9-803ffff413b9" executionId="83337068-64b9-44ce-8074-8a9b94868b91" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="615bcdcd-6fec-dd0e-138e-95f1981dd1d9" executionId="a23a779e-078f-4d83-893e-9fd13f7635ae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="13acd6df-2dbf-1b03-11b5-aaa81c43b511" executionId="ccfa34f3-04d9-43d0-8d93-a951c838a9d5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6173f629-fc2f-9256-a1fb-2e9382e89480" executionId="7f3ec8a0-ff7e-49fe-ba22-73786a582487" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="152d88c6-6407-e8fe-2661-e5b79635bfcd" executionId="4b01778e-d953-4fe9-bd68-01780d1a1bac" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="98599a3d-8ae5-c992-3e1c-4224e5dcbfa2" executionId="e89d62ea-84a0-4604-972e-2ffd7f029f40" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8189fbbc-5ef2-1b3b-642d-66c406b94518" executionId="0840a227-5a94-4d13-b63b-7fd6dcf889f2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="73a196e6-f699-461c-421f-a778001b1221" executionId="f5565263-3744-4155-8d5d-7b00ad48e6fb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="de779631-69a4-1192-19f4-7b361208b586" executionId="f51fa720-f912-4c9e-b52a-b003bc2c808a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="476a2e22-4a8c-6a9e-e738-d5671f31fac0" executionId="8f2093e4-f07a-4f90-a87c-7435743cc9e6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bcc029e7-f265-52b2-9a3c-31f9cfff24d4" executionId="5d8a3de1-62f3-454f-b6d9-ab02f3518820" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0013079a-d1ea-1671-becb-67b4c566fbb6" executionId="e77ca59a-9492-4c72-823a-942741c75555" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4ec6dd57-a428-0a95-4f20-80ac50a9c53d" executionId="51ae95fb-744d-4501-9683-e218bd26577f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15004f32-affc-e0b2-c584-c42f197d2c57" executionId="f7ba9167-bf10-49ce-9ac7-6d4afbc0a45f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3ff4cf8c-46d5-ea9d-6fa7-fc6c236847e1" executionId="95fc6b7a-c931-490c-a78e-42fc23531bd0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8fc44169-1436-be8a-4b8a-82aad9076daf" executionId="12087f42-4c37-43e8-95b2-3fa193c6f965" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d8cc2ee-d4da-3b71-ec25-8c347090cb90" executionId="042258ac-08d7-48f8-9e1f-38a42667bd9a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cfa040de-397c-b026-bcdb-4d3a64e9e3d9" executionId="6e51264e-4c56-496f-80b5-3ab9a28056b3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2b7f610-0966-c74d-853e-f4c9dcca88a8" executionId="9c04eac8-7ffa-4518-9632-0acbb9edd3b5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="830dca80-88d3-988f-1a81-7d10d33225bc" executionId="83e6c029-53bf-4e14-81dd-bd6cd6e66781" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3f789a1c-7ba3-381e-7043-a47704ac18aa" executionId="29b14f68-b554-49fa-87c2-92b2f5efc151" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ddb84c28-0041-6d67-3b91-7ee9c87f8285" executionId="06056dd3-2ea4-4c0f-bf3c-436539a214af" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="48fc1071-0d6f-fae5-e2e7-7fca252180de" executionId="7bfaba6b-23c9-4f34-837a-243653130348" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a7713747-8c8f-6c3a-fa4c-1b0b5f2fbc2f" executionId="6a347b46-1e80-40a1-ae65-f426b24a6b5d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f18f1b64-6162-e84c-6962-ef7854b16530" executionId="b3c4d3c4-939a-4780-893d-3dc318c40ed1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8666af0e-924d-bc4f-6021-062c02cce2d7" executionId="ad57e05e-7071-4f04-8da0-40c0732849a7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15b5e503-5451-a18b-dbf3-af10c658f3cc" executionId="0519008e-06dd-4fc4-9446-e107555aafa3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d4478b5a-99d2-76b2-7fe6-7deed04df603" executionId="aa7f02a8-ebd8-4043-a701-758dbe4b3f98" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f95dbfad-6425-83f8-b6e2-0948a0053718" executionId="e41d6b8a-68b9-401a-9b1f-cede314d71eb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9160826e-96ca-88d1-6dcd-b13a067ff9f1" executionId="ce0973b8-083a-4d47-b4bb-e8b58005f647" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5c4c9a42-7978-2c23-91d9-f5fbfe135b0e" executionId="51f9c101-5130-484e-ab14-bfb808a39ad3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6d3f0ed1-8420-1046-7a42-44bc2881d515" executionId="d7e32b93-e2b7-48b6-9056-6eeeca6eca08" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f22cd0ae-69dc-ca9e-64df-0d24aed93d2e" executionId="1f15de9c-8d04-477d-9369-5ab3124fff8e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="90b9e5a5-9a42-aa39-dd0c-8a07bf75387e" executionId="2896c4a4-9eb7-4020-a66e-2bcbcd4b8046" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ace2f0be-9794-1855-8a33-bbc43ecc95d5" executionId="b581b86b-9036-491a-86aa-be9ae77c5096" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a16eb61f-b503-322e-f222-e7ace1f8b51f" executionId="dcbaa5e5-45e2-434e-947d-57c1c8d99ec2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5d560493-93a8-4377-59a9-1089ae09a887" executionId="bd806ea9-0174-4b8f-ac36-5e0333c0e0a7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3075e802-60bb-2a5d-af80-9cebe2e5ddae" executionId="e000df7b-1c3a-49d2-ba05-d68ccc4a0b92" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7669d2ef-f390-9a77-00c7-58714d4e598a" executionId="5b83630f-dd37-4b73-a5b3-144b333bd28a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="31c45f3f-0325-5b17-3a85-ff861a968d90" executionId="debf7219-1f11-4d37-8ad6-08a9de3c3e7c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="600eac29-bd70-d31a-7ce7-19abc26f365a" executionId="cfb4e98b-e9d4-4130-8398-a8fb8dc8c42e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aa3ab005-060f-3fbf-43a0-a2ba8bba3c79" executionId="ceb9479e-6714-43d8-9b47-46f2092152c8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3ef3df57-216b-074a-730e-b81464ccad9a" executionId="efd976a1-9d0d-46f2-a79d-d7777807227b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c5dbfa9d-f79a-0a4a-bd07-bfe369ade685" executionId="5cc5a1a3-be25-4967-a25a-3edf13a9aa00" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6c063d15-841e-9667-0fdb-cb465e8187fa" executionId="44ef391f-cd60-47a2-976c-f6c15a279c62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f1c9cb11-2ef2-fdac-eb37-000ce4fe4786" executionId="c7a5cef9-86c4-4fe5-838b-784480d6268d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc16028f-e9b9-fd6c-a3de-d8bca167e4c1" executionId="065a1860-ec80-4000-9c7c-e90df7ab28e6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="155d54c0-804a-05cf-0264-43bd803b2d72" executionId="82c66ad0-8cf1-4cc9-bee2-f9de354cede0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2a955e3f-9ee8-2f5d-de7c-9cef4ae327ba" executionId="a505146d-fbca-45b9-8949-4ce77c70af47" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8e871575-82d0-8491-6fdf-82829cdf567f" executionId="5d040413-1e9a-488a-b786-7443a10122a2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="83cecf12-4455-2a73-699c-6cb555374a06" executionId="81eb1626-3800-4dc5-8029-425ddcee3e22" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e604793b-1753-ceb6-c46a-1ff09d76fa93" executionId="7955fe4c-dbb9-48bd-9201-ce6292e40699" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1c264fa2-02ab-4e8d-bf50-098a76b13d9d" executionId="0c91bb47-19b6-491e-a753-0cdba2ac6719" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3a59692f-683a-b2b6-766d-b5fcb48cd390" executionId="5d1fc883-22cd-43f6-bd70-697d7a14fa07" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="90" executed="90" passed="82" failed="8" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 9.0.18)&#xD;
+[xUnit.net 00:00:00.06]   Discovering: INK.ERP.UnitTests&#xD;
+[xUnit.net 00:00:00.09]   Discovered:  INK.ERP.UnitTests&#xD;
+[xUnit.net 00:00:00.11]   Starting:    INK.ERP.UnitTests&#xD;
+[xUnit.net 00:00:00.24]       System.NullReferenceException : Object reference not set to an instance of an object.&#xD;
+[xUnit.net 00:00:00.24]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.24]         X:\cursor ai\backend\src\INK.ERP.Application\Features\Security\Face\Workflows\FaceEnrollmentWorkflow.cs(44,0): at INK.ERP.Application.Features.Security.Face.Workflows.FaceEnrollmentWorkflow.ExecuteAsync(EnrollFaceCommand command, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:00.24]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Features\Security\WorkflowAndRiskRefinementTests.cs(75,0): at INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.FaceEnrollmentWorkflow_ValidImage_ReturnsFaceProfileDto()&#xD;
+[xUnit.net 00:00:00.24]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.29]       Expected result to be "CommandResult", but found &lt;null&gt;.&#xD;
+[xUnit.net 00:00:00.29]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Primitives.StringValidator.ValidateAgainstNulls()&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Primitives.StringValidator.Validate()&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.29]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Behaviors\TransactionBehaviorTests.cs(51,0): at INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandSuccess_BeginsAndCommitsTransaction()&#xD;
+[xUnit.net 00:00:00.29]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.29]       Expected result.IsSuccess to be True, but found False.&#xD;
+[xUnit.net 00:00:00.29]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.29]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Infrastructure\Security\ProductionHardeningUnitTests.cs(41,0): at INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.ImagePipeline_ExecutesStagesInOrder_ReturnsPreprocessedResult()&#xD;
+[xUnit.net 00:00:00.29]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.29]       Expected result.Value.HighRiskDetected to be True, but found False.&#xD;
+[xUnit.net 00:00:00.29]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.29]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Features\Security\DeviceAndIncidentHandlerTests.cs(91,0): at INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.CalculateRiskQuery_ValidIncidents_CalculatesRiskScore()&#xD;
+[xUnit.net 00:00:00.29]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.29]       Expected a &lt;System.InvalidOperationException&gt; to be thrown, but no exception was thrown.&#xD;
+[xUnit.net 00:00:00.29]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Execution.AssertionScope.FailWith(String message)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Specialized.DelegateAssertionsBase`2.ThrowInternal[TException](Exception exception, String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.29]            at FluentAssertions.Specialized.DelegateAssertions`2.Throw[TException](String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.29]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Domain\Security\FaceProfileTests.cs(43,0): at INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_MoreThan5Templates_ThrowsInvalidOperationException()&#xD;
+[xUnit.net 00:00:00.29]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)&#xD;
+[xUnit.net 00:00:00.29]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.30]       Expected a &lt;System.InvalidOperationException&gt; to be thrown, but no exception was thrown.&#xD;
+[xUnit.net 00:00:00.30]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Execution.AssertionScope.FailWith(String message)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Specialized.DelegateAssertionsBase`2.ThrowInternal[TException](Exception exception, String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.Specialized.AsyncFunctionAssertions`2.ThrowAsync[TException](String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.30]            at FluentAssertions.ExceptionAssertionsExtensions.WithMessage[TException](Task`1 task, String expectedWildcardPattern, String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.30]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Behaviors\TransactionBehaviorTests.cs(67,0): at INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandFailure_RollsBackTransactionAndRethrows()&#xD;
+[xUnit.net 00:00:00.30]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.32]       Expected _jwtTokenService.ValidateToken(token) to be True, but found False.&#xD;
+[xUnit.net 00:00:00.32]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+[xUnit.net 00:00:00.32]            at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.32]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\Infrastructure\JwtTokenServiceTests.cs(73,0): at INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateJwtToken_ValidUser_ReturnsNonEmptyJwt()&#xD;
+[xUnit.net 00:00:00.32]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)&#xD;
+[xUnit.net 00:00:00.32]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.73]       Expected result.IsSuccessful to be True, but found False.&#xD;
+[xUnit.net 00:00:00.73]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)&#xD;
+[xUnit.net 00:00:00.75]            at FluentAssertions.Primitives.BooleanAssertions`1.BeTrue(String because, Object[] becauseArgs)&#xD;
+[xUnit.net 00:00:00.75]         X:\cursor ai\backend\tests\INK.ERP.UnitTests\ArchitectureTests.cs(129,0): at INK.ERP.UnitTests.ArchitectureTests.Services_Should_HaveNameEndingWithService()&#xD;
+[xUnit.net 00:00:00.75]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)&#xD;
+[xUnit.net 00:00:00.75]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.83]   Finished:    INK.ERP.UnitTests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.3797510+05:30">
+        <Text>[xUnit.net 00:00:00.24]     INK.ERP.UnitTests.Features.Security.WorkflowAndRiskRefinementTests.FaceEnrollmentWorkflow_ValidImage_ReturnsFaceProfileDto [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.4298283+05:30">
+        <Text>[xUnit.net 00:00:00.29]     INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandSuccess_BeginsAndCommitsTransaction [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.4304979+05:30">
+        <Text>[xUnit.net 00:00:00.29]     INK.ERP.UnitTests.Infrastructure.Security.ProductionHardeningUnitTests.ImagePipeline_ExecutesStagesInOrder_ReturnsPreprocessedResult [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.4334150+05:30">
+        <Text>[xUnit.net 00:00:00.29]     INK.ERP.UnitTests.Features.Security.DeviceAndIncidentHandlerTests.CalculateRiskQuery_ValidIncidents_CalculatesRiskScore [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.4335003+05:30">
+        <Text>[xUnit.net 00:00:00.29]     INK.ERP.UnitTests.Domain.Security.FaceProfileTests.Enroll_MoreThan5Templates_ThrowsInvalidOperationException [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.4335949+05:30">
+        <Text>[xUnit.net 00:00:00.30]     INK.ERP.UnitTests.Behaviors.TransactionBehaviorTests.Handle_CommandFailure_RollsBackTransactionAndRethrows [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.4617448+05:30">
+        <Text>[xUnit.net 00:00:00.32]     INK.ERP.UnitTests.Infrastructure.JwtTokenServiceTests.GenerateJwtToken_ValidUser_ReturnsNonEmptyJwt [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="OP-SHADOW" outcome="Error" timestamp="2026-08-05T21:27:57.8680933+05:30">
+        <Text>[xUnit.net 00:00:00.73]     INK.ERP.UnitTests.ArchitectureTests.Services_Should_HaveNameEndingWithService [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

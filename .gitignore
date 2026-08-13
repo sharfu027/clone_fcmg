@@ -1,0 +1,36 @@
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+coverage/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.user
+
+# .NET / C# (Backend preparation)
+bin/
+obj/
+backend/bin/
+backend/obj/
+backend/.vs/
+**/bin/
+**/obj/
+
+# Scratch & Temporary
+scratch/
+

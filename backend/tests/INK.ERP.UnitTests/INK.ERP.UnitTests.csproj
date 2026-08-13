@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\INK.ERP.Domain\INK.ERP.Domain.csproj" />
+    <ProjectReference Include="..\..\src\INK.ERP.Shared\INK.ERP.Shared.csproj" />
+    <ProjectReference Include="..\..\src\INK.ERP.Application\INK.ERP.Application.csproj" />
+    <ProjectReference Include="..\..\src\INK.ERP.Infrastructure\INK.ERP.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\INK.ERP.API\INK.ERP.API.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="Moq" />
+  </ItemGroup>
+</Project>

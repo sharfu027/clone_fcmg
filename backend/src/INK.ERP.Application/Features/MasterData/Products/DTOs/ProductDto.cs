@@ -1,0 +1,25 @@
+namespace INK.ERP.Application.Features.MasterData.Products.DTOs;
+
+public record ProductDto(
+    Guid Id,
+    Guid CompanyId,
+    string? CompanyName,
+    Guid CategoryId,
+    string? CategoryName,
+    Guid BrandId,
+    string? BrandName,
+    Guid BaseUomId,
+    string? BaseUomCode,
+    string Code,
+    string Name,
+    string Sku,
+    string? Barcode,
+    string HsnCode,
+    decimal GstRatePercent,
+    decimal Mrp,
+    decimal BasePrice,
+    decimal MinOrderQty,
+    int? ShelfLifeDays,
+    bool IsBatchTracked,
+    bool IsActive,
+    DateTime CreatedAtUtc);
