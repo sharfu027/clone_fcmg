@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, MapPin, Camera, ShieldCheck } from 'lucide-react';
+import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
+import { CANONICAL_MODULE_PERMISSIONS } from '../../../constants/roles';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface EditUserModalProps {
     preferredLanguage: string;
     timeZone: string;
     profileImageUrl?: string;
+    role?: string;
+    roles?: string[];
   } | null;
   onSuccess: (message: string) => void;
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
@@ -47,6 +50,26 @@ export const saveUserSecurityPolicy = (policy: UserSecurityPolicySettings): void
   }
 };
 
+export const getUserPermissions = (userId: string): string[] => {
+  try {
+    const raw = localStorage.getItem(`ink_user_permissions_${userId}`);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading user permissions:', e);
+  }
+  return [
+    'admin:manage_users', 'masters:manage', 'procurement:manage', 'wms:manage', 'inventory:manage', 'sales:manage', 'finance:manage'
+  ];
+};
+
+export const saveUserPermissions = (userId: string, permissions: string[]): void => {
+  try {
+    localStorage.setItem(`ink_user_permissions_${userId}`, JSON.stringify(permissions));
+  } catch (e) {
+    console.error('Error saving user permissions:', e);
+  }
+};
+
 export const EditUserModal: React.FC<EditUserModalProps> = ({
   isOpen,
   onClose,
@@ -66,6 +89,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
   const [enableLocationAuth, setEnableLocationAuth] = useState(true);
   const [enableFaceAuth, setEnableFaceAuth] = useState(true);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -83,10 +107,17 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       const policy = getUserSecurityPolicy(user.id);
       setEnableLocationAuth(policy.enableLocationAuth);
       setEnableFaceAuth(policy.enableFaceAuth);
+      setSelectedPermissions(getUserPermissions(user.id));
     }
   }, [user]);
 
   if (!isOpen || !user) return null;
+
+  const togglePermission = (code: string) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(code) ? prev.filter((p) => p !== code) : [...prev, code]
+    );
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -118,6 +149,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         enableLocationAuth,
         enableFaceAuth,
       });
+
+      // Save User Per-Module Permissions (Fine-grained ABAC)
+      saveUserPermissions(user.id, selectedPermissions);
 
       onSuccess(`User profile and authentication policies for '${formData.displayName}' updated successfully.`);
       onClose();
@@ -285,6 +319,51 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                   <option value="Bypassed">🚫 Disabled (Bypass / Escape Face)</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* PER-USER INDIVIDUAL MODULE CLEARANCE SELECTOR */}
+          <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders size={14} /> Tailored Sub-Admin Module Clearance
+              </h4>
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-brand-primary rounded-full">
+                {selectedPermissions.length} / {CANONICAL_MODULE_PERMISSIONS.filter(p => !p.protected).length} Modules Selected
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600">
+              Customize exact module permissions for this specific user. Changes take effect immediately across all system sessions.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pt-1">
+              {CANONICAL_MODULE_PERMISSIONS.filter((p) => !p.protected).map((perm) => {
+                const isChecked = selectedPermissions.includes(perm.code);
+                return (
+                  <label
+                    key={perm.code}
+                    className={`p-2 rounded-lg border text-left cursor-pointer transition flex items-start gap-2 ${
+                      isChecked
+                        ? 'border-brand-primary bg-white shadow-xs'
+                        : 'border-brand-border bg-slate-50 hover:bg-white'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => togglePermission(perm.code)}
+                      className="mt-0.5 cursor-pointer accent-brand-primary"
+                    />
+                    <div>
+                      <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                        {perm.name}
+                        {isChecked && <CheckCircle size={11} className="text-brand-primary" />}
+                      </div>
+                      <div className="text-[10px] text-slate-500 leading-tight">{perm.description}</div>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
 

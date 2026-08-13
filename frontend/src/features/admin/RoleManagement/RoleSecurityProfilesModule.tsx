@@ -412,6 +412,30 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
         />
       </div>
 
+      {/* ── SUB-ADMIN PER-USER CUSTOM ACCESS BANNER ── */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 bg-brand-primary text-white rounded-lg shrink-0 mt-0.5 shadow-xs">
+            <Sliders size={20} />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+              Individual Sub-Admin Custom Clearance (Per-User Fine-Grained Permissions)
+              <span className="text-[10px] bg-blue-100 text-brand-primary px-2 py-0.5 rounded-full font-mono font-bold">ABAC Clearance</span>
+            </h4>
+            <p className="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
+              Global roles below apply template permissions across role groups. To assign <strong>different individual permissions to different Sub-Admins</strong> (e.g., Admin A gets Procurement & Warehouse; Admin B gets Sales & Finance; Admin C gets All modules), configure custom module clearance under <strong>User Management</strong>.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/admin/security-center/user-management"
+          className="px-3.5 py-2 bg-brand-primary hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-xs whitespace-nowrap flex items-center gap-1.5 shrink-0"
+        >
+          <Users size={14} /> Go to User Management <ArrowRight size={14} />
+        </a>
+      </div>
+
       {/* ── SECTION 2: MAIN TOOLBAR ── */}
       <div className="bg-white p-4 rounded-xl border border-brand-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-1 flex-wrap items-center gap-3">
