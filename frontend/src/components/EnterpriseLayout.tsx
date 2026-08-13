@@ -87,9 +87,21 @@ export default function EnterpriseLayout({
 
   // Dynamic Navigation filtering based on Authentication Policy & Security Profile
   const hasPermission = (item: NavItem) => {
+    if (
+      activeRole === 'Super Administrator' ||
+      user?.role === 'Super Administrator' ||
+      user?.permissions?.includes('manage:all')
+    ) {
+      return true;
+    }
     if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
     if (!user || !user.permissions) return true;
-    return item.requiredPermissions.some(perm => user.permissions?.includes(perm));
+    return item.requiredPermissions.some(perm =>
+      user.permissions?.includes(perm) ||
+      user.permissions?.includes('manage:all') ||
+      user.permissions?.includes('iam:manage') ||
+      user.permissions?.includes('manage:security')
+    );
   };
 
   const filteredMenu = navigationMenu.filter(hasPermission);

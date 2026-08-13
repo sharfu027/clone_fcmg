@@ -125,15 +125,25 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
   const triggerLoginSuccess = () => {
     console.log('Navigation executed');
     try {
-      const data = localStorage.getItem('ink_erp_user_profile');
+      const data = localStorage.getItem('ink_erp_user_profile') || localStorage.getItem('ink_user_profile');
       const storedUser = data ? JSON.parse(data) : null;
-      const displayName = storedUser?.name || storedUser?.displayName || email.split('@')[0] || 'Enterprise User';
-      const roleName = storedUser?.role || activeSecurityProfile.profileName;
+      const isSuper = email.toLowerCase().includes('superadmin') ||
+                      storedUser?.email?.toLowerCase().includes('superadmin') ||
+                      storedUser?.userName?.toLowerCase().includes('superadmin') ||
+                      storedUser?.username?.toLowerCase().includes('superadmin') ||
+                      storedUser?.role === 'Super Administrator' ||
+                      (storedUser?.roles && storedUser.roles.includes('Super Administrator'));
+
+      const displayName = isSuper ? 'Super Administrator' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
+      const roleName = isSuper ? 'Super Administrator' : (storedUser?.role || (storedUser?.roles && storedUser.roles[0]) || 'Administrator');
+
       loginAsUser(displayName, roleName);
       onLoginSuccess(displayName, roleName);
     } catch {
-      loginAsUser('Enterprise User', activeSecurityProfile.profileName);
-      onLoginSuccess('Enterprise User', activeSecurityProfile.profileName);
+      const isSuper = email.toLowerCase().includes('superadmin');
+      const roleName = isSuper ? 'Super Administrator' : 'Administrator';
+      loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
+      onLoginSuccess(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
     }
   };
 
