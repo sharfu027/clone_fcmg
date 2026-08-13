@@ -117,8 +117,8 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
   );
 
   // Interactive Form States
-  const [email, setEmail] = useState('admin@inkerp.com');
-  const [password, setPassword] = useState('AdminPassword123!');
+  const [email, setEmail] = useState('superadmin@inkerp.com');
+  const [password, setPassword] = useState('SuperAdminPassword123!');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 

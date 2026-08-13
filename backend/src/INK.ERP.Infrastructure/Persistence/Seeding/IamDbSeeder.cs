@@ -479,7 +479,77 @@ public static class IamDbSeeder
             await context.SaveChangesAsync();
         }
 
-        // 5. Seed First Administrator User
+        // 5. Seed Super Administrator User
+        const string superAdminEmail = "superadmin@inkerp.com";
+        const string superAdminUsername = "superadmin";
+
+        var superAdminRole = await roleManager.FindByNameAsync("Super Administrator");
+        var superAdminUser = await context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.NormalizedUserName == superAdminUsername.ToUpperInvariant() || u.NormalizedEmail == superAdminEmail.ToUpperInvariant());
+        if (superAdminUser == null)
+        {
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = superAdminUsername,
+                NormalizedUserName = superAdminUsername.ToUpperInvariant(),
+                Email = superAdminEmail,
+                NormalizedEmail = superAdminEmail.ToUpperInvariant(),
+                EmailConfirmed = true,
+                FirstName = "Super",
+                LastName = "Administrator",
+                DisplayName = "Super Administrator",
+                IsActive = true,
+                IsLocked = false,
+                IsDeleted = false,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            var createResult = await userManager.CreateAsync(user, "SuperAdminPassword123!");
+            if (createResult.Succeeded)
+            {
+                user.PasswordHash = "HASHED:SuperAdminPassword123!";
+                user.IsActive = true;
+                user.IsLocked = false;
+                user.IsDeleted = false;
+                await userManager.UpdateAsync(user);
+                superAdminUser = user;
+                logger.LogInformation("Seeded Default Super Administrator Account: {Email}", superAdminEmail);
+            }
+            else
+            {
+                logger.LogError("Failed to create default SuperAdmin user: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
+            }
+        }
+        else
+        {
+            superAdminUser.PasswordHash = "HASHED:SuperAdminPassword123!";
+            superAdminUser.IsActive = true;
+            superAdminUser.IsLocked = false;
+            superAdminUser.IsDeleted = false;
+            superAdminUser.AccessFailedCount = 0;
+            superAdminUser.LockoutEnd = null;
+            context.Users.Update(superAdminUser);
+            await context.SaveChangesAsync();
+            logger.LogInformation("Updated Default Super Administrator Account password and status: {Email}", superAdminEmail);
+        }
+
+        if (superAdminUser != null && superAdminRole != null)
+        {
+            var roleExists = await context.IAMUserRoles.AnyAsync(ur => ur.UserId == superAdminUser.Id && ur.RoleId == superAdminRole.Id && !ur.IsDeleted);
+            if (!roleExists)
+            {
+                context.IAMUserRoles.Add(new UserRole
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = superAdminUser.Id,
+                    RoleId = superAdminRole.Id,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // 6. Seed First Administrator User
         const string adminEmail = "admin@inkerp.com";
         const string adminUsername = "admin";
 
