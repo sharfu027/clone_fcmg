@@ -413,5 +413,3 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 };
 
 export default CreateUserModal;
-
-export default CreateUserModal;
