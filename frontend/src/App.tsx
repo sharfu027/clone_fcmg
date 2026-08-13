@@ -12,8 +12,6 @@ import { UserRole, ToastMessage } from './types';
 import EnterpriseLayout from './components/EnterpriseLayout';
 import EnterpriseDashboard from './components/EnterpriseDashboard';
 import DesignSystemDocs from './components/DesignSystemDocs';
-import DevOnly from './components/dev/DevOnly';
-import RoleSimulator from './components/dev/RoleSimulator';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicOnlyRoute from './components/auth/PublicOnlyRoute';
@@ -225,15 +223,7 @@ function AppContent() {
         />
       </Routes>
 
-      {/* Floating System Role Simulator (Dev Mode Only) */}
-      <DevOnly>
-        {user && (
-          <RoleSimulator
-            currentRole={user.role}
-            onRoleChange={handleRoleChange}
-          />
-        )}
-      </DevOnly>
+
 
       {/* Global Toast Container */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
