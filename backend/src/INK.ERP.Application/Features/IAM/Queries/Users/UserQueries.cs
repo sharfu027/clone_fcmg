@@ -17,10 +17,12 @@ public sealed record GetUserByIdQuery(Guid UserId) : IQuery<Result<UserDto>>;
 public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, Result<UserDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetUserByIdQueryHandler(IUnitOfWork unitOfWork)
+    public GetUserByIdQueryHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<UserDto>> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
@@ -35,11 +37,24 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
             return Result.Failure<UserDto>(IamErrors.User.NotFound(request.UserId));
         }
 
-        var userRoles = await userRoleRepo.FindAsync(ur => ur.UserId == user.Id && !ur.IsDeleted, cancellationToken);
-        var roleIds = userRoles.Select(ur => ur.RoleId).ToList();
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+        var isSubAdmin = _currentUserService.Roles.Contains("Administrator");
+        var currentUserIdGuid = Guid.TryParse(_currentUserService.UserId, out var parsedId) ? parsedId : Guid.Empty;
 
-        var roles = await roleRepo.FindAsync(r => roleIds.Contains(r.Id) && !r.IsDeleted, cancellationToken);
-        var roleNames = roles.Select(r => r.Name ?? r.Code).ToList();
+        var targetUserRoles = await userRoleRepo.FindAsync(ur => ur.UserId == user.Id && !ur.IsDeleted, cancellationToken);
+        var targetRoleIds = targetUserRoles.Select(ur => ur.RoleId).ToList();
+        var targetRoles = await roleRepo.FindAsync(r => targetRoleIds.Contains(r.Id) && !r.IsDeleted, cancellationToken);
+        var targetRoleNames = targetRoles.Select(r => r.Name ?? r.Code).ToList();
+
+        // Server-Side Scope Isolation Check:
+        // Sub-Admins CANNOT view Super Administrators or OTHER Administrators (unless it's their own account)
+        if (isSubAdmin && !isSuperAdmin && user.Id != currentUserIdGuid)
+        {
+            if (targetRoleNames.Contains("Super Administrator") || targetRoleNames.Contains("Administrator"))
+            {
+                return Result.Failure<UserDto>(IamErrors.User.NotFound(request.UserId));
+            }
+        }
 
         var dto = new UserDto(
             user.Id,
@@ -62,22 +77,24 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
             user.ProfileImageUrl,
             user.CreatedAtUtc,
             user.LastModifiedAtUtc,
-            roleNames);
+            targetRoleNames);
 
         return Result.Success(dto);
     }
 }
 
-// 2. GetUsersQuery (Paged with Specification and Projection)
+// 2. GetUsersQuery (Paged with UserScopeSpecification and Projection)
 public sealed record GetUsersQuery(UserFilter Filter) : IQuery<Result<PagedResult<UserDto>>>;
 
 public sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result<PagedResult<UserDto>>>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetUsersQueryHandler(IUnitOfWork unitOfWork)
+    public GetUsersQueryHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<PagedResult<UserDto>>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
@@ -86,7 +103,25 @@ public sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result
         var userRoleRepo = _unitOfWork.Repository<UserRole>();
         var roleRepo = _unitOfWork.Repository<ApplicationRole>();
 
-        var spec = new UserFilterSpecification(request.Filter);
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+        var isSubAdmin = _currentUserService.Roles.Contains("Administrator");
+        var currentUserIdGuid = Guid.TryParse(_currentUserService.UserId, out var parsedId) ? parsedId : Guid.Empty;
+
+        var restrictedUserIds = new HashSet<Guid>();
+
+        if (isSubAdmin && !isSuperAdmin)
+        {
+            var adminRoles = await roleRepo.FindAsync(r => (r.Name == "Super Administrator" || r.Name == "Administrator") && !r.IsDeleted, cancellationToken);
+            var adminRoleIds = adminRoles.Select(r => r.Id).ToList();
+
+            var adminUserRoles = await userRoleRepo.FindAsync(ur => adminRoleIds.Contains(ur.RoleId) && !ur.IsDeleted, cancellationToken);
+            restrictedUserIds = adminUserRoles
+                .Select(ur => ur.UserId)
+                .Where(id => id != currentUserIdGuid)
+                .ToHashSet();
+        }
+
+        var spec = new UserScopeSpecification(request.Filter, isSuperAdmin, restrictedUserIds);
         var users = await userRepo.ListWithDeletedAsync(spec, cancellationToken);
         var totalCount = await userRepo.CountWithDeletedAsync(spec, cancellationToken);
 

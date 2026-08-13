@@ -87,9 +87,9 @@ public sealed class UsersControllerTests
         var result = await _controller.CreateUser(command, CancellationToken.None);
 
         // Assert
-        var createdResult = result.Should().BeOfType<CreatedAtActionResult>().Subject;
-        createdResult.StatusCode.Should().Be(201);
-        createdResult.Value.Should().Be(newUserId);
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(201);
+        objectResult.Value.Should().Be(newUserId);
     }
 
     [Fact]

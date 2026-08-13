@@ -38,9 +38,15 @@ public sealed class AssignRoleCommandHandlerTests
         _unitOfWorkMock.Setup(u => u.Repository<ApplicationRole>()).Returns(_roleRepoMock.Object);
         _unitOfWorkMock.Setup(u => u.Repository<UserRole>()).Returns(_userRoleRepoMock.Object);
 
+        var mockCurrentUserService = new Mock<ICurrentUserService>();
+        mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Super Administrator" });
+        var mockSessionRevocationService = new Mock<ISessionRevocationService>();
+
         _handler = new AssignRoleCommandHandler(
             _unitOfWorkMock.Object,
             _userDomainServiceMock.Object,
+            mockCurrentUserService.Object,
+            mockSessionRevocationService.Object,
             _dateTimeMock.Object,
             _loggerMock.Object);
     }

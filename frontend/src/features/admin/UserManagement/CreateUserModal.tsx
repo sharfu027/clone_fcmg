@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle } from 'lucide-react';
+import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle, Sliders } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { RoleDefinition } from '../../../types/admin';
+import { CANONICAL_MODULE_PERMISSIONS } from '../../../constants/roles';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -10,9 +11,10 @@ interface CreateUserModalProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
 }
 
-// 12 Standard ERP Login Types / Roles required
+// 13 Standard ERP Login Types / Roles required including Super Administrator
 export const ERP_LOGIN_ROLES = [
-  { code: 'ADMINISTRATOR', name: 'Administrator', desc: 'Full System & Security Access' },
+  { code: 'SUPER_ADMINISTRATOR', name: 'Super Administrator', desc: 'Root System & Multi-Admin Access' },
+  { code: 'ADMINISTRATOR', name: 'Administrator', desc: 'Sub-Admin with Tailored Module Access' },
   { code: 'SALES_MANAGER', name: 'Sales Manager', desc: 'Regional Sales & Team Control' },
   { code: 'SALES_REP', name: 'Sales Representative', desc: 'Field Orders & Customer Visits' },
   { code: 'PURCHASE_MANAGER', name: 'Purchase Manager', desc: 'Procurement & Vendor Orders' },
@@ -46,19 +48,19 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     timeZone: 'Asia/Kolkata',
   });
 
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
+    'admin:manage_users', 'masters:manage', 'procurement:manage', 'wms:manage', 'inventory:manage', 'sales:manage', 'finance:manage'
+  ]);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      // Fetch dynamic backend roles if available
       adminService.getRoles().then((roles) => {
         if (roles && roles.length > 0) {
           setAvailableRoles(roles);
         }
-      }).catch(() => {
-        // Fallback to static list if backend roles endpoint is empty
-      });
+      }).catch(() => {});
     }
   }, [isOpen]);
 
@@ -75,6 +77,12 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     });
   };
 
+  const togglePermission = (code: string) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(code) ? prev.filter((p) => p !== code) : [...prev, code]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || !formData.email || !formData.firstName || !formData.lastName || !formData.password) {
@@ -89,7 +97,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // 1. Create User via POST /api/v1/users
       const userId = await adminService.createUser({
         username: formData.username.trim(),
         email: formData.email.trim(),
@@ -103,7 +110,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         timeZone: formData.timeZone,
       });
 
-      // 2. Assign Role if backend role found matching selection
       if (userId) {
         const matchedRole = availableRoles.find(
           (r) => r.code?.toLowerCase() === formData.selectedRoleCode.toLowerCase() || r.name?.toLowerCase() === formData.selectedRoleCode.toLowerCase()
@@ -111,9 +117,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         if (matchedRole) {
           try {
             await adminService.assignRole(userId, matchedRole.id);
-          } catch {
-            // Role assignment fallback
-          }
+          } catch {}
         }
       }
 
@@ -126,6 +130,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const isSubAdminSelected = formData.selectedRoleCode === 'ADMINISTRATOR';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
@@ -335,6 +341,52 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
+          {/* Section 4: Custom Sub-Admin Module Permission Selector */}
+          {isSubAdminSelected && (
+            <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders size={14} /> Sub-Admin Module Clearance Selector
+                </h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-brand-primary rounded-full">
+                  {selectedPermissions.length} / {CANONICAL_MODULE_PERMISSIONS.filter(p => !p.protected).length} Modules Selected
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Grant specific FMCG ERP module permissions to this Sub-Admin. Root clearance (<code className="text-rose-600">manage:all</code>) and IAM Security (<code className="text-rose-600">iam:manage</code>) are protected Super-Admin rights.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pt-1">
+                {CANONICAL_MODULE_PERMISSIONS.filter((p) => !p.protected).map((perm) => {
+                  const isChecked = selectedPermissions.includes(perm.code);
+                  return (
+                    <label
+                      key={perm.code}
+                      className={`p-2 rounded-lg border text-left cursor-pointer transition flex items-start gap-2 ${
+                        isChecked
+                          ? 'border-brand-primary bg-white shadow-xs'
+                          : 'border-brand-border bg-slate-50 hover:bg-white'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => togglePermission(perm.code)}
+                        className="mt-0.5 cursor-pointer accent-brand-primary"
+                      />
+                      <div>
+                        <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                          {perm.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight">{perm.description}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Footer Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t">
             <button
@@ -359,5 +411,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     </div>
   );
 };
+
+export default CreateUserModal;
 
 export default CreateUserModal;

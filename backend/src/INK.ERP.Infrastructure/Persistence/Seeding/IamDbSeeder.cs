@@ -302,10 +302,11 @@ public static class IamDbSeeder
             logger.LogWarning(ex, "Table creation or seeding for pricing.currencies / pricing.exchange_rates skipped or handled.");
         }
 
-        // 1. Seed Roles (12 Production Default Roles)
+        // 1. Seed Roles (13 Production Default Roles including Super Administrator)
         var defaultRoles = new (string Code, string Name, string Description, int Priority, bool IsSystem)[]
         {
-            ("ADMIN", "Administrator", "System Administrator with full master access", 1, true),
+            ("SUPER_ADMIN", "Super Administrator", "Super Administrator with complete system clearance and full multi-admin management", 0, true),
+            ("ADMIN", "Administrator", "Sub-Admin with configurable module permissions assigned by Super Admin", 1, true),
             ("SALES_MANAGER", "Sales Manager", "Manages sales operations, approvals, and reps", 2, true),
             ("SALES_REP", "Sales Representative", "Sales order processing and customer relations", 3, false),
             ("PURCHASE_MANAGER", "Purchase Manager", "Procurement, vendor management, and purchase approvals", 4, false),
@@ -340,16 +341,27 @@ public static class IamDbSeeder
             }
         }
 
-        // 2. Seed Core Permission Groups / Modules
+        // 2. Seed Core Permission Groups / Modules for all 17 FMCG Modules
         var coreGroups = new (string Code, string Name, string Description, int DisplayOrder)[]
         {
-            ("INVENTORY", "Inventory", "Stock levels, warehouses, stock adjustments and transfers", 1),
-            ("SALES", "Sales", "Sales orders, invoicing, quotes, and customer accounts", 2),
-            ("PROCUREMENT", "Procurement / Purchase", "Purchase orders, supplier management, and goods receipt", 3),
-            ("FINANCE", "Finance", "General ledger, vouchers, payments, and financial statements", 4),
-            ("SECURITY", "Security & IAM", "User accounts, role security profiles, policies, biometrics, and audit trail", 5),
-            ("REPORTS", "Reports", "Business intelligence, operational reports, and export scheduling", 6),
-            ("DASHBOARD", "Dashboard", "Executive KPI widgets, analytics charts, and operational overview", 7)
+            ("ROOT", "Root System", "Super Admin root clearance and full control", 0),
+            ("IAM", "Authentication & Security Center", "Global security policies, MFA, biometrics, security profiles", 1),
+            ("USER_MGMT", "User Management", "Operational employee accounts, status lifecycle, and roster", 2),
+            ("MASTERS", "Master Data Engine", "Companies, branches, departments, customers, suppliers, products", 3),
+            ("PRICING", "Pricing & Promotions", "Price lists, discount rules, customer-specific pricing", 4),
+            ("PROCUREMENT", "Procurement & Sourcing", "PRs, RFQs, POs, GRN receiving, 3-way invoice matching", 5),
+            ("WMS", "Warehouse Management", "Putaway, picking waves, packing staging, stock transfers", 6),
+            ("INVENTORY", "Inventory Control", "Stock levels, FEFO expiry tracking, cycle counting", 7),
+            ("SFA", "Sales Force Automation", "Beat planning, GPS visits, live order booking, DCR", 8),
+            ("O2C", "Order-to-Cash", "Quotations, sales orders, GST invoicing, delivery notes", 9),
+            ("RETURNS", "Returns Management", "RMA authorization, QC staging, RTV vendor returns", 10),
+            ("FINANCE", "Finance & AR/AP", "Accounts receivable, accounts payable, ledger", 11),
+            ("WORKFLOW", "Approval Workflow", "Workflow designer, approval matrix, delegation rules", 12),
+            ("HRMS", "HRMS Portal", "Employee roster, attendance logs, leave management", 13),
+            ("CRM", "CRM & Customer Service", "Customer 360, complaints, service tickets", 14),
+            ("LOGISTICS", "Logistics & Delivery", "Fleet management, route optimization, proof of delivery", 15),
+            ("REPORTS", "Reports & Document Engine", "Query builder, document renderer, exports", 16),
+            ("BI", "Executive BI & Analytics", "Executive dashboards, sales/financial analytics", 17)
         };
 
         var groupDict = new Dictionary<string, Guid>();
@@ -380,67 +392,40 @@ public static class IamDbSeeder
             }
         }
 
-        // 3. Seed Core Permissions per ERP Module & Action Matrix
+        // 3. Seed Canonical 17 FMCG Module Permissions + Root Clearance
         var corePermissions = new (string GroupCode, string Code, string Name, string Description, int DisplayOrder)[]
         {
-            // Inventory Module Permissions
-            ("INVENTORY", "inventory:view", "View Inventory", "View stock levels and warehouse data", 1),
-            ("INVENTORY", "inventory:create", "Create Inventory", "Add new stock items or warehouse entries", 2),
-            ("INVENTORY", "inventory:edit", "Edit Inventory", "Modify stock levels and item properties", 3),
-            ("INVENTORY", "inventory:delete", "Delete Inventory", "Remove stock records or items", 4),
-            ("INVENTORY", "inventory:approve", "Approve Stock Adjustments", "Approve inventory audits and transfers", 5),
-            ("INVENTORY", "inventory:export", "Export Inventory Data", "Export stock reports to CSV/Excel", 6),
-            ("INVENTORY", "inventory:print", "Print Barcodes & Stock Tags", "Print inventory labels and tags", 7),
-            ("INVENTORY", "inventory:import", "Import Stock Records", "Bulk import stock items from CSV", 8),
-
-            // Sales Module Permissions
-            ("SALES", "sales:view", "View Sales", "View sales orders and customer invoices", 1),
-            ("SALES", "sales:create", "Create Sales Order", "Create new sales quotes and orders", 2),
-            ("SALES", "sales:edit", "Edit Sales Order", "Modify pending sales orders", 3),
-            ("SALES", "sales:delete", "Delete Sales Order", "Cancel or soft delete sales orders", 4),
-            ("SALES", "sales:approve", "Approve Sales Order", "Approve high-value sales orders", 5),
-            ("SALES", "sales:reject", "Reject Sales Order", "Reject non-compliant sales orders", 6),
-            ("SALES", "sales:export", "Export Sales Data", "Export sales invoices and customer lists", 7),
-            ("SALES", "sales:print", "Print Receipts & Invoices", "Print sales order invoices and receipts", 8),
-
-            // Procurement / Purchase Module Permissions
-            ("PROCUREMENT", "procurement:view", "View Procurement", "View purchase orders and supplier catalog", 1),
-            ("PROCUREMENT", "procurement:create", "Create Purchase Order", "Draft new purchase orders", 2),
-            ("PROCUREMENT", "procurement:edit", "Edit Purchase Order", "Modify pending purchase orders", 3),
-            ("PROCUREMENT", "procurement:delete", "Delete Purchase Order", "Delete purchase orders", 4),
-            ("PROCUREMENT", "procurement:approve", "Approve Purchase Order", "Approve purchase orders for vendor release", 5),
-            ("PROCUREMENT", "procurement:reject", "Reject Purchase Order", "Reject purchase requisitions", 6),
-            ("PROCUREMENT", "procurement:export", "Export Procurement Data", "Export purchase orders and vendor ledgers", 7),
-            ("PROCUREMENT", "procurement:print", "Print Purchase Orders", "Print purchase order documentation", 8),
-            ("PROCUREMENT", "procurement:import", "Import Supplier Catalogs", "Bulk import vendor pricelists", 9),
-
-            // Finance Module Permissions
-            ("FINANCE", "finance:view", "View Financial Statements", "View general ledger, balance sheet, P&L", 1),
-            ("FINANCE", "finance:create", "Create Financial Voucher", "Draft payment and journal vouchers", 2),
-            ("FINANCE", "finance:edit", "Edit Financial Entries", "Modify unposted financial vouchers", 3),
-            ("FINANCE", "finance:delete", "Delete Financial Vouchers", "Void or soft-delete journal entries", 4),
-            ("FINANCE", "finance:approve", "Approve Financial Disbursal", "Approve disbursements and payments", 5),
-            ("FINANCE", "finance:export", "Export Financial Ledgers", "Export ledger data for auditing", 6),
-            ("FINANCE", "finance:print", "Print Financial Statements", "Print vouchers and P&L reports", 7),
-
-            // Security Module Permissions
-            ("SECURITY", "security:user_management", "User Management", "Manage user accounts, locking, and status", 1),
-            ("SECURITY", "security:role_management", "Role Management", "Create, edit, clone, and assign roles & permissions", 2),
-            ("SECURITY", "security:policies", "Authentication Policies", "Configure MFA, GPS geofencing, and password rules", 3),
-            ("SECURITY", "security:biometrics", "Biometrics & Face Registration", "Enroll and manage face template biometrics", 4),
-            ("SECURITY", "security:audit_logs", "Security Audit Trail", "View security audit trail logs and incidents", 5),
-            ("SECURITY", "security:global_settings", "Global Platform Settings", "Manage enterprise system configurations", 6),
-
-            // Reports Module Permissions
-            ("REPORTS", "reports:view", "View Reports", "View analytical and operational reports", 1),
-            ("REPORTS", "reports:export", "Export Reports", "Export reports to PDF, CSV, Excel", 2),
-            ("REPORTS", "reports:schedule", "Schedule Automated Reports", "Configure automated report email dispatches", 3),
-            ("REPORTS", "reports:print", "Print Reports", "Print operational reports", 4),
-
-            // Dashboard Module Permissions
-            ("DASHBOARD", "dashboard:view_dashboard", "View Dashboard", "Access main ERP dashboard overview", 1),
-            ("DASHBOARD", "dashboard:view_kpi", "View Executive KPIs", "Access executive financial & sales KPIs", 2),
-            ("DASHBOARD", "dashboard:view_analytics", "View Analytics Charts", "Access real-time interactive chart widgets", 3)
+            ("ROOT", "manage:all", "Full Root System Clearance", "Complete unrestricted access across all system modules", 0),
+            ("IAM", "iam:manage", "IAM & Security Center", "Manage global security policies, MFA, biometrics, security profiles", 1),
+            ("USER_MGMT", "admin:manage_users", "Operational User Management", "Manage operational employee user accounts and roster", 2),
+            ("MASTERS", "masters:manage", "Master Data Engine", "Manage companies, branches, departments, customers, suppliers, products", 3),
+            ("PRICING", "pricing:manage", "Pricing & Promotions", "Manage price lists, volume discounts, customer pricing, and taxes", 4),
+            ("PROCUREMENT", "procurement:manage", "Procurement & Sourcing", "Manage purchase requisitions, RFQs, purchase orders, and GRN", 5),
+            ("WMS", "wms:manage", "Warehouse Management", "Manage warehouse putaway, picking waves, packing, and transfers", 6),
+            ("INVENTORY", "inventory:manage", "Inventory Control", "Manage stock levels, FEFO expiry tracking, and cycle counting", 7),
+            ("SFA", "sfa:manage", "Sales Force Automation", "Manage beat planning, GPS store visits, live orders, and collections", 8),
+            ("O2C", "o2c:manage", "Order-to-Cash", "Manage quotations, sales orders, delivery notes, and tax invoices", 9),
+            ("RETURNS", "returns:manage", "Returns Management", "Manage RMA authorizations, damage inspection, and vendor returns", 10),
+            ("FINANCE", "finance:manage", "Finance & AR/AP", "Manage accounts receivable, accounts payable, and general ledger", 11),
+            ("WORKFLOW", "workflow:manage", "Approval Workflow", "Manage workflow designer, approval matrix, and delegations", 12),
+            ("HRMS", "hrms:manage", "HRMS Portal", "Manage employee roster, attendance tracking, and leave approvals", 13),
+            ("CRM", "crm:manage", "CRM & Customer Service", "Manage Customer 360, complaints, and service tickets", 14),
+            ("LOGISTICS", "logistics:manage", "Logistics & Delivery", "Manage fleet vehicles, route optimization, and proof of delivery", 15),
+            ("REPORTS", "reports:manage", "Reports & Documents", "Manage query builder, document renderer, and export scheduling", 16),
+            ("BI", "bi:manage", "Executive BI & Analytics", "Access executive BI dashboards and financial charts", 17),
+            // Action-level permission aliases
+            ("INVENTORY", "inventory:view", "View Inventory", "View stock levels and warehouse data", 18),
+            ("SALES", "sales:view", "View Sales", "View sales orders and customer invoices", 19),
+            ("PROCUREMENT", "procurement:view", "View Procurement", "View purchase orders and supplier catalog", 20),
+            ("FINANCE", "finance:view", "View Financial Statements", "View general ledger, balance sheet, P&L", 21),
+            ("IAM", "security:user_management", "User Management", "Manage user accounts, locking, and status", 22),
+            ("IAM", "security:role_management", "Role Management", "Create, edit, clone, and assign roles & permissions", 23),
+            ("REPORTS", "reports:view", "View Reports", "View analytical and operational reports", 24),
+            ("BI", "dashboard:view_dashboard", "View Dashboard", "Access main ERP dashboard overview", 25),
+            ("USER_MGMT", "IAM.Users.Read", "Read Users", "Read user profile data", 26),
+            ("USER_MGMT", "IAM.Users.Create", "Create Users", "Create new user profiles", 27),
+            ("USER_MGMT", "IAM.Users.Update", "Update Users", "Update user profile data", 28),
+            ("USER_MGMT", "IAM.Users.Delete", "Delete Users", "Soft delete user profiles", 29)
         };
 
         var allPermissionIds = new List<Guid>();

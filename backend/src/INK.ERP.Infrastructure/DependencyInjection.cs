@@ -262,6 +262,7 @@ public static class DependencyInjection
         services.AddScoped<IGpsVerificationService, GpsVerificationService>();
         services.AddScoped<IGeofenceService, GeofenceService>();
         services.AddScoped<IDeviceFingerprintService, DeviceFingerprintService>();
+        services.AddSingleton<ISessionRevocationService, SessionRevocationService>();
 
         // Register Risk Evaluation Strategy Registry & Engine
         services.AddScoped<IRiskStrategy, FaceRiskStrategy>();

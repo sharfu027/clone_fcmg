@@ -130,17 +130,23 @@ public sealed class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserDomainService _userDomainService;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly ISessionRevocationService _sessionRevocationService;
     private readonly IDateTime _dateTime;
     private readonly ILogger<AssignRoleCommandHandler> _logger;
 
     public AssignRoleCommandHandler(
         IUnitOfWork unitOfWork,
         IUserDomainService userDomainService,
+        ICurrentUserService currentUserService,
+        ISessionRevocationService sessionRevocationService,
         IDateTime dateTime,
         ILogger<AssignRoleCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _userDomainService = userDomainService;
+        _currentUserService = currentUserService;
+        _sessionRevocationService = sessionRevocationService;
         _dateTime = dateTime;
         _logger = logger;
     }
@@ -160,6 +166,15 @@ public sealed class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand
         var user = await userRepo.GetByIdAsync(request.UserId, cancellationToken);
         var role = await roleRepo.GetByIdAsync(request.RoleId, cancellationToken);
 
+        // Security Protection: Only Super Administrator can assign Super Administrator or Administrator roles
+        var targetRoleName = role?.Name ?? role?.Code ?? string.Empty;
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+
+        if (!isSuperAdmin && (targetRoleName.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase) || targetRoleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result.Failure<Unit>(Error.Unauthorized("IAM.PrivilegeEscalation", "Only Super Administrators can create or assign administrative roles."));
+        }
+
         var userRole = new UserRole
         {
             Id = Guid.NewGuid(),
@@ -173,7 +188,10 @@ public sealed class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand
         await userRoleRepo.AddAsync(userRole, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Role {RoleId} assigned to User {UserId}", role.Id, user.Id);
+        // Active Session Revocation on Role/Permission Mutation
+        _sessionRevocationService.RevokeUserSessions(request.UserId, $"Role '{targetRoleName}' assigned by {_currentUserService.Username}");
+
+        _logger.LogInformation("Role {RoleId} assigned to User {UserId} by {Caller}", role.Id, user.Id, _currentUserService.Username);
         return Result.Success(Unit.Value);
     }
 }
