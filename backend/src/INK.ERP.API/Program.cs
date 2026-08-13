@@ -50,45 +50,55 @@ builder.Services.AddApiVersioning(options =>
 // 5. Configure Policy-based Authorization
 builder.Services.AddAuthorization(options =>
 {
+    Func<Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext, bool> isSuperOrAdmin = ctx =>
+        (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated) &&
+        (ctx.User.IsInRole("Super Administrator") ||
+         ctx.User.IsInRole("SUPERADMIN") ||
+         ctx.User.IsInRole("Administrator") ||
+         ctx.User.IsInRole("ADMIN") ||
+         ctx.User.HasClaim("permission", "manage:all") ||
+         ctx.User.HasClaim("permission", "iam:manage") ||
+         ctx.User.HasClaim("permission", "manage:security"));
+
     options.AddPolicy("IAM.Users.Read", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "users:read") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated)));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "users:read")));
 
     options.AddPolicy("IAM.Users.Create", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "users:create") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated)));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "users:create")));
 
     options.AddPolicy("IAM.Users.Update", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "users:update") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated)));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "users:update")));
 
     options.AddPolicy("IAM.Users.Delete", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "users:delete") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated)));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "users:delete")));
 
     options.AddPolicy("IAM.Roles.Read", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "roles:read") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "roles:read")));
 
     options.AddPolicy("IAM.Roles.Manage", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "roles:manage") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "roles:manage")));
 
     options.AddPolicy("IAM.Permissions.Manage", policy => 
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "permissions:manage") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "permissions:manage")));
 
     options.AddPolicy("IAM.Audit.Read", policy => 
         policy.RequireAuthenticatedUser());
 
     // Enterprise Security Policies
     options.AddPolicy("Security.Face.Enroll", policy =>
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "security.face:enroll") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || ctx.User.IsInRole("SecurityAdmin")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "security.face:enroll")));
 
     options.AddPolicy("Security.Face.Verify", policy =>
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "security.face:verify") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || ctx.User.IsInRole("User")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "security.face:verify")));
 
     options.AddPolicy("Security.Device.Manage", policy =>
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "security.device:manage") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || ctx.User.IsInRole("SecurityAdmin")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "security.device:manage")));
 
     options.AddPolicy("Security.Policy.Manage", policy =>
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "security.policy:manage") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "security.policy:manage")));
 
     options.AddPolicy("Security.Risk.View", policy =>
-        policy.RequireAssertion(ctx => ctx.User.HasClaim("permission", "security.risk:view") || ctx.User.IsInRole("Administrator") || ctx.User.IsInRole("ADMIN") || ctx.User.IsInRole("SecurityAdmin")));
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "security.risk:view")));
 
     // Master Data Policies
     options.AddPolicy("Masters.Companies.Create", policy => policy.RequireAuthenticatedUser());
