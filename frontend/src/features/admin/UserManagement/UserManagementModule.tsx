@@ -571,32 +571,46 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         <span className="text-[10px]">Delhi Central</span>
                       </td>
 
-                      {/* Status */}
+                      {/* Interactive Status Badge (Click to Toggle Active / Inactive) */}
                       <td className="p-3 text-center">
-                        {u.isLocked ? (
-                          <Badge variant="danger">Locked</Badge>
-                        ) : u.isActive ? (
-                          <Badge variant="success">Active</Badge>
-                        ) : (
-                          <Badge variant="warning">Inactive</Badge>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
+                          title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
+                          className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                        >
+                          {u.isLocked ? (
+                            <Badge variant="danger">Locked</Badge>
+                          ) : u.isActive ? (
+                            <Badge variant="success">Active</Badge>
+                          ) : (
+                            <Badge variant="warning">Inactive</Badge>
+                          )}
+                        </button>
                       </td>
 
-                      {/* Face Biometrics Status */}
+                      {/* Interactive Face Biometrics Badge (Click to Register / Re-register) */}
                       <td className="p-3 text-center">
-                        {faceStatus === 'Registered' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Registered {faceInfo?.version ? `(v${faceInfo.version})` : ''}
-                          </span>
-                        ) : faceStatus === 'Disabled' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            Disabled
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            Not Registered
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEnrollment(toEmployeeDetails(u))}
+                          title={faceStatus === 'Registered' ? 'Click to Re-Register 3D Face Biometrics' : 'Click to Register 3D Face Biometrics'}
+                          className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                        >
+                          {faceStatus === 'Registered' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs hover:bg-emerald-100">
+                              Registered {faceInfo?.version ? `(v${faceInfo.version})` : ''}
+                            </span>
+                          ) : faceStatus === 'Disabled' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs hover:bg-rose-100">
+                              Disabled
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs hover:bg-amber-100">
+                              Not Registered
+                            </span>
+                          )}
+                        </button>
                       </td>
 
                       {/* Last Login */}
@@ -609,133 +623,44 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         {u.createdAtUtc ? new Date(u.createdAtUtc).toLocaleDateString() : '—'}
                       </td>
 
-                      {/* Row Actions */}
+                      {/* Clean 4 Action Buttons: View, Edit, Reset Pass, Soft Delete */}
                       <td className="p-3 text-right">
-                        <div className="flex justify-end items-center gap-1 flex-wrap">
+                        <div className="flex justify-end items-center gap-1">
                           
-                          {/* View Security Details */}
+                          {/* 1. View Security Details & Audit Logs */}
                           <button
                             onClick={() => handleViewDetails(u)}
-                            title="View Security Details"
+                            title="View Security Details & Audit Logs"
                             className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
                           >
-                            <Eye size={13} />
+                            <Eye size={14} />
                           </button>
 
-                          {/* Edit User Profile */}
+                          {/* 2. Edit User Profile (Face Auth, Geofence & Module Clearance) */}
                           <button
                             onClick={() => setEditUserTarget(u)}
-                            title="Edit User Profile"
+                            title="Edit Profile, Biometrics & Module Clearance"
                             className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
                           >
-                            <Edit3 size={13} />
+                            <Edit3 size={14} />
                           </button>
 
-                          {/* Manage Roles */}
-                          <button
-                            onClick={() => setAssignRoleTarget(u)}
-                            title="Manage Roles"
-                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                          >
-                            <ShieldCheck size={13} />
-                          </button>
-
-                          {/* Register / Update Location */}
-                          <button
-                            onClick={() => {
-                              setLocationTarget(toEmployeeDetails(u));
-                              setIsLocationModalOpen(true);
-                            }}
-                            title="Register / Update Approved Location"
-                            className="p-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition cursor-pointer shadow-xs"
-                          >
-                            <MapPin size={13} />
-                          </button>
-
-                          {/* Register / Update Face */}
-                          <button
-                            onClick={() => handleOpenEnrollment(toEmployeeDetails(u))}
-                            title={faceStatus === 'Registered' ? 'Re-register Face' : 'Register Face'}
-                            className="p-1.5 bg-brand-primary text-white rounded-md hover:bg-blue-700 transition cursor-pointer shadow-xs"
-                          >
-                            <Camera size={13} />
-                          </button>
-
-                          {/* Verification Logs */}
-                          <button
-                            onClick={() => handleOpenHistory(toEmployeeDetails(u))}
-                            title="Face Verification Logs"
-                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                          >
-                            <History size={13} />
-                          </button>
-
-                          {/* Lock / Unlock */}
-                          {u.isLocked ? (
-                            <button
-                              onClick={() => handleUnlock(u)}
-                              title="Unlock Account"
-                              className="p-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100 transition cursor-pointer"
-                            >
-                              <Unlock size={13} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleLock(u)}
-                              title="Lock Account"
-                              className="p-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md hover:bg-amber-100 transition cursor-pointer"
-                            >
-                              <Lock size={13} />
-                            </button>
-                          )}
-
-                          {/* Activate / Deactivate */}
-                          {u.isActive ? (
-                            <button
-                              onClick={() => handleDeactivate(u)}
-                              title="Deactivate Account"
-                              className="p-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-md hover:bg-rose-100 transition cursor-pointer"
-                            >
-                              <UserX size={13} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleActivate(u)}
-                              title="Activate Account"
-                              className="p-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100 transition cursor-pointer"
-                            >
-                              <UserCheck size={13} />
-                            </button>
-                          )}
-
-                          {/* Trigger Password Reset */}
+                          {/* 3. Reset Password */}
                           <button
                             onClick={() => handleResetPassword(u)}
-                            title="Reset Password"
-                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                            title="Reset User Password"
+                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
                           >
-                            <Key size={13} />
+                            <Key size={14} />
                           </button>
 
-                          {/* Quick Delete Face */}
-                          {faceStatus === 'Registered' && (
-                            <button
-                              onClick={() => handleQuickDeleteFace(u)}
-                              disabled={deletingUserId === u.id}
-                              title="Delete Face Biometric Template"
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer disabled:opacity-50"
-                            >
-                              <Fingerprint size={13} />
-                            </button>
-                          )}
-
-                          {/* Soft Delete User */}
+                          {/* 4. Soft Delete User Account */}
                           <button
                             onClick={() => handleDelete(u)}
-                            title="Soft Delete User"
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                            title="Soft Delete User Account"
+                            className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={14} />
                           </button>
 
                         </div>
