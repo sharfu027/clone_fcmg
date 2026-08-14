@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { UserProfile, LoginCredentials, UserPermission } from '../types';
-import { getPermissionsForRole } from '../constants/roles';
+import { UserProfile, LoginCredentials, UserPermission, UserRole } from '../types';
+import { getPermissionsForRole, ROLE_PERMISSIONS_MAP } from '../constants/roles';
 import { STORAGE_KEYS } from '../constants/app';
 import { authService } from '../services/authService';
 import { apiClient } from '../api/apiClient';
+import { getUserAccessSettings } from '../services/userPermissionsService';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -37,12 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
 
       if (validUser && storedToken) {
-        const userRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Administrator';
-        const permissions = getPermissionsForRole(userRole) as UserPermission[];
+        const rawRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Sales Representative';
+        const access = getUserAccessSettings(validUser.id, validUser.email, rawRole);
+        const resolvedRole = access.roleName as UserRole;
+        const resolvedPermissions = (resolvedRole === 'Super Administrator'
+          ? ROLE_PERMISSIONS_MAP['Super Administrator']
+          : access.permissions) as UserPermission[];
+
         setUser({
           ...validUser,
-          role: userRole as any,
-          permissions
+          role: resolvedRole,
+          permissions: resolvedPermissions
         });
         setToken(storedToken);
       } else {
@@ -69,12 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authService.login(credentials);
       if (response.accessToken && response.user) {
-        const userRole = response.user.role || (response.user.roles && (response.user.roles[0] as any)) || 'Administrator';
-        const permissions = getPermissionsForRole(userRole) as UserPermission[];
+        const rawRole = response.user.role || (response.user.roles && (response.user.roles[0] as any)) || 'Sales Representative';
+        const access = getUserAccessSettings(response.user.id, response.user.email, rawRole);
+        const resolvedRole = access.roleName as UserRole;
+        const resolvedPermissions = (resolvedRole === 'Super Administrator'
+          ? ROLE_PERMISSIONS_MAP['Super Administrator']
+          : access.permissions) as UserPermission[];
+
         const fullUser: UserProfile = {
           ...response.user,
-          role: userRole as any,
-          permissions
+          role: resolvedRole,
+          permissions: resolvedPermissions
         };
 
         setToken(response.accessToken);
@@ -90,15 +101,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsUser = (userName: string, role: string) => {
     const mockToken = `jwt-token-${Date.now()}`;
-    const permissions = getPermissionsForRole(role as any) as UserPermission[];
+    const mockEmail = `${userName.toLowerCase().replace(/\s+/g, '.')}@ink-fmcg.com`;
+    const access = getUserAccessSettings(undefined, mockEmail, role);
+    const resolvedRole = access.roleName as UserRole;
+    const resolvedPermissions = (resolvedRole === 'Super Administrator'
+      ? ROLE_PERMISSIONS_MAP['Super Administrator']
+      : access.permissions) as UserPermission[];
+
     const mockUser: UserProfile = {
       id: 'USR-' + Math.floor(1000 + Math.random() * 9000),
       name: userName,
-      email: `${userName.toLowerCase().replace(/\s+/g, '.')}@ink-fmcg.com`,
-      role: role as any,
+      email: mockEmail,
+      role: resolvedRole,
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
       branch: 'Delhi Central',
-      permissions
+      permissions: resolvedPermissions
     };
 
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);

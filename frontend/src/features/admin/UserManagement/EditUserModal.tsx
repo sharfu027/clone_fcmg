@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { CANONICAL_MODULE_PERMISSIONS } from '../../../constants/roles';
+import { saveUserRoleAndPermissions } from '../../../services/userPermissionsService';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -150,8 +151,14 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         enableFaceAuth,
       });
 
-      // Save User Per-Module Permissions (Fine-grained ABAC)
+      // Save User Per-Module Permissions & Role (Fine-grained ABAC)
       saveUserPermissions(user.id, selectedPermissions);
+      saveUserRoleAndPermissions(
+        user.id,
+        (user as any).email || '',
+        user.role || (user as any).roles?.[0] || 'Sales Representative',
+        selectedPermissions
+      );
 
       onSuccess(`User profile and authentication policies for '${formData.displayName}' updated successfully.`);
       onClose();

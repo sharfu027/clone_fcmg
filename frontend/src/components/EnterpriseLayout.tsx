@@ -87,6 +87,7 @@ export default function EnterpriseLayout({
 
   // Dynamic Navigation filtering based on Authentication Policy & Security Profile
   const hasPermission = (item: NavItem) => {
+    // 1. Super Administrator ALWAYS has complete unrestricted root access to ALL modules by default (no one can disable Super Admin)
     if (
       activeRole === 'Super Administrator' ||
       user?.role === 'Super Administrator' ||
@@ -94,14 +95,12 @@ export default function EnterpriseLayout({
     ) {
       return true;
     }
+
+    // 2. For all other users (Sub-Admins, Sales Representatives, etc.), enforce exact tailored module clearance
     if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
-    if (!user || !user.permissions) return true;
-    return item.requiredPermissions.some(perm =>
-      user.permissions?.includes(perm) ||
-      user.permissions?.includes('manage:all') ||
-      user.permissions?.includes('iam:manage') ||
-      user.permissions?.includes('manage:security')
-    );
+    if (!user || !user.permissions || user.permissions.length === 0) return false;
+
+    return item.requiredPermissions.some(perm => user.permissions?.includes(perm));
   };
 
   const filteredMenu = navigationMenu.filter(hasPermission);

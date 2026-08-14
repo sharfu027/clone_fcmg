@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUserSecurityPolicy } from '../features/admin/UserManagement/EditUserModal';
+import { getUserAccessSettings } from '../services/userPermissionsService';
 
 import {
   securityPolicyResolver,
@@ -134,14 +135,17 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
                       storedUser?.role === 'Super Administrator' ||
                       (storedUser?.roles && storedUser.roles.includes('Super Administrator'));
 
+      const userEmail = email || storedUser?.email || '';
+      const userRoleSetting = getUserAccessSettings(storedUser?.id, userEmail, storedUser?.role || 'Sales Representative').roleName;
+
       const displayName = isSuper ? 'Super Administrator' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
-      const roleName = isSuper ? 'Super Administrator' : (storedUser?.role || (storedUser?.roles && storedUser.roles[0]) || 'Administrator');
+      const roleName = isSuper ? 'Super Administrator' : userRoleSetting;
 
       loginAsUser(displayName, roleName);
       onLoginSuccess(displayName, roleName);
     } catch {
       const isSuper = email.toLowerCase().includes('superadmin');
-      const roleName = isSuper ? 'Super Administrator' : 'Administrator';
+      const roleName = isSuper ? 'Super Administrator' : 'Sales Representative';
       loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
       onLoginSuccess(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
     }
