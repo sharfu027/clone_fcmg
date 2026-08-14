@@ -102,6 +102,12 @@ public sealed class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand
             return Result.Failure<Unit>(IamErrors.User.NotFound(request.UserId));
         }
 
+        if ((user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase)) ||
+            (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Administrator root account cannot be deleted."));
+        }
+
         user.IsDeleted = true;
         user.IsActive = false;
         user.LastModifiedAtUtc = _dateTime.UtcNow;
@@ -177,6 +183,12 @@ public sealed class DeactivateUserCommandHandler : IRequestHandler<DeactivateUse
             return Result.Failure<Unit>(IamErrors.User.NotFound(request.UserId));
         }
 
+        if ((user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase)) ||
+            (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Administrator root account cannot be deactivated."));
+        }
+
         var domainValidation = await _userDomainService.CanDeactivateUserAsync(request.UserId, cancellationToken);
         if (domainValidation.IsFailure)
         {
@@ -224,6 +236,12 @@ public sealed class LockUserCommandHandler : IRequestHandler<LockUserCommand, Re
         if (user is null || user.IsDeleted)
         {
             return Result.Failure<Unit>(IamErrors.User.NotFound(request.UserId));
+        }
+
+        if ((user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase)) ||
+            (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Administrator root account cannot be locked."));
         }
 
         user.IsLocked = true;

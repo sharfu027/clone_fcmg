@@ -178,7 +178,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
     }
   };
 
+  const isSuperUser = (u: any) =>
+    u.username?.toLowerCase().includes('superadmin') ||
+    u.email?.toLowerCase().includes('superadmin') ||
+    (u.roles && u.roles.includes('Super Administrator'));
+
   const handleDeactivate = async (user: any) => {
+    if (isSuperUser(user)) {
+      onTriggerToast('warning', 'Root Account Protected', 'The Super Administrator account cannot be deactivated.');
+      return;
+    }
     if (!window.confirm(`Deactivate account for ${user.displayName}? User will be unable to log in.`)) return;
     try {
       await adminService.deactivateUser(user.id);
@@ -190,6 +199,10 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   };
 
   const handleLock = async (user: any) => {
+    if (isSuperUser(user)) {
+      onTriggerToast('warning', 'Root Account Protected', 'The Super Administrator account cannot be locked.');
+      return;
+    }
     try {
       await adminService.lockUser(user.id);
       onTriggerToast('warning', 'User Account Locked', `Account for '${user.username}' has been locked.`);
@@ -210,6 +223,10 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   };
 
   const handleDelete = async (user: any) => {
+    if (isSuperUser(user)) {
+      onTriggerToast('warning', 'Root Account Protected', 'The Super Administrator account cannot be deleted.');
+      return;
+    }
     if (!window.confirm(`Soft delete user '${user.displayName}' (${user.username})? This action will archive the record in PostgreSQL.`)) return;
     try {
       await adminService.deleteUser(user.id);
