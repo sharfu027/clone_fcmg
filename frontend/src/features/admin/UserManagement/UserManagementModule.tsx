@@ -588,22 +588,28 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         <span className="text-[10px]">Delhi Central</span>
                       </td>
 
-                      {/* Interactive Status Badge (Click to Toggle Active / Inactive) */}
+                      {/* Status */}
                       <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
-                          title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
-                          className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
-                        >
-                          {u.isLocked ? (
-                            <Badge variant="danger">Locked</Badge>
-                          ) : u.isActive ? (
-                            <Badge variant="success">Active</Badge>
-                          ) : (
-                            <Badge variant="warning">Inactive</Badge>
-                          )}
-                        </button>
+                        {isSuperUser(u) ? (
+                          <span title="Permanent Root Account (Cannot be deactivated)">
+                            <Badge variant="success">Permanent Active</Badge>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
+                            title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
+                            className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                          >
+                            {u.isLocked ? (
+                              <Badge variant="danger">Locked</Badge>
+                            ) : u.isActive ? (
+                              <Badge variant="success">Active</Badge>
+                            ) : (
+                              <Badge variant="warning">Inactive</Badge>
+                            )}
+                          </button>
+                        )}
                       </td>
 
                       {/* Interactive Face Biometrics Badge (Click to Register / Re-register) */}
@@ -653,14 +659,24 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                             <Eye size={14} />
                           </button>
 
-                          {/* 2. Edit User Profile (Face Auth, Geofence & Module Clearance) */}
-                          <button
-                            onClick={() => setEditUserTarget(u)}
-                            title="Edit Profile, Biometrics & Module Clearance"
-                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                          >
-                            <Edit3 size={14} />
-                          </button>
+                          {/* 2. Edit User Profile */}
+                          {isSuperUser(u) ? (
+                            <button
+                              disabled
+                              title="Root Super Administrator account cannot be edited"
+                              className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setEditUserTarget(u)}
+                              title="Edit Profile, Biometrics & Module Clearance"
+                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                          )}
 
                           {/* 3. Reset Password */}
                           <button
@@ -672,13 +688,23 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                           </button>
 
                           {/* 4. Soft Delete User Account */}
-                          <button
-                            onClick={() => handleDelete(u)}
-                            title="Soft Delete User Account"
-                            className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {isSuperUser(u) ? (
+                            <button
+                              disabled
+                              title="Root Super Administrator account cannot be deleted"
+                              className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleDelete(u)}
+                              title="Soft Delete User Account"
+                              className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
 
                         </div>
                       </td>
