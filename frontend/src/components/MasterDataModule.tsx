@@ -44,44 +44,40 @@ interface MasterDataModuleProps {
 export default function MasterDataModule({ module, onTriggerToast }: MasterDataModuleProps) {
   const getModuleConfig = () => {
     switch (module) {
-      case 'companies':
-      case 'masters/companies':
-        return { name: 'Companies', singular: 'Company', icon: Building, endpoint: 'company' };
-      case 'branches':
-      case 'masters/branches':
-        return { name: 'Branches', singular: 'Branch', icon: Building, endpoint: 'branch' };
-      case 'departments':
-      case 'masters/departments':
-        return { name: 'Departments', singular: 'Department', icon: Building, endpoint: 'department' };
-      case 'designations':
-      case 'masters/designations':
-        return { name: 'Designations', singular: 'Designation', icon: Briefcase, endpoint: 'designation' };
-      case 'employees':
-      case 'masters/employees':
-        return { name: 'Employees', singular: 'Employee', icon: User, endpoint: 'employee' };
-      case 'products':
-      case 'masters/products':
-        return { name: 'Products', singular: 'Product', icon: Boxes, endpoint: 'product' };
-      case 'categories':
-      case 'masters/categories':
-        return { name: 'Categories', singular: 'Category', icon: Tags, endpoint: 'category' };
-      case 'brands':
-      case 'masters/brands':
-        return { name: 'Brands', singular: 'Brand', icon: ClipboardList, endpoint: 'brand' };
-      case 'units':
-      case 'masters/units':
-        return { name: 'Units of Measure', singular: 'Unit of Measure', icon: Tags, endpoint: 'uom' };
-      case 'warehouses':
-      case 'masters/warehouses':
-        return { name: 'Warehouses', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
+      case 'partners':
+      case 'masters/partners':
       case 'customers':
       case 'masters/customers':
-        return { name: 'Customers', singular: 'Customer', icon: Users2, endpoint: 'customer' };
       case 'suppliers':
       case 'masters/suppliers':
-        return { name: 'Suppliers', singular: 'Supplier', icon: Truck, endpoint: 'supplier' };
+        return { name: 'Business Partner Master', singular: 'Business Partner', icon: Users2, endpoint: 'partner' };
+
+      case 'employees':
+      case 'masters/employees':
+      case 'companies':
+      case 'masters/companies':
+      case 'branches':
+      case 'masters/branches':
+      case 'departments':
+      case 'masters/departments':
+      case 'designations':
+      case 'masters/designations':
+        return { name: 'Staff & Org Master', singular: 'Staff Member', icon: User, endpoint: 'employee' };
+
+      case 'products':
+      case 'masters/products':
+      case 'categories':
+      case 'masters/categories':
+      case 'brands':
+      case 'masters/brands':
+      case 'units':
+      case 'masters/units':
+        return { name: 'Unified Product Master', singular: 'Product SKU', icon: Boxes, endpoint: 'product' };
+
+      case 'warehouses':
+      case 'masters/warehouses':
       default:
-        return { name: 'Master Registry', singular: 'Record', icon: Building, endpoint: 'company' };
+        return { name: 'Warehouse & Facility Master', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
     }
   };
 
@@ -239,8 +235,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [newCatInput, setNewCatInput] = useState('');
   const [showQuickAddBrand, setShowQuickAddBrand] = useState(false);
   const [newBrandInput, setNewBrandInput] = useState('');
-  const [showQuickAddUom, setShowQuickAddUom] = useState(false);
-  const [newUomInput, setNewUomInput] = useState('');
+  const [showQuickAddBranch, setShowQuickAddBranch] = useState(false);
+  const [newBranchInput, setNewBranchInput] = useState('');
+  const [showQuickAddDept, setShowQuickAddDept] = useState(false);
+  const [newDeptInput, setNewDeptInput] = useState('');
+  const [showQuickAddDesig, setShowQuickAddDesig] = useState(false);
+  const [newDesigInput, setNewDesigInput] = useState('');
+
+  // Business Partner Role
+  const [partnerRole, setPartnerRole] = useState<'Customer' | 'Supplier' | 'Both'>('Customer');
 
   // 10. Supplier
   const [suppCompanyId, setSuppCompanyId] = useState('1');
@@ -951,6 +954,11 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   };
 
   const getActiveArray = () => {
+    if (module === 'partners' || module === 'masters/partners' || module === 'customers' || module === 'masters/customers' || module === 'suppliers' || module === 'masters/suppliers') {
+      const custRows = dbCustomers.map(c => ({ id: c.id, code: c.code, name: c.name, detail1: 'Customer (Buyer)', detail2: `${c.contact || 'N/A'} | ${c.email || 'N/A'}`, numericText: `Limit: ₹${(c.balance || 500000).toLocaleString()}`, status: c.status }));
+      const suppRows = dbSuppliers.map(s => ({ id: s.id, code: s.code, name: s.name, detail1: 'Supplier (Vendor)', detail2: `${s.contact || 'N/A'} | ${s.email || 'N/A'}`, numericText: `Limit: ₹${(s.balance || 1000000).toLocaleString()}`, status: s.status }));
+      return [...custRows, ...suppRows];
+    }
     if (module === 'companies' || module === 'masters/companies') return dbCompanies.map(c => ({ id: c.id, code: c.code, name: c.legalName, detail1: c.gstin || 'N/A', detail2: c.city || 'HQ', numericText: c.currency, status: c.status }));
     if (module === 'branches' || module === 'masters/branches') return dbBranches.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.companyName, detail2: b.city, numericText: b.isHeadquarters ? 'Headquarters' : 'Depot', status: b.status }));
     if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => ({ id: d.id, code: d.code, name: d.name, detail1: d.branchName, detail2: d.description, numericText: 'Dept', status: d.status }));
@@ -1516,29 +1524,96 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Branch, Department, Designation with Inline + Quick Add */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-blue-50/20 p-4 rounded-lg border border-blue-100">
+                    
+                    {/* 1. Branch Location */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Branch Location</label>
-                      <select value={empBranchId} onChange={e => setEmpBranchId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-brand-text-primary">Branch Location</label>
+                        <button
+                          type="button"
+                          onClick={() => { setShowQuickAddBranch(!showQuickAddBranch); setNewBranchInput(''); }}
+                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus size={11} /> {showQuickAddBranch ? 'Select Existing' : 'New Branch'}
+                        </button>
+                      </div>
+                      {showQuickAddBranch ? (
+                        <input
+                          type="text"
+                          value={newBranchInput}
+                          onChange={e => setNewBranchInput(e.target.value)}
+                          placeholder="Type new branch location..."
+                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
+                        />
+                      ) : (
+                        <select value={empBranchId} onChange={e => setEmpBranchId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      )}
                     </div>
+
+                    {/* 2. Department */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Department</label>
-                      <select value={empDepartmentId} onChange={e => setEmpDepartmentId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-brand-text-primary">Department</label>
+                        <button
+                          type="button"
+                          onClick={() => { setShowQuickAddDept(!showQuickAddDept); setNewDeptInput(''); }}
+                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus size={11} /> {showQuickAddDept ? 'Select Existing' : 'New Dept'}
+                        </button>
+                      </div>
+                      {showQuickAddDept ? (
+                        <input
+                          type="text"
+                          value={newDeptInput}
+                          onChange={e => setNewDeptInput(e.target.value)}
+                          placeholder="Type new department name..."
+                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
+                        />
+                      ) : (
+                        <select value={empDepartmentId} onChange={e => setEmpDepartmentId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          {dbDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      )}
                     </div>
+
+                    {/* 3. Designation */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Designation</label>
-                      <select value={empDesignationId} onChange={e => setEmpDesignationId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbDesignations.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-brand-text-primary">Designation</label>
+                        <button
+                          type="button"
+                          onClick={() => { setShowQuickAddDesig(!showQuickAddDesig); setNewDesigInput(''); }}
+                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus size={11} /> {showQuickAddDesig ? 'Select Existing' : 'New Title'}
+                        </button>
+                      </div>
+                      {showQuickAddDesig ? (
+                        <input
+                          type="text"
+                          value={newDesigInput}
+                          onChange={e => setNewDesigInput(e.target.value)}
+                          placeholder="Type designation title..."
+                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
+                        />
+                      ) : (
+                        <select value={empDesignationId} onChange={e => setEmpDesignationId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          {dbDesignations.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
+                        </select>
+                      )}
                     </div>
+
+                    {/* 4. Joining Date */}
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Joining Date</label>
                       <input type="date" value={empJoiningDate} onChange={e => setEmpJoiningDate(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-mono" />
                     </div>
+
                   </div>
                 </div>
               )}
@@ -1855,36 +1930,81 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 </div>
               )}
 
-              {/* 12. SUPPLIER FORM */}
-              {(module === 'suppliers' || module === 'masters/suppliers') && (
+              {/* 13. BUSINESS PARTNER MASTER FORM */}
+              {(module === 'partners' || module === 'masters/partners' || module === 'customers' || module === 'masters/customers' || module === 'suppliers' || module === 'masters/suppliers') && (
                 <div className="space-y-6 text-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label htmlFor="code" className="font-bold text-brand-text-primary">Vendor Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="SUPP-301" />
-                    </div>
-                    <div className="space-y-1">
-                      <label htmlFor="suppLegalName" className="font-bold text-brand-text-primary">Legal Entity Name <span className="text-red-500">*</span></label>
-                      <input id="suppLegalName" type="text" value={suppLegalName} onChange={e => setSuppLegalName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Hindustan Unilever Ltd" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Trade Name</label>
-                      <input type="text" value={suppTradeName} onChange={e => setSuppTradeName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="HUL Foods" />
+                  {/* Role Selector Pill */}
+                  <div className="p-4 bg-blue-50/40 rounded-lg border border-blue-100 space-y-2">
+                    <label className="font-bold text-brand-text-primary block text-xs">Select Business Partner Trade Role <span className="text-red-500">*</span></label>
+                    <div className="flex items-center gap-3">
+                      {(['Customer', 'Supplier', 'Both'] as const).map(role => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setPartnerRole(role)}
+                          className={`px-4 py-2 rounded-md font-bold text-xs border transition cursor-pointer flex items-center gap-1.5 ${
+                            partnerRole === role
+                              ? 'bg-brand-primary text-white border-brand-primary shadow-xs'
+                              : 'bg-white text-brand-text-secondary border-brand-border hover:bg-brand-bg-secondary'
+                          }`}
+                        >
+                          {role === 'Customer' ? '🛒 Customer (Buyer)' : role === 'Supplier' ? '🚚 Supplier (Vendor)' : '🔄 Dual Trade Partner (Both)'}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Email Address</label>
-                      <input type="email" value={suppEmail} onChange={e => setSuppEmail(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="vendor@hul.com" />
+                      <label htmlFor="code" className="font-bold text-brand-text-primary">Partner Code <span className="text-red-500">*</span></label>
+                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="PART-101" />
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Phone Number</label>
-                      <input type="text" value={suppPhone} onChange={e => setSuppPhone(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="+91 22 4415 5620" />
+                      <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>
+                      <input id="custLegalName" type="text" value={custLegalName} onChange={e => setCustLegalName(e.target.value)} className="w-full p-2 border border-brand-border rounded font-semibold" placeholder="Apex Distribution Pvt Ltd" />
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Credit Limit (₹)</label>
-                      <input type="number" value={suppCreditLimit} onChange={e => setSuppCreditLimit(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded font-mono font-bold text-brand-primary" />
+                      <label className="font-bold text-brand-text-primary">Trade / Store Name</label>
+                      <input type="text" value={suppTradeName} onChange={e => setSuppTradeName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Apex Superstore" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">GSTIN (Tax ID)</label>
+                      <input type="text" maxLength={15} value={custGstin} onChange={e => setCustGstin(e.target.value.toUpperCase())} className="w-full p-2 border border-brand-border rounded uppercase font-mono font-bold" placeholder="07AAAAA0000A1Z5" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">PAN Number</label>
+                      <input type="text" maxLength={10} value={custPan} onChange={e => setCustPan(e.target.value.toUpperCase())} className="w-full p-2 border border-brand-border rounded uppercase font-mono font-bold" placeholder="AAAAA0000A" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Contact Phone</label>
+                      <input type="text" value={custPhone} onChange={e => setCustPhone(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="+91 98110 24512" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Contact Email</label>
+                      <input type="email" value={custEmail} onChange={e => setCustEmail(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="billing@apex.com" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-brand-bg-secondary/30 rounded border border-brand-border">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Approved Credit Limit (₹)</label>
+                      <input type="number" value={custCreditLimit} onChange={e => setCustCreditLimit(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono font-bold text-brand-primary" placeholder="500000" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Payment Term Days</label>
+                      <input type="number" value={custCreditDays} onChange={e => setCustCreditDays(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono font-bold" placeholder="30" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Channel / Category</label>
+                      <select value={custType} onChange={e => setCustType(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
+                        <option value="Retailer">Kirana / Retailer Store</option>
+                        <option value="Wholesaler">Wholesaler Dealer</option>
+                        <option value="Key Account">Key Account / Supermarket</option>
+                        <option value="National Vendor">National Vendor / Manufacturer</option>
+                      </select>
                     </div>
                   </div>
                 </div>

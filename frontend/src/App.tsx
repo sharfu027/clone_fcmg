@@ -48,9 +48,6 @@ function ModuleLoader() {
 
 function MasterDataRouteWrapper({ onTriggerToast }: { onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void }) {
   const { moduleName } = useParams<{ moduleName: string }>();
-  if (moduleName === 'suppliers' || moduleName === 'supplier') {
-    return <SupplierModule onTriggerToast={onTriggerToast} />;
-  }
   return <MasterDataModule module={moduleName || 'products'} onTriggerToast={onTriggerToast} />;
 }
 
