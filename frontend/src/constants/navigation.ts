@@ -14,23 +14,15 @@ export const NAVIGATION_MENU: NavItem[] = [
     ]
   },
   {
-    title: 'Master Data',
+    title: 'Master Data Hubs',
     href: 'masters',
     icon: 'Users2',
     requiredPermissions: ['masters:manage', 'manage:masters'],
     children: [
-      { title: 'Companies', href: 'masters/companies', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Branches', href: 'masters/branches', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Departments', href: 'masters/departments', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Designations', href: 'masters/designations', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Employees', href: 'masters/employees', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Customers', href: 'masters/customers', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Suppliers', href: 'masters/suppliers', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Product Categories', href: 'masters/categories', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Brands', href: 'masters/brands', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Products', href: 'masters/products', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Units', href: 'masters/units', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Warehouses', href: 'masters/warehouses', icon: 'Layers', requiredPermissions: ['masters:manage', 'manage:masters'] }
+      { title: 'Product & Catalog Hub', href: 'masters/catalog', icon: 'Boxes', requiredPermissions: ['masters:manage', 'manage:masters'] },
+      { title: 'Organization & Staff Hub', href: 'masters/organization', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
+      { title: 'Trade Partners Hub', href: 'masters/partners', icon: 'Users2', requiredPermissions: ['masters:manage', 'manage:masters'] },
+      { title: 'Logistics & Facilities Hub', href: 'masters/logistics', icon: 'Truck', requiredPermissions: ['masters:manage', 'manage:masters'] }
     ]
   },
   { 
