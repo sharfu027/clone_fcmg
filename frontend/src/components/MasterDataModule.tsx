@@ -42,102 +42,50 @@ interface MasterDataModuleProps {
 }
 
 export default function MasterDataModule({ module, onTriggerToast }: MasterDataModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<string>(() => {
-    if (module === 'catalog' || module === 'masters/catalog') return 'products';
-    if (module === 'organization' || module === 'masters/organization') return 'companies';
-    if (module === 'partners' || module === 'masters/partners') return 'customers';
-    if (module === 'logistics' || module === 'masters/logistics') return 'warehouses';
-    return module.replace('masters/', '');
-  });
-
-  useEffect(() => {
-    if (module === 'catalog' || module === 'masters/catalog') setActiveSubModule('products');
-    else if (module === 'organization' || module === 'masters/organization') setActiveSubModule('companies');
-    else if (module === 'partners' || module === 'masters/partners') setActiveSubModule('customers');
-    else if (module === 'logistics' || module === 'masters/logistics') setActiveSubModule('warehouses');
-    else setActiveSubModule(module.replace('masters/', ''));
-  }, [module]);
-
-  const effectiveModule = activeSubModule;
-
   const getModuleConfig = () => {
-    switch (effectiveModule) {
+    switch (module) {
       case 'companies':
+      case 'masters/companies':
         return { name: 'Companies', singular: 'Company', icon: Building, endpoint: 'company' };
       case 'branches':
+      case 'masters/branches':
         return { name: 'Branches', singular: 'Branch', icon: Building, endpoint: 'branch' };
       case 'departments':
+      case 'masters/departments':
         return { name: 'Departments', singular: 'Department', icon: Building, endpoint: 'department' };
       case 'designations':
+      case 'masters/designations':
         return { name: 'Designations', singular: 'Designation', icon: Briefcase, endpoint: 'designation' };
       case 'employees':
+      case 'masters/employees':
         return { name: 'Employees', singular: 'Employee', icon: User, endpoint: 'employee' };
       case 'products':
+      case 'masters/products':
         return { name: 'Products', singular: 'Product', icon: Boxes, endpoint: 'product' };
       case 'categories':
+      case 'masters/categories':
         return { name: 'Categories', singular: 'Category', icon: Tags, endpoint: 'category' };
       case 'brands':
+      case 'masters/brands':
         return { name: 'Brands', singular: 'Brand', icon: ClipboardList, endpoint: 'brand' };
       case 'units':
+      case 'masters/units':
         return { name: 'Units of Measure', singular: 'Unit of Measure', icon: Tags, endpoint: 'uom' };
       case 'warehouses':
+      case 'masters/warehouses':
         return { name: 'Warehouses', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
       case 'customers':
+      case 'masters/customers':
         return { name: 'Customers', singular: 'Customer', icon: Users2, endpoint: 'customer' };
       case 'suppliers':
+      case 'masters/suppliers':
         return { name: 'Suppliers', singular: 'Supplier', icon: Truck, endpoint: 'supplier' };
       default:
-        return { name: 'Products', singular: 'Product', icon: Boxes, endpoint: 'product' };
+        return { name: 'Master Registry', singular: 'Record', icon: Building, endpoint: 'company' };
     }
-  };
-
-  const getHubInfo = () => {
-    if (['products', 'categories', 'brands', 'units'].includes(effectiveModule)) {
-      return {
-        hubName: 'Product & Catalog Hub',
-        hubDescription: 'Manage product SKUs, taxonomy categories, brand registry, and units of measure.',
-        tabs: [
-          { key: 'products', label: 'Product SKUs', icon: Boxes },
-          { key: 'categories', label: 'Categories', icon: Tags },
-          { key: 'brands', label: 'Brands', icon: ClipboardList },
-          { key: 'units', label: 'Units of Measure', icon: Tags },
-        ]
-      };
-    }
-    if (['companies', 'branches', 'departments', 'designations', 'employees'].includes(effectiveModule)) {
-      return {
-        hubName: 'Organization & Staff Hub',
-        hubDescription: 'Manage corporate entities, regional branches, operational departments, designations, and employee roster.',
-        tabs: [
-          { key: 'companies', label: 'Companies', icon: Building },
-          { key: 'branches', label: 'Branches', icon: Building },
-          { key: 'departments', label: 'Departments', icon: Building },
-          { key: 'designations', label: 'Designations', icon: Briefcase },
-          { key: 'employees', label: 'Employees', icon: User },
-        ]
-      };
-    }
-    if (['customers', 'suppliers'].includes(effectiveModule)) {
-      return {
-        hubName: 'Trade Partners Hub',
-        hubDescription: 'Manage B2B trade customers, buyers, manufacturers, and raw material suppliers.',
-        tabs: [
-          { key: 'customers', label: 'B2B Customers', icon: Users2 },
-          { key: 'suppliers', label: 'Suppliers & Vendors', icon: Truck },
-        ]
-      };
-    }
-    return {
-      hubName: 'Logistics & Facilities Hub',
-      hubDescription: 'Manage central warehouses, stock depots, cold stores, and bin locations.',
-      tabs: [
-        { key: 'warehouses', label: 'Warehouses & Depots', icon: Building },
-      ]
-    };
   };
 
   const config = getModuleConfig();
-  const hubInfo = getHubInfo();
 
   // Master Repositories (Production Architecture: Companies live data)
   const [dbCompanies, setDbCompanies] = useState<any[]>([]);
@@ -1047,46 +995,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             ))}
           </div>
         )}
-      </div>
-
-      {/* CONSOLIDATED MASTER HUB TAB BAR */}
-      <div className="bg-white rounded-xl border border-brand-border p-4 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-border/60 pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              {hubInfo.hubName}
-              <span className="text-[10px] bg-blue-50 text-brand-primary font-mono px-2 py-0.5 rounded-full font-bold border border-blue-100">Unified Hub</span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">{hubInfo.hubDescription}</p>
-          </div>
-        </div>
-
-        {/* Sub-Tab Navigation Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-1">
-          {hubInfo.tabs.map((tab) => {
-            const TabIcon = tab.icon;
-            const isActive = effectiveModule === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => {
-                  setActiveSubModule(tab.key);
-                  setMode('list');
-                  setSelectedId(null);
-                }}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
-                  isActive
-                    ? 'bg-brand-primary text-white shadow-xs'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
-                }`}
-              >
-                <TabIcon size={14} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* DISPLAY WINDOW WITH REAL & DEBUG STATE HANDLING */}
