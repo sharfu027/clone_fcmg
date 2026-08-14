@@ -234,6 +234,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [prodShelfLifeDays, setProdShelfLifeDays] = useState<number>(365);
   const [prodIsBatchTracked, setProdIsBatchTracked] = useState(true);
 
+  // Quick-Add toggles for Product form
+  const [showQuickAddCategory, setShowQuickAddCategory] = useState(false);
+  const [newCatInput, setNewCatInput] = useState('');
+  const [showQuickAddBrand, setShowQuickAddBrand] = useState(false);
+  const [newBrandInput, setNewBrandInput] = useState('');
+  const [showQuickAddUom, setShowQuickAddUom] = useState(false);
+  const [newUomInput, setNewUomInput] = useState('');
+
   // 10. Supplier
   const [suppCompanyId, setSuppCompanyId] = useState('1');
   const [suppLegalName, setSuppLegalName] = useState('');
@@ -692,9 +700,23 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           isBatchTracked: Boolean(prodIsBatchTracked),
           isActive: formStatus === 'Active'
         };
+        // Auto-register Quick-Add inline Category, Brand, and UOM
+        if (showQuickAddCategory && newCatInput.trim()) {
+          const newCatObj = { id: String(Date.now()), code: `CAT-${Math.floor(100 + Math.random() * 900)}`, name: newCatInput.trim(), description: 'Auto-registered via Product Master', productCount: 1, status: 'Active' as const };
+          setDbCategories(prev => [...prev, newCatObj]);
+        }
+        if (showQuickAddBrand && newBrandInput.trim()) {
+          const newBrandObj = { id: String(Date.now()), code: `BRND-${Math.floor(100 + Math.random() * 900)}`, name: newBrandInput.trim(), origin: 'India', productCount: 1, status: 'Active' as const };
+          setDbBrands(prev => [...prev, newBrandObj]);
+        }
+        if (showQuickAddUom && newUomInput.trim()) {
+          const newUomObj = { id: String(Date.now()), code: `UOM-${newUomInput.trim().toUpperCase().slice(0, 3)}`, name: newUomInput.trim(), baseUnit: 'Unit', conversionFactor: 1, status: 'Active' as const };
+          setDbUnits(prev => [...prev, newUomObj]);
+        }
+
         if (isNew) {
            await masterDataService.createProduct(payload);
-           onTriggerToast('success', 'Product Saved', 'Product record configured.');
+           onTriggerToast('success', 'Product Saved', 'Product record configured with embedded attributes.');
         } else {
            await masterDataService.updateProduct(selectedId!, { ...payload, id: selectedId! });
            onTriggerToast('success', 'Product Updated', 'Product record configured.');
@@ -1541,25 +1563,90 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Category, Brand, UOM with Inline + Quick Add */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/20 p-4 rounded-lg border border-blue-100">
+                    
+                    {/* 1. Category */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Category</label>
-                      <select value={prodCategoryId} onChange={e => setProdCategoryId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-brand-text-primary">Category</label>
+                        <button
+                          type="button"
+                          onClick={() => { setShowQuickAddCategory(!showQuickAddCategory); setNewCatInput(''); }}
+                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus size={11} /> {showQuickAddCategory ? 'Select Existing' : 'New Category'}
+                        </button>
+                      </div>
+                      {showQuickAddCategory ? (
+                        <input
+                          type="text"
+                          value={newCatInput}
+                          onChange={e => setNewCatInput(e.target.value)}
+                          placeholder="Type new category name..."
+                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
+                        />
+                      ) : (
+                        <select value={prodCategoryId} onChange={e => setProdCategoryId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          {dbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      )}
                     </div>
+
+                    {/* 2. Brand */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Brand</label>
-                      <select value={prodBrandId} onChange={e => setProdBrandId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-brand-text-primary">Brand</label>
+                        <button
+                          type="button"
+                          onClick={() => { setShowQuickAddBrand(!showQuickAddBrand); setNewBrandInput(''); }}
+                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus size={11} /> {showQuickAddBrand ? 'Select Existing' : 'New Brand'}
+                        </button>
+                      </div>
+                      {showQuickAddBrand ? (
+                        <input
+                          type="text"
+                          value={newBrandInput}
+                          onChange={e => setNewBrandInput(e.target.value)}
+                          placeholder="Type new brand name..."
+                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
+                        />
+                      ) : (
+                        <select value={prodBrandId} onChange={e => setProdBrandId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          {dbBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      )}
                     </div>
+
+                    {/* 3. Unit of Measure */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Base Unit of Measure</label>
-                      <select value={prodBaseUomId} onChange={e => setProdBaseUomId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbUnits.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-brand-text-primary">Base Unit of Measure</label>
+                        <button
+                          type="button"
+                          onClick={() => { setShowQuickAddUom(!showQuickAddUom); setNewUomInput(''); }}
+                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Plus size={11} /> {showQuickAddUom ? 'Select Existing' : 'New UOM'}
+                        </button>
+                      </div>
+                      {showQuickAddUom ? (
+                        <input
+                          type="text"
+                          value={newUomInput}
+                          onChange={e => setNewUomInput(e.target.value)}
+                          placeholder="Type new UOM (e.g. Liter)..."
+                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
+                        />
+                      ) : (
+                        <select value={prodBaseUomId} onChange={e => setProdBaseUomId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          {dbUnits.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
+                        </select>
+                      )}
                     </div>
+
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-brand-bg-secondary/30 rounded border border-brand-border">
