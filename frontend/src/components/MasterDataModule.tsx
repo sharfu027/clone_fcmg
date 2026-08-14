@@ -50,7 +50,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       case 'masters/customers':
       case 'suppliers':
       case 'masters/suppliers':
-        return { name: 'Business Partner Master', singular: 'Business Partner', icon: Users2, endpoint: 'partner' };
+        return { name: 'Customers & Vendors', singular: 'Trade Partner', icon: Users2, endpoint: 'partner' };
 
       case 'employees':
       case 'masters/employees':
@@ -62,7 +62,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       case 'masters/departments':
       case 'designations':
       case 'masters/designations':
-        return { name: 'Staff & Org Master', singular: 'Staff Member', icon: User, endpoint: 'employee' };
+        return { name: 'Organization & Staff', singular: 'Staff Record', icon: User, endpoint: 'employee' };
 
       case 'products':
       case 'masters/products':
@@ -72,12 +72,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       case 'masters/brands':
       case 'units':
       case 'masters/units':
-        return { name: 'Unified Product Master', singular: 'Product SKU', icon: Boxes, endpoint: 'product' };
+        return { name: 'Products & Catalog', singular: 'Product SKU', icon: Boxes, endpoint: 'product' };
 
       case 'warehouses':
       case 'masters/warehouses':
       default:
-        return { name: 'Warehouse & Facility Master', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
+        return { name: 'Warehouses & Facilities', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
     }
   };
 

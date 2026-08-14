@@ -14,14 +14,14 @@ export const NAVIGATION_MENU: NavItem[] = [
     ]
   },
   {
-    title: 'Master Data Engine',
+    title: 'Master Data',
     href: 'masters',
     icon: 'Boxes',
     requiredPermissions: ['masters:manage', 'manage:masters'],
     children: [
-      { title: 'Unified Product Master', href: 'masters/products', icon: 'Boxes', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Staff & Org Master', href: 'masters/employees', icon: 'UserCheck', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Business Partner Master', href: 'masters/partners', icon: 'Users2', requiredPermissions: ['masters:manage', 'manage:masters'] }
+      { title: 'Products & Catalog', href: 'masters/products', icon: 'Boxes', requiredPermissions: ['masters:manage', 'manage:masters'] },
+      { title: 'Organization & Staff', href: 'masters/employees', icon: 'UserCheck', requiredPermissions: ['masters:manage', 'manage:masters'] },
+      { title: 'Customers & Vendors', href: 'masters/partners', icon: 'Users2', requiredPermissions: ['masters:manage', 'manage:masters'] }
     ]
   },
   { 
