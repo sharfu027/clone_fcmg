@@ -23,17 +23,11 @@ export interface FMCGModulePermission {
 }
 
 export const MASTER_DATA_SUBMODULES = [
-  { code: 'masters:companies', name: 'Companies Master', href: 'masters/companies', category: 'Company' },
-  { code: 'masters:branches', name: 'Branches Master', href: 'masters/branches', category: 'Company' },
-  { code: 'masters:warehouses', name: 'Warehouses Master', href: 'masters/warehouses', category: 'Company' },
-  { code: 'masters:departments', name: 'Departments Master', href: 'masters/departments', category: 'Company' },
-  { code: 'masters:products', name: 'Products SKU Master', href: 'masters/products', category: 'Product' },
-  { code: 'masters:categories', name: 'Product Categories', href: 'masters/categories', category: 'Product' },
-  { code: 'masters:brands', name: 'Brands & Non-Brands', href: 'masters/brands', category: 'Product' },
-  { code: 'masters:employees', name: 'Employee Roster', href: 'masters/employees', category: 'Employee' },
-  { code: 'masters:designations', name: 'Designations Master', href: 'masters/designations', category: 'Employee' },
-  { code: 'masters:customers', name: 'Customers Directory', href: 'masters/customers', category: 'Customer' },
-  { code: 'masters:suppliers', name: 'Suppliers Directory', href: 'masters/suppliers', category: 'Supplier' }
+  { code: 'masters:company', name: 'Company', category: 'Company', subRoutes: ['masters/companies', 'masters/branches', 'masters/warehouses', 'masters/departments'] },
+  { code: 'masters:product', name: 'Product', category: 'Product', subRoutes: ['masters/products', 'masters/categories', 'masters/brands', 'masters/units'] },
+  { code: 'masters:employee', name: 'Employee', category: 'Employee', subRoutes: ['masters/employees', 'masters/designations'] },
+  { code: 'masters:customer', name: 'Customer', category: 'Customer', subRoutes: ['masters/customers'] },
+  { code: 'masters:supplier', name: 'Supplier', category: 'Supplier', subRoutes: ['masters/suppliers'] }
 ];
 
 export const CANONICAL_MODULE_PERMISSIONS: FMCGModulePermission[] = [

@@ -77,9 +77,23 @@ export default function SidebarNavigation({
 
     if (item.href.startsWith('masters/')) {
       const subSlug = item.href.split('/')[1];
-      const subCode = `masters:${subSlug}`;
+      const branchMap: Record<string, string> = {
+        companies: 'masters:company',
+        branches: 'masters:company',
+        warehouses: 'masters:company',
+        departments: 'masters:company',
+        products: 'masters:product',
+        categories: 'masters:product',
+        brands: 'masters:product',
+        units: 'masters:product',
+        employees: 'masters:employee',
+        designations: 'masters:employee',
+        customers: 'masters:customer',
+        suppliers: 'masters:supplier'
+      };
+      const subCode = branchMap[subSlug] || `masters:${subSlug}`;
       const userSubMasterPermissions = user.permissions.filter(p => p.startsWith('masters:'));
-      if (userSubMasterPermissions.length > 1) {
+      if (userSubMasterPermissions.length > 0 && !user.permissions.includes('masters:manage')) {
         return user.permissions.includes(subCode);
       }
       return user.permissions.includes('masters:manage') || user.permissions.includes('manage:masters');

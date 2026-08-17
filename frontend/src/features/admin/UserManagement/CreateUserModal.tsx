@@ -459,22 +459,26 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-1.5 bg-blue-50/50 p-2 rounded border border-blue-100/80">
+                          <div className="flex flex-wrap gap-2 bg-blue-50/60 p-2 rounded-lg border border-blue-100">
                             {MASTER_DATA_SUBMODULES.map((sub) => {
                               const isSubChecked = selectedPermissions.includes(sub.code);
                               return (
                                 <label
                                   key={sub.code}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-700 cursor-pointer hover:text-brand-primary transition"
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-bold cursor-pointer transition ${
+                                    isSubChecked
+                                      ? 'bg-white border-brand-primary text-brand-primary shadow-2xs'
+                                      : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-white'
+                                  }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={isSubChecked}
                                     onChange={() => togglePermission(sub.code)}
-                                    className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3 h-3 cursor-pointer"
+                                    className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
                                   />
-                                  <span className="truncate">{sub.name}</span>
+                                  <span>{sub.name}</span>
                                 </label>
                               );
                             })}
