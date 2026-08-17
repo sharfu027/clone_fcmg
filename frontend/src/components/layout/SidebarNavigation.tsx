@@ -92,11 +92,14 @@ export default function SidebarNavigation({
         suppliers: 'masters:supplier'
       };
       const subCode = branchMap[subSlug] || `masters:${subSlug}`;
-      const userSubMasterPermissions = user.permissions.filter(p => p.startsWith('masters:'));
-      if (userSubMasterPermissions.length > 0 && !user.permissions.includes('masters:manage')) {
-        return user.permissions.includes(subCode);
-      }
-      return user.permissions.includes('masters:manage') || user.permissions.includes('manage:masters');
+
+      // Strictly evaluate if the logged-in user has clearance for this exact branch code
+      return user.permissions.includes(subCode);
+    }
+
+    if (item.href === 'masters') {
+      const branchPermissions = ['masters:company', 'masters:product', 'masters:employee', 'masters:customer', 'masters:supplier'];
+      return branchPermissions.some(b => user.permissions.includes(b));
     }
 
     return item.requiredPermissions.some(perm => user.permissions?.includes(perm));
