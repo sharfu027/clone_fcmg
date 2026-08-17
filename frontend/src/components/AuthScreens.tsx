@@ -141,12 +141,12 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
       const displayName = isSuper ? 'Super Administrator' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
       const roleName = isSuper ? 'Super Administrator' : userRoleSetting;
 
-      loginAsUser(displayName, roleName);
+      loginAsUser(displayName, roleName, userEmail, storedUser?.id);
       onLoginSuccess(displayName, roleName);
     } catch {
       const isSuper = email.toLowerCase().includes('superadmin');
       const roleName = isSuper ? 'Super Administrator' : 'Sales Representative';
-      loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
+      loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName, email);
       onLoginSuccess(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
     }
   };

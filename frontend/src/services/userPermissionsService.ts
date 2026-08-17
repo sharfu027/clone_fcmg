@@ -36,13 +36,16 @@ export const getUserAccessSettings = (
   try {
     let raw = null;
     const cleanEmail = email ? email.toLowerCase().trim() : '';
-    const username = cleanEmail ? cleanEmail.split('@')[0] : '';
+    const rawUsername = cleanEmail ? cleanEmail.split('@')[0] : '';
+    const username = rawUsername.replace(/\s+/g, '');
 
     if (userId) raw = localStorage.getItem(`ink_user_access_${userId}`);
     if (!raw && cleanEmail) raw = localStorage.getItem(`ink_user_access_${cleanEmail}`);
+    if (!raw && rawUsername) raw = localStorage.getItem(`ink_user_access_${rawUsername}`);
     if (!raw && username) raw = localStorage.getItem(`ink_user_access_${username}`);
     if (!raw && userId) raw = localStorage.getItem(`ink_user_permissions_${userId}`);
     if (!raw && cleanEmail) raw = localStorage.getItem(`ink_user_permissions_${cleanEmail}`);
+    if (!raw && rawUsername) raw = localStorage.getItem(`ink_user_permissions_${rawUsername}`);
     if (!raw && username) raw = localStorage.getItem(`ink_user_permissions_${username}`);
 
     if (raw) {

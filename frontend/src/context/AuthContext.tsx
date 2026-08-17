@@ -99,19 +99,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginAsUser = (userName: string, role: string) => {
+  const loginAsUser = (userName: string, role: string, actualEmail?: string, actualId?: string) => {
     const mockToken = `jwt-token-${Date.now()}`;
-    const mockEmail = `${userName.toLowerCase().replace(/\s+/g, '.')}@ink-fmcg.com`;
-    const access = getUserAccessSettings(undefined, mockEmail, role);
+    const userEmail = actualEmail || `${userName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
+    const access = getUserAccessSettings(actualId, userEmail, role);
     const resolvedRole = access.roleName as UserRole;
     const resolvedPermissions = (resolvedRole === 'Super Administrator'
       ? ROLE_PERMISSIONS_MAP['Super Administrator']
       : access.permissions) as UserPermission[];
 
     const mockUser: UserProfile = {
-      id: 'USR-' + Math.floor(1000 + Math.random() * 9000),
+      id: actualId || ('USR-' + Math.floor(1000 + Math.random() * 9000)),
       name: userName,
-      email: mockEmail,
+      email: userEmail,
       role: resolvedRole,
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
       branch: 'Delhi Central',
