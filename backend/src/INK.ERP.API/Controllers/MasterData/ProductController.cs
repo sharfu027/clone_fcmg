@@ -11,13 +11,13 @@ namespace INK.ERP.API.Controllers.MasterData;
 
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/masters/product")]
+[Authorize(Policy = "Masters.Product")]
 public class ProductController : BaseApiController
 {
     /// <summary>
     /// Retrieves a paged list of products with optional company/category/brand filters, search, and status.
     /// </summary>
     [HttpGet]
-    [Authorize(Policy = "IAM.Users.Read")]
     [ProducesResponseType(typeof(IReadOnlyList<ProductDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProducts([FromQuery] Guid? companyId, [FromQuery] Guid? categoryId, [FromQuery] Guid? brandId, [FromQuery] SecurityFilterParameters filter, CancellationToken cancellationToken)
     {
@@ -30,7 +30,6 @@ public class ProductController : BaseApiController
     /// Retrieves a single product item by ID.
     /// </summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "IAM.Users.Read")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProductById(Guid id, CancellationToken cancellationToken)
@@ -44,7 +43,6 @@ public class ProductController : BaseApiController
     /// Creates a new SKU product item.
     /// </summary>
     [HttpPost]
-    [Authorize(Policy = "IAM.Users.Create")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -62,7 +60,6 @@ public class ProductController : BaseApiController
     /// Updates an existing product item.
     /// </summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "IAM.Users.Update")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -87,7 +84,6 @@ public class ProductController : BaseApiController
     /// Deactivates / soft-deletes a product item.
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "IAM.Users.Delete")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteProduct(Guid id, CancellationToken cancellationToken)

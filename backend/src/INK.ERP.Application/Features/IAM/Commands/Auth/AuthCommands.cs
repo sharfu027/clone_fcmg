@@ -50,8 +50,14 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
         var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
         var loginHistoryRepo = _unitOfWork.Repository<LoginHistory>();
 
-        var normalizedSearch = request.Username.Trim().ToUpperInvariant();
-        var user = (await userRepo.FindAsync(u => (u.NormalizedUserName == normalizedSearch || u.NormalizedEmail == normalizedSearch || u.UserName == request.Username || u.Email == request.Username) && !u.IsDeleted, cancellationToken)).FirstOrDefault();
+        var rawUsername = request.Username?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(rawUsername))
+        {
+            return Result.Failure<AuthResponseDto>(new Error("IAM.USER.INVALID_CREDENTIALS", "Invalid username or password.", ErrorType.Unauthorized));
+        }
+
+        var normalizedSearch = rawUsername.ToUpperInvariant();
+        var user = (await userRepo.FindAsync(u => (u.NormalizedUserName == normalizedSearch || u.NormalizedEmail == normalizedSearch || u.UserName == rawUsername || u.Email == rawUsername) && !u.IsDeleted, cancellationToken)).FirstOrDefault();
 
         if (user is null)
         {
@@ -81,9 +87,30 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
         }
 
         // Fast In-Memory Password Verification
-        bool isPasswordValid = user.PasswordHash == "HASHED:" + request.Password
-            || user.PasswordHash == request.Password
-            || (!string.IsNullOrEmpty(user.PasswordHash) && new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationUser>().VerifyHashedPassword(user, user.PasswordHash, request.Password) != Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed);
+        bool isPasswordValid = false;
+        if (!string.IsNullOrEmpty(user.PasswordHash))
+        {
+            if (user.PasswordHash == "HASHED:" + request.Password || user.PasswordHash == request.Password)
+            {
+                isPasswordValid = true;
+            }
+            else
+            {
+                try
+                {
+                    var verificationResult = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationUser>().VerifyHashedPassword(user, user.PasswordHash, request.Password);
+                    isPasswordValid = (verificationResult != Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed);
+                }
+                catch (FormatException)
+                {
+                    isPasswordValid = false;
+                }
+                catch (Exception)
+                {
+                    isPasswordValid = false;
+                }
+            }
+        }
 
         if (!isPasswordValid)
         {
@@ -108,8 +135,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
         user.LastLoginUtc = _dateTime.UtcNow;
         userRepo.Update(user);
 
-        // Fetch permissions and role names
-        var permissionsTask = _permissionResolver.GetPermissionsForUserAsync(user.Id, cancellationToken);
+        // Fetch permissions and role names safely without concurrent DbContext execution
         var roleNames = isSuperAdminUser
             ? new List<string> { "Super Administrator" }
             : new List<string> { "Administrator" };
@@ -123,7 +149,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
                 "manage:masters", "manage:procurement", "manage:warehouse", "manage:inventory",
                 "manage:sales", "manage:finance", "manage:security", "manage:users"
               }
-            : await permissionsTask;
+            : await _permissionResolver.GetPermissionsForUserAsync(user.Id, cancellationToken);
 
         // Generate JWT Access & Refresh Tokens directly
         var accessToken = _tokenService.GenerateJwtToken(user, roleNames, permissions);
@@ -324,3 +350,118 @@ public sealed class ResendVerificationCommandHandler : IRequestHandler<ResendVer
         return Task.FromResult(Result.Success(Unit.Value));
     }
 }
+
+// ----------------------------------------------------
+// DevLoginCommand (Server-Side Signed JWT Issuer for Dev/Demo)
+// ----------------------------------------------------
+public sealed record DevLoginCommand(
+    string Email,
+    string RoleName,
+    System.Collections.Generic.List<string>? RequestedPermissions) : ICommand<Result<AuthResponseDto>>;
+
+public sealed class DevLoginCommandHandler : IRequestHandler<DevLoginCommand, Result<AuthResponseDto>>
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ITokenService _tokenService;
+    private readonly IPermissionResolver _permissionResolver;
+    private readonly IDateTime _dateTime;
+
+    public DevLoginCommandHandler(
+        IUnitOfWork unitOfWork,
+        ITokenService tokenService,
+        IPermissionResolver permissionResolver,
+        IDateTime dateTime)
+    {
+        _unitOfWork = unitOfWork;
+        _tokenService = tokenService;
+        _permissionResolver = permissionResolver;
+        _dateTime = dateTime;
+    }
+
+    public async Task<Result<AuthResponseDto>> Handle(DevLoginCommand request, CancellationToken cancellationToken)
+    {
+        var userRepo = _unitOfWork.Repository<ApplicationUser>();
+        var refreshTokenRepo = _unitOfWork.Repository<RefreshToken>();
+
+        var cleanEmail = (request.Email ?? "admin@inkerp.com").Trim().ToLowerInvariant();
+        var normalizedEmail = cleanEmail.ToUpperInvariant();
+
+        var user = (await userRepo.FindAsync(
+            u => (u.NormalizedEmail == normalizedEmail || u.Email == cleanEmail) && !u.IsDeleted,
+            cancellationToken)).FirstOrDefault();
+
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = cleanEmail.Split('@')[0],
+                NormalizedUserName = cleanEmail.Split('@')[0].ToUpperInvariant(),
+                Email = cleanEmail,
+                NormalizedEmail = normalizedEmail,
+                EmailConfirmed = true,
+                FirstName = "Development",
+                LastName = "User",
+                DisplayName = "Development User",
+                IsActive = true,
+                IsLocked = false,
+                CreatedAtUtc = _dateTime.UtcNow
+            };
+            await userRepo.AddAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        bool isSuperAdminUser = cleanEmail.Contains("superadmin", StringComparison.OrdinalIgnoreCase);
+        var roleNames = isSuperAdminUser
+            ? new System.Collections.Generic.List<string> { "Super Administrator" }
+            : new System.Collections.Generic.List<string> { string.IsNullOrWhiteSpace(request.RoleName) ? "Administrator" : request.RoleName };
+
+        System.Collections.Generic.List<string> permissions;
+
+        if (isSuperAdminUser)
+        {
+            permissions = new System.Collections.Generic.List<string> {
+                "manage:all", "read:dashboard", "iam:manage", "admin:manage_users", "masters:manage",
+                "pricing:manage", "procurement:manage", "wms:manage", "inventory:manage", "sfa:manage",
+                "o2c:manage", "returns:manage", "finance:manage", "workflow:manage", "hrms:manage",
+                "crm:manage", "logistics:manage", "reports:manage", "bi:manage",
+                "manage:masters", "manage:procurement", "manage:warehouse", "manage:inventory",
+                "manage:sales", "manage:finance", "manage:security", "manage:users"
+            };
+        }
+        else if (request.RequestedPermissions != null && request.RequestedPermissions.Count > 0)
+        {
+            permissions = request.RequestedPermissions;
+        }
+        else
+        {
+            var dbPerms = await _permissionResolver.GetPermissionsForUserAsync(user.Id, cancellationToken);
+            permissions = dbPerms.ToList();
+            if (!permissions.Contains("read:dashboard"))
+            {
+                permissions.Add("read:dashboard");
+            }
+        }
+
+        var accessToken = _tokenService.GenerateJwtToken(user, roleNames, permissions);
+        var (refreshTokenEntity, rawRefreshToken) = _tokenService.GenerateRefreshToken(user.Id, "127.0.0.1");
+        await refreshTokenRepo.AddAsync(refreshTokenEntity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var userDto = new UserDto(
+            user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty, user.PhoneNumber,
+            user.FirstName, user.LastName, user.DisplayName, user.EmployeeId, user.IsActive,
+            user.IsLocked, user.IsDeleted, user.LastLoginUtc, user.TwoFactorEnabled, user.EmailConfirmed,
+            user.RequirePasswordChange, user.PreferredLanguage, user.TimeZone, user.ProfileImageUrl,
+            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames);
+
+        var response = new AuthResponseDto(
+            accessToken,
+            rawRefreshToken,
+            _dateTime.UtcNow.AddMinutes(60),
+            userDto);
+
+        return Result.Success(response);
+    }
+}
+

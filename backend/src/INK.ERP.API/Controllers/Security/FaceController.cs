@@ -166,14 +166,15 @@ public class FaceController : BaseApiController
     /// <summary>
     /// Gets the biometric face profile status for a given user.
     /// </summary>
-    [HttpGet("status/{userId:guid}")]
+    [HttpGet("status/{userId?}")]
+    [HttpGet("status")]
     [HttpGet("profile")]
     [Authorize]
     [ProducesResponseType(typeof(FaceProfileDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetStatus([FromRoute] Guid userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetStatus(string? userId, CancellationToken cancellationToken)
     {
-        var targetUserId = userId != Guid.Empty ? userId : GetCurrentUserId();
+        Guid targetUserId = Guid.TryParse(userId, out var pid) && pid != Guid.Empty ? pid : GetCurrentUserId();
         var query = new GetFaceProfileQuery(targetUserId);
         var result = await Mediator.Send(query, cancellationToken);
         return HandleResult(result);

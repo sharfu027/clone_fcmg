@@ -12,23 +12,73 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
-  loginAsUser: (userName: string, role: string) => void;
+  loginAsUser: (userName: string, role: string, actualEmail?: string, actualId?: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateRole: (role: string) => void;
+  updateRole: (role: UserRole) => void;
+  updatePermissions: (permissions: UserPermission[]) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Sync state when custom event or storage event triggers
   useEffect(() => {
     apiClient.setOnUnauthorizedHandler(() => {
       logout();
     });
+
+    const handlePermissionsUpdated = async () => {
+      const userJson = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+      if (userJson) {
+        try {
+          const parsed = JSON.parse(userJson);
+          const isRootSuper = (parsed.email && parsed.email.toLowerCase().includes('superadmin')) ||
+                              ((parsed as any).userName && (parsed as any).userName.toLowerCase().includes('superadmin')) ||
+                              ((parsed as any).username && (parsed as any).username.toLowerCase().includes('superadmin'));
+
+          const rawRole = parsed.role || (parsed.roles && (parsed.roles[0] as any)) || 'Administrator';
+          const access = getUserAccessSettings(parsed.id, parsed.email, isRootSuper ? 'Super Administrator' : rawRole);
+          const resolvedRole = (isRootSuper ? 'Super Administrator' : access.roleName) as UserRole;
+          const resolvedPermissions = (isRootSuper
+            ? ROLE_PERMISSIONS_MAP['Super Administrator']
+            : access.permissions) as UserPermission[];
+
+          try {
+            const devRes = await authService.devLogin(parsed.email || 'admin@inkerp.com', resolvedRole, resolvedPermissions);
+            if (devRes.accessToken) {
+              const updatedUser = {
+                ...parsed,
+                role: resolvedRole,
+                permissions: resolvedPermissions
+              };
+              setUser(updatedUser);
+              setToken(devRes.accessToken);
+            }
+          } catch {
+            // fallback if backend unreachable
+            const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+            setUser({ ...parsed, role: resolvedRole, permissions: resolvedPermissions });
+            if (storedToken) setToken(storedToken);
+          }
+        } catch {
+          // ignore error
+        }
+      }
+    };
+
+    window.addEventListener('ink_permissions_updated', handlePermissionsUpdated);
+    window.addEventListener('storage', handlePermissionsUpdated);
+
     restoreSession();
+
+    return () => {
+      window.removeEventListener('ink_permissions_updated', handlePermissionsUpdated);
+      window.removeEventListener('storage', handlePermissionsUpdated);
+    };
   }, []);
 
   const restoreSession = async () => {
@@ -38,10 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
 
       if (validUser && storedToken) {
-        const rawRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Sales Representative';
-        const access = getUserAccessSettings(validUser.id, validUser.email, rawRole);
-        const resolvedRole = access.roleName as UserRole;
-        const resolvedPermissions = (resolvedRole === 'Super Administrator'
+        const isRootSuper = (validUser.email && validUser.email.toLowerCase().includes('superadmin')) ||
+                            ((validUser as any).userName && (validUser as any).userName.toLowerCase().includes('superadmin')) ||
+                            ((validUser as any).username && (validUser as any).username.toLowerCase().includes('superadmin'));
+
+        const rawRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Administrator';
+        const access = getUserAccessSettings(validUser.id, validUser.email, isRootSuper ? 'Super Administrator' : rawRole);
+        const resolvedRole = (isRootSuper ? 'Super Administrator' : access.roleName) as UserRole;
+        const resolvedPermissions = (isRootSuper
           ? ROLE_PERMISSIONS_MAP['Super Administrator']
           : access.permissions) as UserPermission[];
 
@@ -99,14 +153,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginAsUser = (userName: string, role: string, actualEmail?: string, actualId?: string) => {
-    const mockToken = `jwt-token-${Date.now()}`;
+  const loginAsUser = async (userName: string, role: string, actualEmail?: string, actualId?: string) => {
     const userEmail = actualEmail || `${userName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
     const access = getUserAccessSettings(actualId, userEmail, role);
-    const resolvedRole = access.roleName as UserRole;
-    const resolvedPermissions = (resolvedRole === 'Super Administrator'
+    const isRootSuper = userEmail.toLowerCase().includes('superadmin') || userName.toLowerCase().includes('superadmin');
+    const resolvedRole = (isRootSuper ? 'Super Administrator' : access.roleName) as UserRole;
+    const resolvedPermissions = (isRootSuper
       ? ROLE_PERMISSIONS_MAP['Super Administrator']
       : access.permissions) as UserPermission[];
+
+    try {
+      const devRes = await authService.devLogin(userEmail, resolvedRole, resolvedPermissions);
+      if (devRes.accessToken) {
+        const fullUser: UserProfile = {
+          id: devRes.user.id || actualId || 'USR-1001',
+          name: userName,
+          email: userEmail,
+          role: resolvedRole,
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
+          branch: 'Delhi Central',
+          permissions: resolvedPermissions
+        };
+        localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(fullUser));
+        setToken(devRes.accessToken);
+        setUser(fullUser);
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend dev-login endpoint unreachable during mock login; falling back to offline user state:', err);
+    }
 
     const mockUser: UserProfile = {
       id: actualId || ('USR-' + Math.floor(1000 + Math.random() * 9000)),
@@ -118,10 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions: resolvedPermissions
     };
 
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
     localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(mockUser));
-
-    setToken(mockToken);
     setUser(mockUser);
   };
 
@@ -133,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore network error during logout cleanup
     } finally {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
       setToken(null);
       setUser(null);
@@ -140,12 +213,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateRole = (role: string) => {
+  const updateRole = (role: UserRole) => {
     if (!user) return;
     const permissions = getPermissionsForRole(role as any) as UserPermission[];
     const updatedUser: UserProfile = {
       ...user,
-      role: role as any,
+      role,
+      permissions
+    };
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
+  const updatePermissions = (permissions: UserPermission[]) => {
+    if (!user) return;
+    const updatedUser: UserProfile = {
+      ...user,
       permissions
     };
     localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updatedUser));
@@ -162,13 +245,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         loginAsUser,
         logout,
-        updateRole
+        updateRole,
+        updatePermissions
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export function useAuth() {
   const context = useContext(AuthContext);

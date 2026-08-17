@@ -85,9 +85,31 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   };
 
   const togglePermission = (code: string) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(code) ? prev.filter((p) => p !== code) : [...prev, code]
-    );
+    setSelectedPermissions((prev) => {
+      const isCurrentlySelected = prev.includes(code);
+      let next = isCurrentlySelected ? prev.filter((p) => p !== code) : [...prev, code];
+
+      if (code === 'masters:manage') {
+        const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
+        if (isCurrentlySelected) {
+          next = next.filter(p => !subCodes.includes(p));
+        } else {
+          next = Array.from(new Set([...next, ...subCodes]));
+        }
+      } else if (MASTER_DATA_SUBMODULES.some(s => s.code === code)) {
+        const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
+        const hasAnySub = subCodes.some(s => next.includes(s));
+        if (hasAnySub) {
+          if (!next.includes('masters:manage')) {
+            next.push('masters:manage');
+          }
+        } else {
+          next = next.filter(p => p !== 'masters:manage');
+        }
+      }
+
+      return next;
+    });
   };
 
   const validateForm = (): boolean => {

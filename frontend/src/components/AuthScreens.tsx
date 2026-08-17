@@ -123,30 +123,28 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const triggerLoginSuccess = () => {
-    console.log('Navigation executed');
+  const triggerLoginSuccess = async () => {
     try {
       const data = localStorage.getItem('ink_erp_user_profile') || localStorage.getItem('ink_user_profile');
       const storedUser = data ? JSON.parse(data) : null;
       const isSuper = email.toLowerCase().includes('superadmin') ||
                       storedUser?.email?.toLowerCase().includes('superadmin') ||
                       storedUser?.userName?.toLowerCase().includes('superadmin') ||
-                      storedUser?.username?.toLowerCase().includes('superadmin') ||
-                      storedUser?.role === 'Super Administrator' ||
-                      (storedUser?.roles && storedUser.roles.includes('Super Administrator'));
+                      storedUser?.username?.toLowerCase().includes('superadmin');
 
       const userEmail = email || storedUser?.email || '';
-      const userRoleSetting = getUserAccessSettings(storedUser?.id, userEmail, storedUser?.role || 'Sales Representative').roleName;
+      const userAccess = getUserAccessSettings(storedUser?.id, userEmail, storedUser?.role || 'Administrator');
+      const userRoleSetting = userAccess.roleName;
 
       const displayName = isSuper ? 'Super Administrator' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
       const roleName = isSuper ? 'Super Administrator' : userRoleSetting;
 
-      loginAsUser(displayName, roleName, userEmail, storedUser?.id);
+      await loginAsUser(displayName, roleName, userEmail, storedUser?.id);
       onLoginSuccess(displayName, roleName);
     } catch {
       const isSuper = email.toLowerCase().includes('superadmin');
       const roleName = isSuper ? 'Super Administrator' : 'Sales Representative';
-      loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName, email);
+      await loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName, email);
       onLoginSuccess(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
     }
   };
@@ -629,7 +627,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
         handleRequestCamera();
       } else {
         onTriggerToast('success', 'Multi-Factor Policies Bypassed', 'Location & Face authentication bypassed by Administrator.');
-        triggerLoginSuccess();
+        await triggerLoginSuccess();
       }
     } catch (err: any) {
       console.error('Login failed:', err);

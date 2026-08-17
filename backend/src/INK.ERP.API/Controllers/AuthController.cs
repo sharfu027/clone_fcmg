@@ -228,6 +228,19 @@ public sealed class AuthController : BaseApiController
         return Ok(claims);
     }
 
+    /// <summary>
+    /// Development login endpoint for issuing real backend-signed JWT tokens during testing.
+    /// </summary>
+    [HttpPost("dev-login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DevLogin([FromBody] DevLoginRequest request, CancellationToken cancellationToken)
+    {
+        var command = new DevLoginCommand(request.Email, request.RoleName, request.Permissions);
+        var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
     private static byte[] ParseImageData(string? input)
     {
         if (string.IsNullOrWhiteSpace(input)) return Array.Empty<byte>();
@@ -244,10 +257,8 @@ public sealed class AuthController : BaseApiController
     }
 }
 
-
-
-
 public record LoginRequest(string Username, string Password);
+public record DevLoginRequest(string Email, string RoleName, System.Collections.Generic.List<string>? Permissions);
 public record RefreshTokenRequest(string RefreshToken);
 public record RevokeTokenRequest(string RefreshToken, string? Reason);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

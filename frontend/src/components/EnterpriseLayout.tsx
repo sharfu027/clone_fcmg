@@ -85,21 +85,60 @@ export default function EnterpriseLayout({
   const navigationMenu = NAVIGATION_MENU;
   const roles = ROLES;
 
-  // Dynamic Navigation filtering based on Authentication Policy & Security Profile
-  const hasPermission = (item: NavItem) => {
-    // 1. Super Administrator ALWAYS has complete unrestricted root access to ALL modules by default (no one can disable Super Admin)
-    if (
-      activeRole === 'Super Administrator' ||
-      user?.role === 'Super Administrator' ||
-      user?.permissions?.includes('manage:all')
-    ) {
-      return true;
-    }
-
-    // 2. For all other users (Sub-Admins, Sales Representatives, etc.), enforce exact tailored module clearance
-    if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
+  // Dedicated Master Data Effective Access Evaluator
+  const hasMasterDataSubmoduleAccess = (subCode: string): boolean => {
     if (!user || !user.permissions || user.permissions.length === 0) return false;
 
+    // Root Super Administrator bypass
+    const isRootSuper = activeRole === 'Super Administrator' ||
+                        user?.role === 'Super Administrator' ||
+                        user?.permissions?.includes('manage:all') ||
+                        (user?.email && user.email.toLowerCase().includes('superadmin'));
+    if (isRootSuper) return true;
+
+    // Dual-Check Rule: ParentPermission(masters:manage) AND ChildPermission(masters:<submodule>)
+    const hasParent = user.permissions.includes('masters:manage');
+    const hasChild = user.permissions.includes(subCode);
+    return hasParent && hasChild;
+  };
+
+  // Dynamic Navigation filtering based on Authentication Policy & Security Profile
+  const hasPermission = (item: NavItem): boolean => {
+    if (item.href === 'dashboard') return true;
+    if (!user || !user.permissions || user.permissions.length === 0) return false;
+
+    const isRootSuper = activeRole === 'Super Administrator' ||
+                        user?.role === 'Super Administrator' ||
+                        user?.permissions?.includes('manage:all') ||
+                        (user?.email && user.email.toLowerCase().includes('superadmin'));
+    if (isRootSuper) return true;
+
+    if (item.href.startsWith('masters/')) {
+      const subSlug = item.href.split('/')[1];
+      const branchMap: Record<string, string> = {
+        companies: 'masters:company',
+        branches: 'masters:company',
+        warehouses: 'masters:company',
+        departments: 'masters:company',
+        products: 'masters:product',
+        categories: 'masters:product',
+        brands: 'masters:product',
+        units: 'masters:product',
+        employees: 'masters:employee',
+        designations: 'masters:employee',
+        customers: 'masters:customer',
+        suppliers: 'masters:supplier'
+      };
+      const subCode = branchMap[subSlug] || `masters:${subSlug}`;
+      return hasMasterDataSubmoduleAccess(subCode);
+    }
+
+    if (item.href === 'masters') {
+      const branchPermissions = ['masters:company', 'masters:product', 'masters:employee', 'masters:customer', 'masters:supplier'];
+      return branchPermissions.some(b => hasMasterDataSubmoduleAccess(b));
+    }
+
+    if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
     return item.requiredPermissions.some(perm => user.permissions?.includes(perm));
   };
 
@@ -198,32 +237,32 @@ export default function EnterpriseLayout({
         }`}
       >
         {/* Brand / Logo section */}
-        <div className="h-16 px-4 border-b border-brand-border flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-brand-primary flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
-            I
-          </div>
-          {!sidebarCollapsed && (
-            <div className="flex flex-col">
-              <span className="font-bold text-sm tracking-tight text-brand-text-primary">INK FMCG ERP</span>
-              <span className="text-[10px] text-brand-text-secondary font-semibold">Enterprise Sales & Distribution</span>
+        <div className="p-4 border-b border-brand-border flex items-center justify-between">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              I
             </div>
-          )}
+            {!sidebarCollapsed && (
+              <div className="flex flex-col truncate">
+                <span className="font-bold text-sm text-brand-text-primary leading-tight">INK FMCG ERP</span>
+                <span className="text-[10px] text-brand-text-secondary">Enterprise Sales & Distribution</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto py-4 px-2 space-y-4">
-          
-          {/* Main Menu */}
-          <div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-6">
+          <div className="space-y-1">
             {!sidebarCollapsed && (
-              <span className="px-3 text-[10px] font-bold text-brand-text-secondary uppercase tracking-widest block mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-text-secondary px-3 py-1 block">
                 ERP Modules
               </span>
             )}
             <nav className="space-y-1">
               {filteredMenu.map((item, idx) => {
                 const isItemActive = activeView === item.href || activeView.startsWith(item.href + '/');
-                const hasChildren = !!item.children;
+                const hasChildren = !!item.children && item.children.length > 0;
                 const isSubOpen = openSubMenus[item.title] ?? isItemActive;
 
                 return (
@@ -259,7 +298,7 @@ export default function EnterpriseLayout({
                     {/* Nested Children */}
                     {!sidebarCollapsed && hasChildren && isSubOpen && (
                       <div className="pl-4 space-y-1 border-l border-brand-border/60 ml-5.5 mt-1">
-                        {item.children?.map((child, cIdx) => {
+                        {item.children?.filter(hasPermission).map((child, cIdx) => {
                           const isChildActive = activeView === child.href;
                           return (
                             <button
@@ -369,7 +408,7 @@ export default function EnterpriseLayout({
                       {/* Nested Children for Mobile Drawer */}
                       {hasChildren && isSubOpen && (
                         <div className="pl-4 space-y-1 border-l border-brand-border/60 ml-5.5 mt-1">
-                          {item.children?.map((child, cIdx) => {
+                          {item.children?.filter(hasPermission).map((child, cIdx) => {
                             const isChildActive = activeView === child.href;
                             return (
                               <button

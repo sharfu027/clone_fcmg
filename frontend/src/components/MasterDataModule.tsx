@@ -98,13 +98,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
   const { user } = useAuth();
   const userPerms = user?.permissions || [];
-  const isSuper = user?.role === 'Super Administrator' || userPerms.includes('manage:all');
+  const isSuper = user?.role === 'Super Administrator' ||
+                  userPerms.includes('manage:all') ||
+                  (user?.email && user.email.toLowerCase().includes('superadmin'));
 
-  const canAccessCompany = isSuper || userPerms.includes('masters:company');
-  const canAccessProduct = isSuper || userPerms.includes('masters:product');
-  const canAccessEmployee = isSuper || userPerms.includes('masters:employee');
-  const canAccessCustomer = isSuper || userPerms.includes('masters:customer');
-  const canAccessSupplier = isSuper || userPerms.includes('masters:supplier');
+  const hasMasterParent = userPerms.includes('masters:manage');
+
+  const canAccessCompany = isSuper || (hasMasterParent && userPerms.includes('masters:company'));
+  const canAccessProduct = isSuper || (hasMasterParent && userPerms.includes('masters:product'));
+  const canAccessEmployee = isSuper || (hasMasterParent && userPerms.includes('masters:employee'));
+  const canAccessCustomer = isSuper || (hasMasterParent && userPerms.includes('masters:customer'));
+  const canAccessSupplier = isSuper || (hasMasterParent && userPerms.includes('masters:supplier'));
 
   const isCurrentModuleAllowed = () => {
     if (isSuper) return true;
@@ -1008,6 +1012,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   if (!isCurrentModuleAllowed() || simulatedState === 'denied') {
     return null;
   }
+
+  const ConfigIcon = config.icon;
 
   return (
     <div className="space-y-6">
@@ -2068,16 +2074,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 </div>
               )}
 
-              {/* Status Switcher */}
-              <div className="pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <label className="font-bold text-brand-text-primary">Active Record Status:</label>
-                  <select value={formStatus} onChange={e => setFormStatus(e.target.value as any)} className="p-1.5 border rounded bg-white font-bold text-brand-primary">
-                    <option value="Active">Active (Available across ERP operations)</option>
-                    <option value="Inactive">Inactive (Deactivated from active listings)</option>
-                  </select>
-                </div>
-              </div>
+
 
             </form>
           )}

@@ -69,11 +69,31 @@ export default function SidebarNavigation({
     setOpenSubMenus(prev => ({ ...prev, [title]: !prev[title] }));
   };
 
+  // Dedicated Master Data Effective Access Evaluator
+  const hasMasterDataSubmoduleAccess = (subCode: string): boolean => {
+    if (!user || !user.permissions || user.permissions.length === 0) return false;
+
+    // Root Super Administrator bypass
+    const isRootSuper = user.role === 'Super Administrator' ||
+                        user.permissions.includes('manage:all') ||
+                        (user.email && user.email.toLowerCase().includes('superadmin'));
+    if (isRootSuper) return true;
+
+    // Dual-Check Rule: ParentPermission(masters:manage) AND ChildPermission(masters:<submodule>)
+    const hasParent = user.permissions.includes('masters:manage');
+    const hasChild = user.permissions.includes(subCode);
+    return hasParent && hasChild;
+  };
+
   // Permission-Driven Clearance Resolver (API-First Navigation)
   const hasPermission = (item: NavItem): boolean => {
     if (item.href === 'dashboard') return true;
     if (!user || !user.permissions || user.permissions.length === 0) return false;
-    if (user.role === 'Super Administrator' || user.permissions.includes('manage:all')) return true;
+
+    const isRootSuper = user.role === 'Super Administrator' ||
+                        user.permissions.includes('manage:all') ||
+                        (user.email && user.email.toLowerCase().includes('superadmin'));
+    if (isRootSuper) return true;
 
     if (item.href.startsWith('masters/')) {
       const subSlug = item.href.split('/')[1];
@@ -93,13 +113,12 @@ export default function SidebarNavigation({
       };
       const subCode = branchMap[subSlug] || `masters:${subSlug}`;
 
-      // Strictly evaluate if the logged-in user has clearance for this exact branch code
-      return user.permissions.includes(subCode);
+      return hasMasterDataSubmoduleAccess(subCode);
     }
 
     if (item.href === 'masters') {
       const branchPermissions = ['masters:company', 'masters:product', 'masters:employee', 'masters:customer', 'masters:supplier'];
-      return branchPermissions.some(b => user.permissions.includes(b));
+      return branchPermissions.some(b => hasMasterDataSubmoduleAccess(b));
     }
 
     return item.requiredPermissions.some(perm => user.permissions?.includes(perm));

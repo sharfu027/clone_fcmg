@@ -48,6 +48,16 @@ export const authService = {
     return storeSession(response);
   },
 
+  async devLogin(email: string, roleName: string, permissions?: string[]): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/api/v1/auth/dev-login', {
+      email,
+      roleName,
+      permissions
+    }, { skipAuth: true });
+
+    return storeSession(response);
+  },
+
   async logout(refreshToken?: string): Promise<void> {
     const activeRefreshToken = refreshToken || localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     try {

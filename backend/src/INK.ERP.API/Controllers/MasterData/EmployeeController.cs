@@ -11,6 +11,7 @@ namespace INK.ERP.API.Controllers.MasterData;
 
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/masters/employee")]
+[Authorize(Policy = "Masters.Employee")]
 public class EmployeeController : BaseApiController
 {
     /// <summary>

@@ -115,9 +115,31 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   if (!isOpen || !user) return null;
 
   const togglePermission = (code: string) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(code) ? prev.filter((p) => p !== code) : [...prev, code]
-    );
+    setSelectedPermissions((prev) => {
+      const isCurrentlySelected = prev.includes(code);
+      let next = isCurrentlySelected ? prev.filter((p) => p !== code) : [...prev, code];
+
+      if (code === 'masters:manage') {
+        const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
+        if (isCurrentlySelected) {
+          next = next.filter(p => !subCodes.includes(p));
+        } else {
+          next = Array.from(new Set([...next, ...subCodes]));
+        }
+      } else if (MASTER_DATA_SUBMODULES.some(s => s.code === code)) {
+        const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
+        const hasAnySub = subCodes.some(s => next.includes(s));
+        if (hasAnySub) {
+          if (!next.includes('masters:manage')) {
+            next.push('masters:manage');
+          }
+        } else {
+          next = next.filter(p => p !== 'masters:manage');
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -171,10 +193,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       });
 
       // Save User Per-Module Permissions & Role (Fine-grained ABAC)
+      const targetEmail = (user as any).email || (user as any).userName || (user as any).username || (user as any).name || '';
       saveUserPermissions(user.id, selectedPermissions);
       saveUserRoleAndPermissions(
         user.id,
-        (user as any).email || '',
+        targetEmail,
         user.role || (user as any).roles?.[0] || 'Sales Representative',
         selectedPermissions
       );
