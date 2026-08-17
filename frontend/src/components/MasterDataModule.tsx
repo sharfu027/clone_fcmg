@@ -286,9 +286,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
   // 12. Employee
   const [empCompanyId, setEmpCompanyId] = useState('1');
-  const [empBranchId, setEmpBranchId] = useState('1');
-  const [empDepartmentId, setEmpDepartmentId] = useState('1');
-  const [empDesignationId, setEmpDesignationId] = useState('1');
+  const [empBranchId, setEmpBranchId] = useState('');
+  const [empDepartmentId, setEmpDepartmentId] = useState('');
+  const [empDesignationId, setEmpDesignationId] = useState('');
   const [empFirstName, setEmpFirstName] = useState('');
   const [empLastName, setEmpLastName] = useState('');
   const [empEmail, setEmpEmail] = useState('');
@@ -1563,6 +1563,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         />
                       ) : (
                         <select value={empBranchId} onChange={e => setEmpBranchId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- None / Optional --</option>
                           {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       )}
@@ -1590,6 +1591,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         />
                       ) : (
                         <select value={empDepartmentId} onChange={e => setEmpDepartmentId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- None / Optional --</option>
                           {dbDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       )}
@@ -1617,6 +1619,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         />
                       ) : (
                         <select value={empDesignationId} onChange={e => setEmpDesignationId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- None / Optional --</option>
                           {dbDesignations.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
                         </select>
                       )}
@@ -1677,6 +1680,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         />
                       ) : (
                         <select value={prodCategoryId} onChange={e => setProdCategoryId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- None / Optional --</option>
                           {dbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       )}
@@ -1704,6 +1708,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         />
                       ) : (
                         <select value={prodBrandId} onChange={e => setProdBrandId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- None / Optional --</option>
                           {dbBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       )}
@@ -1731,6 +1736,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         />
                       ) : (
                         <select value={prodBaseUomId} onChange={e => setProdBaseUomId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- None / Optional --</option>
                           {dbUnits.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
                         </select>
                       )}
