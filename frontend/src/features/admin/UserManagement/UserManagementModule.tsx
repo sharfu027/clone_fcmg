@@ -547,18 +547,19 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                 users.map((u) => {
                   const roleStr = u.roles?.[0] || u.role || 'Administrator';
                   const roleLower = roleStr.toLowerCase();
+                  const isSuper = isSuperUser(u) || roleLower.includes('super');
                   const isAdmin = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
                   const faceInfo = faceStatusMap[u.id];
                   const faceStatus = faceInfo?.status || 'Not Registered';
-                  const isExpanded = Boolean(expandedAdminIds[u.id]);
+                  const isExpanded = Boolean(expandedAdminIds[u.id]) && !isSuper;
 
                   return (
                     <React.Fragment key={u.id}>
                       <tr className="hover:bg-brand-bg-secondary/30 transition group">
                         
-                        {/* Chevron Accordion Expand Button (Admins only) */}
+                        {/* Chevron Accordion Expand Button (Standard Admins only, NOT Super Administrator) */}
                         <td className="p-3 text-center w-8">
-                          {isAdmin ? (
+                          {isAdmin && !isSuper ? (
                             <button
                               type="button"
                               onClick={() => toggleAdminExpand(u.id)}
@@ -591,7 +592,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               </div>
                             )}
                             <div>
-                              {isAdmin ? (
+                              {isAdmin && !isSuper ? (
                                 <button
                                   type="button"
                                   onClick={() => toggleAdminExpand(u.id)}
@@ -618,7 +619,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
                         {/* Role(s) Badge */}
                         <td className="p-3">
-                          {isAdmin ? (
+                          {isAdmin && !isSuper ? (
                             <button
                               type="button"
                               onClick={() => toggleAdminExpand(u.id)}
@@ -628,7 +629,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               {roleStr}
                             </button>
                           ) : (
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-lg border border-emerald-200 shadow-2xs">
+                            <span className={`px-2.5 py-1 ${isSuper ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} font-bold text-xs rounded-lg border shadow-2xs`}>
                               {roleStr}
                             </span>
                           )}
@@ -720,7 +721,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         </tr>
 
                         {/* Inline Nested Table for Operational Roles Under This Admin */}
-                        {isExpanded && (
+                        {isExpanded && !isSuper && (
                           <tr key={`${u.id}-expanded`} className="bg-slate-50/60">
                             <td colSpan={7} className="p-3.5 border-y border-slate-200">
                               <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 space-y-2.5 shadow-2xs">
