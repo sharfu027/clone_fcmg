@@ -206,7 +206,7 @@ export const NAVIGATION_MENU: NavItem[] = [
     title: 'Reports', 
     href: 'reports', 
     icon: 'BarChart3',
-    requiredPermissions: ['reports:manage', 'manage:reports', 'read:dashboard']
+    requiredPermissions: ['reports:manage', 'manage:reports']
   },
   { 
     title: 'Administration & Security', 
