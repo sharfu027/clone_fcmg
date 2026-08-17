@@ -88,6 +88,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     profileImageUrl: '',
   });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [enableLocationAuth, setEnableLocationAuth] = useState(true);
   const [enableFaceAuth, setEnableFaceAuth] = useState(true);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -95,6 +96,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
   useEffect(() => {
     if (user) {
+      setFieldErrors({});
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -122,14 +124,33 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    if (fieldErrors[name] || fieldErrors.general) {
+      setFieldErrors((prev) => ({ ...prev, [name]: '', general: '' }));
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.firstName.trim()) {
+      errors.firstName = '⚠️ First Name is required. Example: "Rahul"';
+    }
+    if (!formData.lastName.trim()) {
+      errors.lastName = '⚠️ Last Name is required. Example: "Sharma"';
+    }
+    if (!formData.displayName.trim()) {
+      errors.displayName = '⚠️ Display Name is required. Example: "Rahul Sharma"';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.displayName) {
-      onTriggerToast('warning', 'Missing Fields', 'First Name, Last Name, and Display Name are required.');
-      return;
+    if (!validateForm()) {
+      return; // Do NOT show pop-up toasts! Inline errors show directly below placeholders!
     }
 
     setIsSubmitting(true);
@@ -163,8 +184,18 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       onSuccess(`User profile and authentication policies for '${formData.displayName}' updated successfully.`);
       onClose();
     } catch (err: any) {
-      const errMsg = err?.data?.detail || err?.message || 'Failed to update user profile.';
-      onTriggerToast('error', 'Update Failed', errMsg);
+      const newErrors: Record<string, string> = {};
+      if (err?.data?.errors && typeof err.data.errors === 'object') {
+        const serverErrs = err.data.errors;
+        if (serverErrs.FirstName) newErrors.firstName = `⚠️ ${serverErrs.FirstName.join(' ')} Example: "Rahul"`;
+        if (serverErrs.LastName) newErrors.lastName = `⚠️ ${serverErrs.LastName.join(' ')} Example: "Sharma"`;
+        if (serverErrs.DisplayName) newErrors.displayName = `⚠️ ${serverErrs.DisplayName.join(' ')} Example: "Rahul Sharma"`;
+      } else if (err?.data?.detail) {
+        newErrors.general = `⚠️ ${err.data.detail}`;
+      } else if (err?.message) {
+        newErrors.general = `⚠️ ${err.message}`;
+      }
+      setFieldErrors(newErrors);
     } finally {
       setIsSubmitting(false);
     }
@@ -195,6 +226,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[calc(90vh-140px)] text-xs">
           
+          {fieldErrors.general && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-lg flex items-center gap-2">
+              <span>{fieldErrors.general}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-brand-text-primary mb-1">
@@ -205,9 +242,17 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                required
-                className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                className={`w-full p-2 border rounded-md outline-none transition ${
+                  fieldErrors.firstName
+                    ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                    : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                }`}
               />
+              {fieldErrors.firstName && (
+                <p className="mt-1 text-[11px] font-bold text-rose-600">
+                  {fieldErrors.firstName}
+                </p>
+              )}
             </div>
 
             <div>
@@ -219,9 +264,17 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                required
-                className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                className={`w-full p-2 border rounded-md outline-none transition ${
+                  fieldErrors.lastName
+                    ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                    : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                }`}
               />
+              {fieldErrors.lastName && (
+                <p className="mt-1 text-[11px] font-bold text-rose-600">
+                  {fieldErrors.lastName}
+                </p>
+              )}
             </div>
           </div>
 
@@ -234,9 +287,17 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               name="displayName"
               value={formData.displayName}
               onChange={handleChange}
-              required
-              className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+              className={`w-full p-2 border rounded-md outline-none transition ${
+                fieldErrors.displayName
+                  ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                  : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+              }`}
             />
+            {fieldErrors.displayName && (
+              <p className="mt-1 text-[11px] font-bold text-rose-600">
+                {fieldErrors.displayName}
+              </p>
+            )}
           </div>
 
           <div>

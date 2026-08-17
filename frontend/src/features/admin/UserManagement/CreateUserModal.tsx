@@ -50,6 +50,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     timeZone: 'Asia/Kolkata',
   });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
     'admin:manage_users', 'masters:manage', 'procurement:manage', 'wms:manage', 'inventory:manage', 'sales:manage', 'finance:manage'
   ]);
@@ -58,6 +59,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setFieldErrors({});
       adminService.getRoles().then((roles) => {
         if (roles && roles.length > 0) {
           setAvailableRoles(roles);
@@ -70,6 +72,11 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    // Clear inline error for this field as user types
+    if (fieldErrors[name] || fieldErrors.general) {
+      setFieldErrors((prev) => ({ ...prev, [name]: '', general: '' }));
+    }
+
     setFormData((prev) => {
       const next = { ...prev, [name]: value };
       if ((name === 'firstName' || name === 'lastName') && (!prev.displayName || prev.displayName === `${prev.firstName} ${prev.lastName}`.trim())) {
@@ -85,37 +92,67 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.username || !formData.email || !formData.firstName || !formData.lastName || !formData.password) {
-      onTriggerToast('warning', 'Missing Fields', 'Please complete all required fields (*).');
-      return;
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    // 1. Username
+    const u = formData.username.trim();
+    if (!u) {
+      errors.username = '⚠️ Username is required. Example: "rajesh_kumar" or "sales_admin"';
+    } else if (u.length < 3) {
+      errors.username = '⚠️ Username must be at least 3 characters. You entered ' + u.length + ' character(s). Example: "rajesh_kumar"';
     }
 
-    // Auto-fix email if user typed username in email field (e.g. "sharfu" -> "sharfu@inkerp.com")
+    // 2. Email Address
+    let cleanEmail = formData.email.trim();
+    if (!cleanEmail) {
+      errors.email = '⚠️ Email Address is required. Example: "rajesh.kumar@inkerp.com"';
+    } else {
+      if (!cleanEmail.includes('@')) {
+        cleanEmail = `${cleanEmail}@inkerp.com`;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cleanEmail)) {
+        errors.email = '⚠️ Please enter a valid email address format. Example: "name@company.com"';
+      }
+    }
+
+    // 3. Password
+    const p = formData.password;
+    if (!p) {
+      errors.password = '⚠️ Initial Password is required. Example: "UserPass123!"';
+    } else {
+      const hasUpper = /[A-Z]/.test(p);
+      const hasLower = /[a-z]/.test(p);
+      const hasDigit = /[0-9]/.test(p);
+      if (p.length < 8 || !hasUpper || !hasLower || !hasDigit) {
+        errors.password = '⚠️ Password must be at least 8 characters with 1 uppercase, 1 lowercase & 1 digit. Example: "UserPass123!"';
+      }
+    }
+
+    // 4. First Name
+    if (!formData.firstName.trim()) {
+      errors.firstName = '⚠️ First Name is required. Example: "Rahul"';
+    }
+
+    // 5. Last Name
+    if (!formData.lastName.trim()) {
+      errors.lastName = '⚠️ Last Name is required. Example: "Sharma"';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) {
+      return; // Do NOT trigger pop-up toasts! Inline errors show directly below placeholders!
+    }
+
     let cleanEmail = formData.email.trim();
     if (!cleanEmail.includes('@')) {
       cleanEmail = `${cleanEmail}@inkerp.com`;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      onTriggerToast('warning', 'Invalid Email Format', 'Please enter a valid email address (e.g. name@company.com).');
-      return;
-    }
-
-    // Validate Password requirements (Min 8 chars, 1 uppercase, 1 lowercase, 1 digit)
-    const hasUpper = /[A-Z]/.test(formData.password);
-    const hasLower = /[a-z]/.test(formData.password);
-    const hasDigit = /[0-9]/.test(formData.password);
-
-    if (formData.password.length < 8 || !hasUpper || !hasLower || !hasDigit) {
-      onTriggerToast(
-        'warning',
-        'Password Requirements Unmet',
-        'Password must be at least 8 characters long and contain 1 uppercase, 1 lowercase, and 1 digit (e.g. UserPass123!).'
-      );
-      return;
     }
 
     const cleanEmployeeId = isGuid(formData.employeeId.trim()) ? formData.employeeId.trim() : undefined;
@@ -139,7 +176,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       const roleName = matchedRoleDef ? matchedRoleDef.name : 'Sales Representative';
 
       if (userId) {
-        // Persist per-user role and custom clearance permissions
         saveUserRoleAndPermissions(
           userId,
           cleanEmail,
@@ -160,21 +196,28 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       onSuccess(`User '${formData.username}' created successfully as ${roleName}.`);
       onClose();
     } catch (err: any) {
-      let errMsg = 'Failed to create user account.';
-      if (err?.data) {
-        const d = err.data;
-        if (d.errors && typeof d.errors === 'object') {
-          const allErrs = Object.values(d.errors).flat();
-          errMsg = allErrs.join(' ');
-        } else if (d.detail) {
-          errMsg = d.detail;
-        } else if (d.title || d.Title) {
-          errMsg = d.title || d.Title;
+      // Map API server errors directly to inline field errors without popping top-right toasts!
+      const newErrors: Record<string, string> = {};
+      if (err?.data?.errors && typeof err.data.errors === 'object') {
+        const serverErrs = err.data.errors;
+        if (serverErrs.Username) newErrors.username = `⚠️ ${serverErrs.Username.join(' ')} Example: "rajesh_kumar"`;
+        if (serverErrs.Email) newErrors.email = `⚠️ ${serverErrs.Email.join(' ')} Example: "rajesh@inkerp.com"`;
+        if (serverErrs.Password) newErrors.password = `⚠️ ${serverErrs.Password.join(' ')} Example: "UserPass123!"`;
+        if (serverErrs.FirstName) newErrors.firstName = `⚠️ ${serverErrs.FirstName.join(' ')} Example: "Rahul"`;
+        if (serverErrs.LastName) newErrors.lastName = `⚠️ ${serverErrs.LastName.join(' ')} Example: "Sharma"`;
+      } else if (err?.data?.detail) {
+        const detailStr = String(err.data.detail);
+        if (detailStr.toLowerCase().includes('username')) {
+          newErrors.username = `⚠️ ${detailStr}. Example: "rajesh_kumar"`;
+        } else if (detailStr.toLowerCase().includes('email')) {
+          newErrors.email = `⚠️ ${detailStr}. Example: "rajesh@inkerp.com"`;
+        } else {
+          newErrors.general = `⚠️ ${detailStr}`;
         }
       } else if (err?.message) {
-        errMsg = err.message;
+        newErrors.general = `⚠️ ${err.message}`;
       }
-      onTriggerToast('error', 'User Creation Failed', errMsg);
+      setFieldErrors(newErrors);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,6 +250,12 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[calc(90vh-140px)]">
           
+          {fieldErrors.general && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-lg flex items-center gap-2">
+              <span>{fieldErrors.general}</span>
+            </div>
+          )}
+
           {/* Section 1: User Account Credentials */}
           <div>
             <h4 className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2 flex items-center gap-1">
@@ -223,9 +272,17 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   value={formData.username}
                   onChange={handleChange}
                   placeholder="e.g. rajesh.kumar"
-                  required
-                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                  className={`w-full p-2 border rounded-md outline-none transition ${
+                    fieldErrors.username
+                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                  }`}
                 />
+                {fieldErrors.username && (
+                  <p className="mt-1 text-[11px] font-bold text-rose-600">
+                    {fieldErrors.username}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -233,14 +290,22 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="e.g. rajesh.kumar@ink-fmcg.com"
-                  required
-                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                  className={`w-full p-2 border rounded-md outline-none transition ${
+                    fieldErrors.email
+                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                  }`}
                 />
+                {fieldErrors.email && (
+                  <p className="mt-1 text-[11px] font-bold text-rose-600">
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -253,9 +318,17 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Min 8 chars, 1 upper, 1 lower, 1 digit"
-                  required
-                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                  className={`w-full p-2 border rounded-md outline-none transition ${
+                    fieldErrors.password
+                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                  }`}
                 />
+                {fieldErrors.password && (
+                  <p className="mt-1 text-[11px] font-bold text-rose-600">
+                    {fieldErrors.password}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -288,9 +361,17 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="First name"
-                  required
-                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                  className={`w-full p-2 border rounded-md outline-none transition ${
+                    fieldErrors.firstName
+                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                  }`}
                 />
+                {fieldErrors.firstName && (
+                  <p className="mt-1 text-[11px] font-bold text-rose-600">
+                    {fieldErrors.firstName}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -303,9 +384,17 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Last name"
-                  required
-                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                  className={`w-full p-2 border rounded-md outline-none transition ${
+                    fieldErrors.lastName
+                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                  }`}
                 />
+                {fieldErrors.lastName && (
+                  <p className="mt-1 text-[11px] font-bold text-rose-600">
+                    {fieldErrors.lastName}
+                  </p>
+                )}
               </div>
 
               <div>

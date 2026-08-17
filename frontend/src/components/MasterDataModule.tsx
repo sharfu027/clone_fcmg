@@ -588,8 +588,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      const firstKey = Object.keys(errors)[0];
-      onTriggerToast('error', `Validation Failed`, errors[firstKey]);
       return;
     }
 
