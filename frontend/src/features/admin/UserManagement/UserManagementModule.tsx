@@ -40,6 +40,7 @@ import AssignRoleModal from './AssignRoleModal';
 import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../SecurityCenter/components/EmployeeSecurityDetailsDrawer';
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
+import { getUserAccessSettings } from '../../../services/userPermissionsService';
 
 interface UserManagementModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
@@ -146,7 +147,15 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
         sortDescending,
       });
 
-      const loadedUsers = res.items || [];
+      const loadedUsers = (res.items || []).map((u: any) => {
+        const access = getUserAccessSettings(u.id, u.email, u.role || u.roles?.[0] || 'Administrator');
+        const roleName = access.roleName || u.role || u.roles?.[0] || 'Administrator';
+        return {
+          ...u,
+          role: roleName,
+          roles: [roleName]
+        };
+      });
       setUsers(loadedUsers);
       setTotalCount(res.totalCount || loadedUsers.length);
       setTotalPages(res.totalPages || Math.ceil((res.totalCount || loadedUsers.length) / pageSize) || 1);
@@ -528,22 +537,21 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   </td>
                 </tr>
               ) : (
-                users
-                  .filter((u) => {
-                    const roleName = (u.roles?.[0] || u.role || '').toLowerCase();
-                    return roleName.includes('admin') || roleName.includes('administrator') || roleName.includes('super');
-                  })
-                  .map((u) => {
-                    const faceInfo = faceStatusMap[u.id];
-                    const faceStatus = faceInfo?.status || 'Not Registered';
-                    const isExpanded = Boolean(expandedAdminIds[u.id]);
+                users.map((u) => {
+                  const roleStr = u.roles?.[0] || u.role || 'Administrator';
+                  const roleLower = roleStr.toLowerCase();
+                  const isAdmin = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
+                  const faceInfo = faceStatusMap[u.id];
+                  const faceStatus = faceInfo?.status || 'Not Registered';
+                  const isExpanded = Boolean(expandedAdminIds[u.id]);
 
-                    return (
-                      <React.Fragment key={u.id}>
-                        <tr className="hover:bg-brand-bg-secondary/30 transition group">
-                          
-                          {/* Chevron Accordion Expand Button */}
-                          <td className="p-3 text-center w-8">
+                  return (
+                    <React.Fragment key={u.id}>
+                      <tr className="hover:bg-brand-bg-secondary/30 transition group">
+                        
+                        {/* Chevron Accordion Expand Button (Admins only) */}
+                        <td className="p-3 text-center w-8">
+                          {isAdmin ? (
                             <button
                               type="button"
                               onClick={() => toggleAdminExpand(u.id)}
@@ -556,23 +564,27 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                 <ChevronRight size={15} />
                               )}
                             </button>
-                          </td>
+                          ) : (
+                            <span className="text-slate-300 font-mono">—</span>
+                          )}
+                        </td>
 
-                          {/* Admin User / Profile (Avatar + Name + Username + Email) */}
-                          <td className="p-3">
-                            <div className="flex items-center gap-2.5">
-                              {u.profileImageUrl ? (
-                                <img
-                                  src={u.profileImageUrl}
-                                  alt={u.displayName}
-                                  className="w-8 h-8 rounded-full object-cover border border-brand-border"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20 shrink-0">
-                                  {getInitials(u.displayName || `${u.firstName} ${u.lastName}`)}
-                                </div>
-                              )}
-                              <div>
+                        {/* Admin User / Profile (Avatar + Name + Username + Email) */}
+                        <td className="p-3">
+                          <div className="flex items-center gap-2.5">
+                            {u.profileImageUrl ? (
+                              <img
+                                src={u.profileImageUrl}
+                                alt={u.displayName}
+                                className="w-8 h-8 rounded-full object-cover border border-brand-border"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20 shrink-0">
+                                {getInitials(u.displayName || `${u.firstName} ${u.lastName}`)}
+                              </div>
+                            )}
+                            <div>
+                              {isAdmin ? (
                                 <button
                                   type="button"
                                   onClick={() => toggleAdminExpand(u.id)}
@@ -580,44 +592,40 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                 >
                                   {u.displayName || `${u.firstName} ${u.lastName}`}
                                 </button>
-                                <span className="text-[10.5px] text-brand-text-secondary flex items-center gap-1">
-                                  <Mail size={10} /> {u.email}
+                              ) : (
+                                <span className="font-bold text-brand-text-primary block text-xs">
+                                  {u.displayName || `${u.firstName} ${u.lastName}`}
                                 </span>
-                              </div>
+                              )}
+                              <span className="text-[10.5px] text-brand-text-secondary flex items-center gap-1">
+                                <Mail size={10} /> {u.email}
+                              </span>
                             </div>
-                          </td>
+                          </div>
+                        </td>
 
-                          {/* Employee Code */}
-                          <td className="p-3 font-mono text-brand-primary font-semibold text-xs">
-                            {u.employeeId || '—'}
-                          </td>
+                        {/* Employee Code */}
+                        <td className="p-3 font-mono text-brand-primary font-semibold text-xs">
+                          {u.employeeId || '—'}
+                        </td>
 
-                          {/* Role(s) Badge - Clickable to expand inline sub-team */}
-                          <td className="p-3">
-                            {u.roles && u.roles.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {u.roles.map((r: string) => (
-                                  <button
-                                    key={r}
-                                    type="button"
-                                    onClick={() => toggleAdminExpand(u.id)}
-                                    className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                                    title="Click to view operational roles & team under this Administrator"
-                                  >
-                                    {r}
-                                  </button>
-                                ))}
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => toggleAdminExpand(u.id)}
-                                className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                              >
-                                Administrator
-                              </button>
-                            )}
-                          </td>
+                        {/* Role(s) Badge */}
+                        <td className="p-3">
+                          {isAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleAdminExpand(u.id)}
+                              className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                              title="Click to view operational roles & team under this Administrator"
+                            >
+                              {roleStr}
+                            </button>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-lg border border-emerald-200 shadow-2xs">
+                              {roleStr}
+                            </span>
+                          )}
+                        </td>
 
                           {/* Department / Branch */}
                           <td className="p-3 text-brand-text-secondary text-[11px]">
