@@ -51,9 +51,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
-    'admin:manage_users', 'masters:manage', 'procurement:manage', 'wms:manage', 'inventory:manage', 'sales:manage', 'finance:manage'
-  ]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

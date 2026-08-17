@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES } from '../../../constants/roles';
-import { saveUserRoleAndPermissions } from '../../../services/userPermissionsService';
+import { saveUserRoleAndPermissions, getUserAccessSettings } from '../../../services/userPermissionsService';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -51,16 +51,14 @@ export const saveUserSecurityPolicy = (policy: UserSecurityPolicySettings): void
   }
 };
 
-export const getUserPermissions = (userId: string): string[] => {
+export const getUserPermissions = (userId?: string, email?: string): string[] => {
   try {
-    const raw = localStorage.getItem(`ink_user_permissions_${userId}`);
-    if (raw) return JSON.parse(raw);
+    const access = getUserAccessSettings(userId, email);
+    if (access && access.permissions) return access.permissions;
   } catch (e) {
     console.error('Error reading user permissions:', e);
   }
-  return [
-    'admin:manage_users', 'masters:manage', 'procurement:manage', 'wms:manage', 'inventory:manage', 'sales:manage', 'finance:manage'
-  ];
+  return [];
 };
 
 export const saveUserPermissions = (userId: string, permissions: string[]): void => {
@@ -110,7 +108,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       const policy = getUserSecurityPolicy(user.id);
       setEnableLocationAuth(policy.enableLocationAuth);
       setEnableFaceAuth(policy.enableFaceAuth);
-      setSelectedPermissions(getUserPermissions(user.id));
+      setSelectedPermissions(getUserPermissions(user.id, (user as any).email));
     }
   }, [user]);
 

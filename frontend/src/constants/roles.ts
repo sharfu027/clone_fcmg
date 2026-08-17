@@ -61,11 +61,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, string[]> = {
     'manage:sales', 'manage:finance', 'manage:security', 'manage:users'
   ],
   'Administrator': [
-    'read:dashboard', 'admin:manage_users', 'masters:manage', 'procurement:manage',
-    'wms:manage', 'inventory:manage', 'sfa:manage', 'o2c:manage', 'returns:manage',
-    'finance:manage', 'hrms:manage', 'crm:manage', 'logistics:manage', 'reports:manage',
-    'manage:masters', 'manage:procurement', 'manage:warehouse', 'manage:inventory',
-    'manage:sales', 'manage:finance', 'manage:users'
+    'read:dashboard'
   ],
   'Procurement Manager': [
     'read:dashboard', 'procurement:manage', 'returns:manage', 'masters:manage',
