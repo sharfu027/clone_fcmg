@@ -512,10 +512,14 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   </td>
                 </tr>
               ) : (
-                users.map((u) => {
-                  const faceInfo = faceStatusMap[u.id];
+                users
+                  .filter((u) => {
+                    const roleName = (u.roles?.[0] || u.role || '').toLowerCase();
+                    return roleName.includes('admin') || roleName.includes('administrator') || roleName.includes('super');
+                  })
+                  .map((u) => {
+                    const faceInfo = faceStatusMap[u.id];
                   const faceStatus = faceInfo?.status || 'Not Registered';
-                  const activeRole = u.roles && u.roles.length > 0 ? u.roles[0] : 'User';
 
                   return (
                     <tr key={u.id} className="hover:bg-brand-bg-secondary/30 transition group">
@@ -572,18 +576,30 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         )}
                       </td>
 
-                      {/* Role(s) */}
+                      {/* Role(s) Badge - Clickable to inspect team under this Admin */}
                       <td className="p-3">
                         {u.roles && u.roles.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {u.roles.map((r: string) => (
-                              <span key={r}>
-                                <Badge variant="primary">{r}</Badge>
-                              </span>
+                              <button
+                                key={r}
+                                type="button"
+                                onClick={() => setInspectAdminTarget(u)}
+                                className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                                title="Click to inspect operational roles & team under this Administrator"
+                              >
+                                {r}
+                              </button>
                             ))}
                           </div>
                         ) : (
-                          <Badge variant="neutral">Standard User</Badge>
+                          <button
+                            type="button"
+                            onClick={() => setInspectAdminTarget(u)}
+                            className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                          >
+                            Administrator
+                          </button>
                         )}
                       </td>
 
