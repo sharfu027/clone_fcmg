@@ -71,8 +71,8 @@ export default function SidebarNavigation({
 
   // Permission-Driven Clearance Resolver (API-First Navigation)
   const hasPermission = (item: NavItem): boolean => {
-    if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
-    if (!user || !user.permissions) return true;
+    if (item.href === 'dashboard') return true;
+    if (!user || !user.permissions || user.permissions.length === 0) return false;
     if (user.role === 'Super Administrator' || user.permissions.includes('manage:all')) return true;
 
     if (item.href.startsWith('masters/')) {
