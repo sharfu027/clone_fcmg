@@ -235,6 +235,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [newCatInput, setNewCatInput] = useState('');
   const [showQuickAddBrand, setShowQuickAddBrand] = useState(false);
   const [newBrandInput, setNewBrandInput] = useState('');
+  const [showQuickAddUom, setShowQuickAddUom] = useState(false);
+  const [newUomInput, setNewUomInput] = useState('');
   const [showQuickAddBranch, setShowQuickAddBranch] = useState(false);
   const [newBranchInput, setNewBranchInput] = useState('');
   const [showQuickAddDept, setShowQuickAddDept] = useState(false);
@@ -955,8 +957,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
   const getActiveArray = () => {
     if (module === 'partners' || module === 'masters/partners' || module === 'customers' || module === 'masters/customers' || module === 'suppliers' || module === 'masters/suppliers') {
-      const custRows = dbCustomers.map(c => ({ id: c.id, code: c.code, name: c.name, detail1: 'Customer (Buyer)', detail2: `${c.contact || 'N/A'} | ${c.email || 'N/A'}`, numericText: `Limit: ₹${(c.balance || 500000).toLocaleString()}`, status: c.status }));
-      const suppRows = dbSuppliers.map(s => ({ id: s.id, code: s.code, name: s.name, detail1: 'Supplier (Vendor)', detail2: `${s.contact || 'N/A'} | ${s.email || 'N/A'}`, numericText: `Limit: ₹${(s.balance || 1000000).toLocaleString()}`, status: s.status }));
+      const custRows = dbCustomers.map(c => ({ id: `cust-${c.id}`, code: c.code, name: c.name, detail1: 'Customer (Buyer)', detail2: `${c.contact || 'N/A'} | ${c.email || 'N/A'}`, numericText: `Limit: ₹${(c.balance || 500000).toLocaleString()}`, status: c.status }));
+      const suppRows = dbSuppliers.map(s => ({ id: `supp-${s.id}`, code: s.code, name: s.name, detail1: 'Supplier (Vendor)', detail2: `${s.contact || 'N/A'} | ${s.email || 'N/A'}`, numericText: `Limit: ₹${(s.balance || 1000000).toLocaleString()}`, status: s.status }));
       return [...custRows, ...suppRows];
     }
     if (module === 'companies' || module === 'masters/companies') return dbCompanies.map(c => ({ id: c.id, code: c.code, name: c.legalName, detail1: c.gstin || 'N/A', detail2: c.city || 'HQ', numericText: c.currency, status: c.status }));
