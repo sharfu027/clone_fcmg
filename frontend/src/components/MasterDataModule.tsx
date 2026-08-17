@@ -44,40 +44,52 @@ interface MasterDataModuleProps {
 export default function MasterDataModule({ module, onTriggerToast }: MasterDataModuleProps) {
   const getModuleConfig = () => {
     switch (module) {
-      case 'partners':
-      case 'masters/partners':
-      case 'customers':
-      case 'masters/customers':
-      case 'suppliers':
-      case 'masters/suppliers':
-        return { name: 'Customers & Vendors', singular: 'Trade Partner', icon: Users2, endpoint: 'partner' };
-
-      case 'employees':
-      case 'masters/employees':
       case 'companies':
       case 'masters/companies':
+        return { name: 'Companies Master', singular: 'Company', icon: Building, endpoint: 'company' };
+
       case 'branches':
       case 'masters/branches':
-      case 'departments':
-      case 'masters/departments':
-      case 'designations':
-      case 'masters/designations':
-        return { name: 'Organization & Staff', singular: 'Staff Record', icon: User, endpoint: 'employee' };
-
-      case 'products':
-      case 'masters/products':
-      case 'categories':
-      case 'masters/categories':
-      case 'brands':
-      case 'masters/brands':
-      case 'units':
-      case 'masters/units':
-        return { name: 'Products & Catalog', singular: 'Product SKU', icon: Boxes, endpoint: 'product' };
+        return { name: 'Branches Master', singular: 'Branch', icon: Building, endpoint: 'branch' };
 
       case 'warehouses':
       case 'masters/warehouses':
+        return { name: 'Warehouses Master', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
+
+      case 'departments':
+      case 'masters/departments':
+        return { name: 'Departments Master', singular: 'Department', icon: Building, endpoint: 'department' };
+
+      case 'products':
+      case 'masters/products':
+        return { name: 'Products SKU Master', singular: 'Product SKU', icon: Boxes, endpoint: 'product' };
+
+      case 'categories':
+      case 'masters/categories':
+        return { name: 'Product Categories', singular: 'Category', icon: Tags, endpoint: 'category' };
+
+      case 'brands':
+      case 'masters/brands':
+        return { name: 'Brands & Non-Brands', singular: 'Brand', icon: ClipboardList, endpoint: 'brand' };
+
+      case 'employees':
+      case 'masters/employees':
+        return { name: 'Employee Roster', singular: 'Employee', icon: User, endpoint: 'employee' };
+
+      case 'designations':
+      case 'masters/designations':
+        return { name: 'Designations Master', singular: 'Designation', icon: Briefcase, endpoint: 'designation' };
+
+      case 'customers':
+      case 'masters/customers':
+        return { name: 'Customers Directory (Retail, Wholesale, Inst, School)', singular: 'Customer', icon: Users2, endpoint: 'customer' };
+
+      case 'suppliers':
+      case 'masters/suppliers':
+        return { name: 'Suppliers Directory (Individual, Community, Company)', singular: 'Supplier', icon: Truck, endpoint: 'supplier' };
+
       default:
-        return { name: 'Warehouses & Facilities', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
+        return { name: 'Master Data Registry', singular: 'Record', icon: Building, endpoint: 'company' };
     }
   };
 
@@ -956,7 +968,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   };
 
   const getActiveArray = () => {
-    if (module === 'partners' || module === 'masters/partners' || module === 'customers' || module === 'masters/customers' || module === 'suppliers' || module === 'masters/suppliers') {
+    if (module === 'partners' || module === 'masters/partners') {
       const custRows = dbCustomers.map(c => ({ id: `cust-${c.id}`, code: c.code, name: c.name, detail1: 'Customer (Buyer)', detail2: `${c.contact || 'N/A'} | ${c.email || 'N/A'}`, numericText: `Limit: ₹${(c.balance || 500000).toLocaleString()}`, status: c.status }));
       const suppRows = dbSuppliers.map(s => ({ id: `supp-${s.id}`, code: s.code, name: s.name, detail1: 'Supplier (Vendor)', detail2: `${s.contact || 'N/A'} | ${s.email || 'N/A'}`, numericText: `Limit: ₹${(s.balance || 1000000).toLocaleString()}`, status: s.status }));
       return [...custRows, ...suppRows];
