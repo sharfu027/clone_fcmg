@@ -180,7 +180,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           userId,
           cleanEmail,
           roleName,
-          formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : []
+          formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : [],
+          formData.username.trim()
         );
 
         const matchedRole = availableRoles.find(

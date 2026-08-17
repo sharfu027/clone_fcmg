@@ -148,7 +148,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
       });
 
       const loadedUsers = (res.items || []).map((u: any) => {
-        const access = getUserAccessSettings(u.id, u.email, u.role || u.roles?.[0] || 'Administrator');
+        const access = getUserAccessSettings(u.id, u.email, u.username, u.role || u.roles?.[0] || 'Administrator');
         const roleName = access.roleName || u.role || u.roles?.[0] || 'Administrator';
         return {
           ...u,
@@ -537,21 +537,24 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   </td>
                 </tr>
               ) : (
-                users.map((u) => {
-                  const roleStr = u.roles?.[0] || u.role || 'Administrator';
-                  const roleLower = roleStr.toLowerCase();
-                  const isAdmin = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
-                  const faceInfo = faceStatusMap[u.id];
-                  const faceStatus = faceInfo?.status || 'Not Registered';
-                  const isExpanded = Boolean(expandedAdminIds[u.id]);
+                users
+                  .filter((u) => {
+                    const roleStr = u.roles?.[0] || u.role || 'Administrator';
+                    const roleLower = roleStr.toLowerCase();
+                    return roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
+                  })
+                  .map((u) => {
+                    const roleStr = u.roles?.[0] || u.role || 'Administrator';
+                    const faceInfo = faceStatusMap[u.id];
+                    const faceStatus = faceInfo?.status || 'Not Registered';
+                    const isExpanded = Boolean(expandedAdminIds[u.id]);
 
-                  return (
-                    <React.Fragment key={u.id}>
-                      <tr className="hover:bg-brand-bg-secondary/30 transition group">
-                        
-                        {/* Chevron Accordion Expand Button (Admins only) */}
-                        <td className="p-3 text-center w-8">
-                          {isAdmin ? (
+                    return (
+                      <React.Fragment key={u.id}>
+                        <tr className="hover:bg-brand-bg-secondary/30 transition group">
+                          
+                          {/* Chevron Accordion Expand Button */}
+                          <td className="p-3 text-center w-8">
                             <button
                               type="button"
                               onClick={() => toggleAdminExpand(u.id)}
@@ -564,10 +567,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                 <ChevronRight size={15} />
                               )}
                             </button>
-                          ) : (
-                            <span className="text-slate-300 font-mono">—</span>
-                          )}
-                        </td>
+                          </td>
 
                         {/* Admin User / Profile (Avatar + Name + Username + Email) */}
                         <td className="p-3">
@@ -584,19 +584,13 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               </div>
                             )}
                             <div>
-                              {isAdmin ? (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleAdminExpand(u.id)}
-                                  className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
-                                >
-                                  {u.displayName || `${u.firstName} ${u.lastName}`}
-                                </button>
-                              ) : (
-                                <span className="font-bold text-brand-text-primary block text-xs">
-                                  {u.displayName || `${u.firstName} ${u.lastName}`}
-                                </span>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => toggleAdminExpand(u.id)}
+                                className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
+                              >
+                                {u.displayName || `${u.firstName} ${u.lastName}`}
+                              </button>
                               <span className="text-[10.5px] text-brand-text-secondary flex items-center gap-1">
                                 <Mail size={10} /> {u.email}
                               </span>
@@ -609,22 +603,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                           {u.employeeId || '—'}
                         </td>
 
-                        {/* Role(s) Badge */}
+                        {/* Role(s) Badge - Clickable to expand inline sub-team */}
                         <td className="p-3">
-                          {isAdmin ? (
-                            <button
-                              type="button"
-                              onClick={() => toggleAdminExpand(u.id)}
-                              className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                              title="Click to view operational roles & team under this Administrator"
-                            >
-                              {roleStr}
-                            </button>
-                          ) : (
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-lg border border-emerald-200 shadow-2xs">
-                              {roleStr}
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleAdminExpand(u.id)}
+                            className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                            title="Click to view operational roles & team under this Administrator"
+                          >
+                            {roleStr}
+                          </button>
                         </td>
 
                           {/* Department / Branch */}
