@@ -5,14 +5,12 @@ export const saveUserRoleAndPermissions = (
   userId: string,
   email: string,
   roleName: string,
-  permissions: string[],
-  username?: string
+  permissions: string[]
 ): void => {
   try {
     const data = { roleName, permissions, updatedAt: new Date().toISOString() };
     if (userId) localStorage.setItem(`ink_user_access_${userId}`, JSON.stringify(data));
     if (email) localStorage.setItem(`ink_user_access_${email.toLowerCase()}`, JSON.stringify(data));
-    if (username) localStorage.setItem(`ink_user_access_${username.toLowerCase()}`, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving user access settings:', e);
   }
@@ -21,14 +19,12 @@ export const saveUserRoleAndPermissions = (
 export const getUserAccessSettings = (
   userId?: string,
   email?: string,
-  username?: string,
-  defaultRole: string = 'Administrator'
+  defaultRole: string = 'Sales Representative'
 ): { roleName: string; permissions: string[] } => {
   try {
     let raw = null;
     if (userId) raw = localStorage.getItem(`ink_user_access_${userId}`);
     if (!raw && email) raw = localStorage.getItem(`ink_user_access_${email.toLowerCase()}`);
-    if (!raw && username) raw = localStorage.getItem(`ink_user_access_${username.toLowerCase()}`);
     
     if (raw) {
       const parsed = JSON.parse(raw);
@@ -53,7 +49,7 @@ export const getUserAccessSettings = (
   }
 
   // Super Administrator root fallback
-  if ((email && email.toLowerCase().includes('superadmin')) || (username && username.toLowerCase().includes('superadmin'))) {
+  if (email && email.toLowerCase().includes('superadmin')) {
     return {
       roleName: 'Super Administrator',
       permissions: ROLE_PERMISSIONS_MAP['Super Administrator']
