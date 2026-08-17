@@ -302,6 +302,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     setSearchQuery('');
     setFormErrors({});
 
+    if (module === 'suppliers' || module === 'masters/suppliers') {
+      setPartnerRole('Supplier');
+    } else if (module === 'customers' || module === 'masters/customers') {
+      setPartnerRole('Customer');
+    }
+
     async function loadLiveData() {
       setSimulatedState('loading');
       try {
@@ -1165,6 +1171,11 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       setFormCode(`${config.singular.toUpperCase().slice(0,3)}-${Math.floor(100 + Math.random() * 900)}`);
                       setFormStatus('Active');
                       setFormErrors({});
+                      if (module === 'suppliers' || module === 'masters/suppliers') {
+                        setPartnerRole('Supplier');
+                      } else if (module === 'customers' || module === 'masters/customers') {
+                        setPartnerRole('Customer');
+                      }
                       setMode('create');
                     }}
                     className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm transition"

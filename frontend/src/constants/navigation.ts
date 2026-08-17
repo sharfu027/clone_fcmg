@@ -53,19 +53,13 @@ export const NAVIGATION_MENU: NavItem[] = [
         title: 'Customer',
         href: 'masters/customers',
         icon: 'Users2',
-        requiredPermissions: ['masters:manage', 'manage:masters'],
-        children: [
-          { title: 'Sub Customer (Channels)', href: 'masters/customers?view=channels', icon: 'Users2', requiredPermissions: ['masters:manage', 'manage:masters'] }
-        ]
+        requiredPermissions: ['masters:manage', 'manage:masters']
       },
       {
         title: 'Supplier',
         href: 'masters/suppliers',
         icon: 'Truck',
-        requiredPermissions: ['masters:manage', 'manage:masters'],
-        children: [
-          { title: 'Industry (Vendor Types)', href: 'masters/suppliers?view=industry', icon: 'Truck', requiredPermissions: ['masters:manage', 'manage:masters'] }
-        ]
+        requiredPermissions: ['masters:manage', 'manage:masters']
       }
     ]
   },
