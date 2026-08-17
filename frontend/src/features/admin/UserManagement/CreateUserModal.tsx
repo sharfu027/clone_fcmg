@@ -3,6 +3,9 @@ import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCi
 import { adminService } from '../../../services/adminService';
 import { RoleDefinition } from '../../../types/admin';
 import { CANONICAL_MODULE_PERMISSIONS } from '../../../constants/roles';
+import { saveUserRoleAndPermissions } from '../../../services/userPermissionsService';
+
+const isGuid = (val: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -89,27 +92,61 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       return;
     }
 
-    if (formData.password.length < 8) {
-      onTriggerToast('warning', 'Weak Password', 'Password must be at least 8 characters long with uppercase, lowercase, and digit.');
+    // Auto-fix email if user typed username in email field (e.g. "sharfu" -> "sharfu@inkerp.com")
+    let cleanEmail = formData.email.trim();
+    if (!cleanEmail.includes('@')) {
+      cleanEmail = `${cleanEmail}@inkerp.com`;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      onTriggerToast('warning', 'Invalid Email Format', 'Please enter a valid email address (e.g. name@company.com).');
       return;
     }
+
+    // Validate Password requirements (Min 8 chars, 1 uppercase, 1 lowercase, 1 digit)
+    const hasUpper = /[A-Z]/.test(formData.password);
+    const hasLower = /[a-z]/.test(formData.password);
+    const hasDigit = /[0-9]/.test(formData.password);
+
+    if (formData.password.length < 8 || !hasUpper || !hasLower || !hasDigit) {
+      onTriggerToast(
+        'warning',
+        'Password Requirements Unmet',
+        'Password must be at least 8 characters long and contain 1 uppercase, 1 lowercase, and 1 digit (e.g. UserPass123!).'
+      );
+      return;
+    }
+
+    const cleanEmployeeId = isGuid(formData.employeeId.trim()) ? formData.employeeId.trim() : undefined;
 
     setIsSubmitting(true);
     try {
       const userId = await adminService.createUser({
         username: formData.username.trim(),
-        email: formData.email.trim(),
+        email: cleanEmail,
         phoneNumber: formData.phoneNumber.trim() || undefined,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         displayName: formData.displayName.trim() || `${formData.firstName} ${formData.lastName}`.trim(),
         password: formData.password,
-        employeeId: formData.employeeId.trim() || undefined,
+        employeeId: cleanEmployeeId,
         preferredLanguage: formData.preferredLanguage,
         timeZone: formData.timeZone,
       });
 
+      const matchedRoleDef = ERP_LOGIN_ROLES.find(r => r.code === formData.selectedRoleCode);
+      const roleName = matchedRoleDef ? matchedRoleDef.name : 'Sales Representative';
+
       if (userId) {
+        // Persist per-user role and custom clearance permissions
+        saveUserRoleAndPermissions(
+          userId,
+          cleanEmail,
+          roleName,
+          formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : []
+        );
+
         const matchedRole = availableRoles.find(
           (r) => r.code?.toLowerCase() === formData.selectedRoleCode.toLowerCase() || r.name?.toLowerCase() === formData.selectedRoleCode.toLowerCase()
         );
@@ -120,10 +157,23 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         }
       }
 
-      onSuccess(`User '${formData.username}' created successfully.`);
+      onSuccess(`User '${formData.username}' created successfully as ${roleName}.`);
       onClose();
     } catch (err: any) {
-      const errMsg = err?.data?.detail || err?.data?.Title || err?.message || 'Failed to create user account.';
+      let errMsg = 'Failed to create user account.';
+      if (err?.data) {
+        const d = err.data;
+        if (d.errors && typeof d.errors === 'object') {
+          const allErrs = Object.values(d.errors).flat();
+          errMsg = allErrs.join(' ');
+        } else if (d.detail) {
+          errMsg = d.detail;
+        } else if (d.title || d.Title) {
+          errMsg = d.title || d.Title;
+        }
+      } else if (err?.message) {
+        errMsg = err.message;
+      }
       onTriggerToast('error', 'User Creation Failed', errMsg);
     } finally {
       setIsSubmitting(false);
