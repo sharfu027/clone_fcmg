@@ -33,6 +33,7 @@ import {
   SalesRep 
 } from '../types';
 import * as masterDataService from '../services/masterDataService';
+import { useAuth } from '../context/AuthContext';
 
 const isGuid = (val: any) => typeof val === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
 
@@ -94,6 +95,36 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   };
 
   const config = getModuleConfig();
+
+  const { user } = useAuth();
+  const userPerms = user?.permissions || [];
+  const isSuper = user?.role === 'Super Administrator' || userPerms.includes('manage:all');
+
+  const canAccessCompany = isSuper || userPerms.includes('masters:company');
+  const canAccessProduct = isSuper || userPerms.includes('masters:product');
+  const canAccessEmployee = isSuper || userPerms.includes('masters:employee');
+  const canAccessCustomer = isSuper || userPerms.includes('masters:customer');
+  const canAccessSupplier = isSuper || userPerms.includes('masters:supplier');
+
+  const isCurrentModuleAllowed = () => {
+    if (isSuper) return true;
+    if (module.includes('companies') || module.includes('branches') || module.includes('warehouses') || module.includes('departments')) {
+      return canAccessCompany;
+    }
+    if (module.includes('products') || module.includes('categories') || module.includes('brands')) {
+      return canAccessProduct;
+    }
+    if (module.includes('employees') || module.includes('designations')) {
+      return canAccessEmployee;
+    }
+    if (module.includes('customers')) {
+      return canAccessCustomer;
+    }
+    if (module.includes('suppliers')) {
+      return canAccessSupplier;
+    }
+    return true;
+  };
 
   // Master Repositories (Production Architecture: Companies live data)
   const [dbCompanies, setDbCompanies] = useState<any[]>([]);
@@ -309,6 +340,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     }
 
     async function loadLiveData() {
+      if (!isCurrentModuleAllowed()) {
+        setSimulatedState('denied');
+        return;
+      }
       setSimulatedState('loading');
       try {
         const queryParams = { search: searchQuery || undefined, status: statusFilter !== 'All' ? statusFilter : undefined };
@@ -1013,7 +1048,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       </div>
 
       {/* SUB-MENU TABS FOR INSTANT NAVIGATION BETWEEN SUB-MODULES */}
-      {(module.includes('companies') || module.includes('branches') || module.includes('warehouses') || module.includes('departments')) && (
+      {canAccessCompany && (module.includes('companies') || module.includes('branches') || module.includes('warehouses') || module.includes('departments')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Company Sub-Menus:</span>
           <a href="/masters/companies" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('companies') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
@@ -1031,7 +1066,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         </div>
       )}
 
-      {(module.includes('products') || module.includes('categories') || module.includes('brands')) && (
+      {canAccessProduct && (module.includes('products') || module.includes('categories') || module.includes('brands')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Product Sub-Menus:</span>
           <a href="/masters/products" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('products') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
@@ -1046,7 +1081,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         </div>
       )}
 
-      {(module.includes('employees') || module.includes('designations')) && (
+      {canAccessEmployee && (module.includes('employees') || module.includes('designations')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Employee Sub-Menus:</span>
           <a href="/masters/employees" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employees') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
