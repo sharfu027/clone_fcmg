@@ -38,8 +38,8 @@ export const getUserAccessSettings = (
         }
         return {
           roleName: parsed.roleName,
-          permissions: parsed.permissions && parsed.permissions.length > 0
-            ? parsed.permissions
+          permissions: parsed.permissions && Array.isArray(parsed.permissions)
+            ? (parsed.permissions.includes('read:dashboard') ? parsed.permissions : ['read:dashboard', ...parsed.permissions])
             : getPermissionsForRole(parsed.roleName as UserRole)
         };
       }

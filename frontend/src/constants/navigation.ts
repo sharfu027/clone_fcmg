@@ -6,7 +6,7 @@ export const NAVIGATION_MENU: NavItem[] = [
     title: 'Executive BI & Analytics',
     href: 'bi',
     icon: 'TrendingUp',
-    requiredPermissions: ['bi:manage', 'manage:bi', 'read:dashboard'],
+    requiredPermissions: ['bi:manage', 'manage:bi'],
     children: [
       { title: 'Sales BI', href: 'bi/sales', icon: 'Layers', requiredPermissions: ['bi:manage', 'manage:sales'] },
       { title: 'Inventory Analytics', href: 'bi/inventory', icon: 'Layers', requiredPermissions: ['bi:manage', 'manage:inventory'] },
@@ -161,23 +161,23 @@ export const NAVIGATION_MENU: NavItem[] = [
     title: 'Approval Workflow',
     href: 'workflow',
     icon: 'FolderLock',
-    requiredPermissions: ['workflow:manage', 'manage:workflow', 'read:dashboard'],
+    requiredPermissions: ['workflow:manage', 'manage:workflow'],
     children: [
       { title: 'Workflow Designer', href: 'workflow/designer', icon: 'Layers', requiredPermissions: ['workflow:manage', 'manage:security'] },
       { title: 'Approval Matrix', href: 'workflow/matrix', icon: 'Layers', requiredPermissions: ['workflow:manage', 'manage:security'] },
-      { title: 'My Approvals Inbox', href: 'workflow/inbox', icon: 'Layers', requiredPermissions: ['read:dashboard'] },
-      { title: 'Delegation Rules', href: 'workflow/delegation', icon: 'Layers', requiredPermissions: ['read:dashboard'] }
+      { title: 'My Approvals Inbox', href: 'workflow/inbox', icon: 'Layers', requiredPermissions: ['workflow:manage', 'manage:workflow'] },
+      { title: 'Delegation Rules', href: 'workflow/delegation', icon: 'Layers', requiredPermissions: ['workflow:manage', 'manage:workflow'] }
     ]
   },
   {
     title: 'HRMS Portal',
     href: 'hrms',
     icon: 'Users2',
-    requiredPermissions: ['hrms:manage', 'manage:hrms', 'admin:manage_users', 'manage:users'],
+    requiredPermissions: ['hrms:manage', 'manage:hrms'],
     children: [
-      { title: 'Employee Roster', href: 'hrms/employees', icon: 'Layers', requiredPermissions: ['hrms:manage', 'admin:manage_users', 'manage:users'] },
-      { title: 'Attendance Logs', href: 'hrms/attendance', icon: 'Layers', requiredPermissions: ['hrms:manage', 'admin:manage_users', 'manage:users'] },
-      { title: 'Leave Management', href: 'hrms/leaves', icon: 'Layers', requiredPermissions: ['hrms:manage', 'admin:manage_users', 'manage:users'] }
+      { title: 'Employee Roster', href: 'hrms/employees', icon: 'Layers', requiredPermissions: ['hrms:manage', 'manage:hrms'] },
+      { title: 'Attendance Logs', href: 'hrms/attendance', icon: 'Layers', requiredPermissions: ['hrms:manage', 'manage:hrms'] },
+      { title: 'Leave Management', href: 'hrms/leaves', icon: 'Layers', requiredPermissions: ['hrms:manage', 'manage:hrms'] }
     ]
   },
   {
