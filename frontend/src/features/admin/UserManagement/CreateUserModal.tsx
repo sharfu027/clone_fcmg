@@ -183,11 +183,11 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const isSubAdminSelected = formData.selectedRoleCode === 'ADMINISTRATOR';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl border border-brand-border max-w-2xl w-full p-6 space-y-5 shadow-xl my-8">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs p-4 sm:p-6 flex items-start justify-center">
+      <div className="bg-white rounded-2xl border border-brand-border max-w-2xl w-full p-5 sm:p-6 shadow-2xl my-auto flex flex-col max-h-[90vh] overflow-hidden">
         
         {/* Modal Header */}
-        <div className="flex justify-between items-center border-b pb-3">
+        <div className="shrink-0 flex justify-between items-center border-b pb-3 mb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg">
               <UserPlus size={20} />
@@ -205,7 +205,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[calc(90vh-140px)]">
           
           {/* Section 1: User Account Credentials */}
           <div>
@@ -497,7 +497,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           )}
 
           {/* Footer Actions */}
-          <div className="flex justify-end gap-2 pt-3 border-t">
+          <div className="shrink-0 sticky bottom-0 bg-white pt-3 mt-2 border-t flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
