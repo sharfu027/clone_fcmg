@@ -73,6 +73,18 @@ export default function SidebarNavigation({
   const hasPermission = (item: NavItem): boolean => {
     if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
     if (!user || !user.permissions) return true;
+    if (user.role === 'Super Administrator' || user.permissions.includes('manage:all')) return true;
+
+    if (item.href.startsWith('masters/')) {
+      const subSlug = item.href.split('/')[1];
+      const subCode = `masters:${subSlug}`;
+      const userSubMasterPermissions = user.permissions.filter(p => p.startsWith('masters:'));
+      if (userSubMasterPermissions.length > 1) {
+        return user.permissions.includes(subCode);
+      }
+      return user.permissions.includes('masters:manage') || user.permissions.includes('manage:masters');
+    }
+
     return item.requiredPermissions.some(perm => user.permissions?.includes(perm));
   };
 

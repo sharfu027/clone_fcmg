@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle, Sliders } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { RoleDefinition } from '../../../types/admin';
-import { CANONICAL_MODULE_PERMISSIONS } from '../../../constants/roles';
+import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES } from '../../../constants/roles';
 import { saveUserRoleAndPermissions } from '../../../services/userPermissionsService';
 
 const isGuid = (val: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
@@ -405,31 +405,82 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 Grant specific FMCG ERP module permissions to this Sub-Admin. Root clearance (<code className="text-rose-600">manage:all</code>) and IAM Security (<code className="text-rose-600">iam:manage</code>) are protected Super-Admin rights.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pt-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto pt-1">
                 {CANONICAL_MODULE_PERMISSIONS.filter((p) => !p.protected).map((perm) => {
                   const isChecked = selectedPermissions.includes(perm.code);
                   return (
-                    <label
+                    <div
                       key={perm.code}
-                      className={`p-2 rounded-lg border text-left cursor-pointer transition flex items-start gap-2 ${
+                      className={`p-2.5 rounded-lg border text-left cursor-pointer transition space-y-2 ${
                         isChecked
                           ? 'border-brand-primary bg-white shadow-xs'
                           : 'border-brand-border bg-slate-50 hover:bg-white'
                       }`}
+                      onClick={() => togglePermission(perm.code)}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => togglePermission(perm.code)}
-                        className="mt-0.5 cursor-pointer accent-brand-primary"
-                      />
-                      <div>
-                        <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                          {perm.name}
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => togglePermission(perm.code)}
+                          className="mt-0.5 cursor-pointer accent-brand-primary"
+                        />
+                        <div>
+                          <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                            {perm.name}
+                          </div>
+                          <div className="text-[10px] text-slate-500 leading-tight">{perm.description}</div>
                         </div>
-                        <div className="text-[10px] text-slate-500 leading-tight">{perm.description}</div>
                       </div>
-                    </label>
+
+                      {/* Granular Master Data Sub-Module Clearances */}
+                      {perm.code === 'masters:manage' && isChecked && (
+                        <div className="mt-2 pt-2 border-t border-blue-100 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
+                              <Sliders size={11} /> Master Data Sub-Module Access:
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
+                                const hasAll = subCodes.every(c => selectedPermissions.includes(c));
+                                if (hasAll) {
+                                  setSelectedPermissions(prev => prev.filter(p => !subCodes.includes(p)));
+                                } else {
+                                  setSelectedPermissions(prev => Array.from(new Set([...prev, ...subCodes])));
+                                }
+                              }}
+                              className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
+                            >
+                              Toggle All
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 bg-blue-50/50 p-2 rounded border border-blue-100/80">
+                            {MASTER_DATA_SUBMODULES.map((sub) => {
+                              const isSubChecked = selectedPermissions.includes(sub.code);
+                              return (
+                                <label
+                                  key={sub.code}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-700 cursor-pointer hover:text-brand-primary transition"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSubChecked}
+                                    onChange={() => togglePermission(sub.code)}
+                                    className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3 h-3 cursor-pointer"
+                                  />
+                                  <span className="truncate">{sub.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

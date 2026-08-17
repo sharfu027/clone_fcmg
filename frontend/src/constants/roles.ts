@@ -22,6 +22,20 @@ export interface FMCGModulePermission {
   protected?: boolean;
 }
 
+export const MASTER_DATA_SUBMODULES = [
+  { code: 'masters:companies', name: 'Companies Master', href: 'masters/companies', category: 'Company' },
+  { code: 'masters:branches', name: 'Branches Master', href: 'masters/branches', category: 'Company' },
+  { code: 'masters:warehouses', name: 'Warehouses Master', href: 'masters/warehouses', category: 'Company' },
+  { code: 'masters:departments', name: 'Departments Master', href: 'masters/departments', category: 'Company' },
+  { code: 'masters:products', name: 'Products SKU Master', href: 'masters/products', category: 'Product' },
+  { code: 'masters:categories', name: 'Product Categories', href: 'masters/categories', category: 'Product' },
+  { code: 'masters:brands', name: 'Brands & Non-Brands', href: 'masters/brands', category: 'Product' },
+  { code: 'masters:employees', name: 'Employee Roster', href: 'masters/employees', category: 'Employee' },
+  { code: 'masters:designations', name: 'Designations Master', href: 'masters/designations', category: 'Employee' },
+  { code: 'masters:customers', name: 'Customers Directory', href: 'masters/customers', category: 'Customer' },
+  { code: 'masters:suppliers', name: 'Suppliers Directory', href: 'masters/suppliers', category: 'Supplier' }
+];
+
 export const CANONICAL_MODULE_PERMISSIONS: FMCGModulePermission[] = [
   { code: 'manage:all', name: 'Root System Clearance', category: 'Root', description: 'Complete unrestricted access across all 17 FMCG ERP modules', protected: true },
   { code: 'iam:manage', name: 'Authentication & Security Center', category: 'Security', description: 'Global security policies, MFA, biometrics, security profiles', protected: true },
