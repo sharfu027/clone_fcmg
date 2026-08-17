@@ -497,26 +497,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
         </div>
 
         {/* ── SECTION 3: USERS DATA TABLE ── */}
-        <div className="overflow-x-auto min-h-[350px]">
+        <div className="min-h-[350px]">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-brand-bg-secondary border-b text-[10px] font-bold text-brand-text-secondary uppercase">
               <tr>
                 <th className="p-3 w-8 text-center"></th>
-                <th className="p-3">User / Avatar</th>
-                <th className="p-3">Employee ID</th>
-                <th className="p-3">Full Name & Email</th>
-                <th className="p-3">Mobile</th>
-                <th className="p-3">Role(s)</th>
-                <th className="p-3">Department / Branch</th>
+                <th className="p-3">Admin User / Profile</th>
+                <th className="p-3">Employee Code</th>
+                <th className="p-3">Security Role</th>
+                <th className="p-3">Department & Branch</th>
                 <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-center">
-                  <span className="flex items-center gap-1 justify-center">
-                    <Fingerprint size={12} />
-                    Face Biometrics
-                  </span>
-                </th>
-                <th className="p-3">Last Login</th>
-                <th className="p-3">Created</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -524,7 +514,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
             <tbody className="divide-y divide-brand-border">
               {isLoading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-12 text-center text-xs text-brand-text-secondary">
+                  <td colSpan={7} className="p-12 text-center text-xs text-brand-text-secondary">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw size={20} className="animate-spin text-brand-primary" />
                       <span>Fetching user registry from ASP.NET Core backend...</span>
@@ -533,7 +523,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-12 text-center text-xs text-brand-text-secondary">
+                  <td colSpan={7} className="p-12 text-center text-xs text-brand-text-secondary">
                     No user accounts match the selected filter criteria.
                   </td>
                 </tr>
@@ -568,7 +558,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                             </button>
                           </td>
 
-                          {/* Avatar & User Code */}
+                          {/* Admin User / Profile (Avatar + Name + Username + Email) */}
                           <td className="p-3">
                             <div className="flex items-center gap-2.5">
                               {u.profileImageUrl ? (
@@ -578,46 +568,28 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                   className="w-8 h-8 rounded-full object-cover border border-brand-border"
                                 />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20">
+                                <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20 shrink-0">
                                   {getInitials(u.displayName || `${u.firstName} ${u.lastName}`)}
                                 </div>
                               )}
                               <div>
-                                <span className="font-mono font-bold text-brand-text-primary block text-xs">
-                                  {u.username}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleAdminExpand(u.id)}
+                                  className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
+                                >
+                                  {u.displayName || `${u.firstName} ${u.lastName}`}
+                                </button>
+                                <span className="text-[10.5px] text-brand-text-secondary flex items-center gap-1">
+                                  <Mail size={10} /> {u.email}
                                 </span>
                               </div>
                             </div>
                           </td>
 
-                          {/* Employee ID */}
+                          {/* Employee Code */}
                           <td className="p-3 font-mono text-brand-primary font-semibold text-xs">
                             {u.employeeId || '—'}
-                          </td>
-
-                          {/* Full Name & Email */}
-                          <td className="p-3">
-                            <button
-                              type="button"
-                              onClick={() => toggleAdminExpand(u.id)}
-                              className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition flex items-center gap-1"
-                            >
-                              {u.displayName || `${u.firstName} ${u.lastName}`}
-                            </button>
-                            <span className="text-[11px] text-brand-text-secondary flex items-center gap-1 mt-0.5">
-                              <Mail size={11} /> {u.email}
-                            </span>
-                          </td>
-
-                          {/* Mobile */}
-                          <td className="p-3 text-brand-text-secondary font-mono text-[11px]">
-                            {u.phoneNumber ? (
-                              <span className="flex items-center gap-1">
-                                <Phone size={11} /> {u.phoneNumber}
-                              </span>
-                            ) : (
-                              '—'
-                            )}
                           </td>
 
                           {/* Role(s) Badge - Clickable to expand inline sub-team */}
@@ -677,50 +649,9 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                             )}
                           </td>
 
-                          {/* Interactive Face Biometrics Badge */}
-                          <td className="p-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEnrollment(toEmployeeDetails(u))}
-                              title={faceStatus === 'Registered' ? 'Click to Re-Register 3D Face Biometrics' : 'Click to Register 3D Face Biometrics'}
-                              className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
-                            >
-                              {faceStatus === 'Registered' ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs hover:bg-emerald-100">
-                                  Registered {faceInfo?.version ? `(v${faceInfo.version})` : ''}
-                                </span>
-                              ) : faceStatus === 'Disabled' ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs hover:bg-rose-100">
-                                  Disabled
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs hover:bg-amber-100">
-                                  Not Registered
-                                </span>
-                              )}
-                            </button>
-                          </td>
-
-                          {/* Last Login */}
-                          <td className="p-3 font-mono text-[11px] text-brand-text-secondary">
-                            {u.lastLoginUtc ? new Date(u.lastLoginUtc).toLocaleString() : 'Never'}
-                          </td>
-
-                          {/* Created Date */}
-                          <td className="p-3 font-mono text-[11px] text-brand-text-secondary">
-                            {u.createdAtUtc ? new Date(u.createdAtUtc).toLocaleDateString() : '—'}
-                          </td>
-
                           {/* Actions */}
                           <td className="p-3 text-right">
                             <div className="flex justify-end items-center gap-1">
-                              <button
-                                onClick={() => toggleAdminExpand(u.id)}
-                                title="Toggle Operational Roles & Team Under This Admin"
-                                className="p-1.5 border border-blue-200 text-brand-primary hover:bg-blue-50 rounded-md transition cursor-pointer"
-                              >
-                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                              </button>
                               <button
                                 onClick={() => handleViewDetails(u)}
                                 title="View Security Details & Audit Logs"
@@ -775,35 +706,34 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
                         {/* Inline Nested Table for Operational Roles Under This Admin */}
                         {isExpanded && (
-                          <tr key={`${u.id}-expanded`} className="bg-blue-50/40">
-                            <td colSpan={12} className="p-4 border-y border-blue-200/80 shadow-inner">
-                              <div className="bg-white rounded-lg border border-blue-200 p-4 space-y-3 shadow-xs">
+                          <tr key={`${u.id}-expanded`} className="bg-slate-50/60">
+                            <td colSpan={7} className="p-3.5 border-y border-slate-200">
+                              <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 space-y-2.5 shadow-2xs">
                                 <div className="flex items-center justify-between border-b pb-2">
                                   <div className="flex items-center gap-2">
                                     <ShieldCheck size={16} className="text-brand-primary" />
                                     <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider">
-                                      Operational Roles & Team Assigned Under Administrator ({u.displayName || u.username})
+                                      Roles & Operational Roster Assigned Under Administrator ({u.displayName || u.username})
                                     </h4>
                                   </div>
-                                  <span className="text-[10px] font-bold px-2.5 py-0.5 bg-blue-100 text-brand-primary rounded-full">
-                                    {getAdminSubTeam(u).length} Operational Staff Accounts
+                                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 rounded-full">
+                                    {getAdminSubTeam(u).length} Active Accounts Under This Admin
                                   </span>
                                 </div>
 
-                                <div className="border border-slate-200 rounded-md overflow-hidden">
+                                <div className="border border-slate-200 rounded-lg overflow-hidden">
                                   <table className="w-full text-left text-xs">
-                                    <thead className="bg-slate-100 text-[10px] uppercase font-bold text-slate-600 border-b">
+                                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-600 border-b">
                                       <tr>
                                         <th className="p-2.5">Staff Name & Code</th>
                                         <th className="p-2.5">Email</th>
                                         <th className="p-2.5">Assigned Operational Role</th>
-                                        <th className="p-2.5">Branch / Department</th>
                                         <th className="p-2.5 text-center">Status</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                       {getAdminSubTeam(u).map((member: any) => (
-                                        <tr key={member.id} className="hover:bg-slate-50 transition">
+                                        <tr key={member.id} className="hover:bg-slate-50/80 transition">
                                           <td className="p-2.5 font-bold text-slate-800">
                                             {member.displayName || `${member.firstName || ''} ${member.lastName || ''}`}
                                             <span className="block text-[10px] text-brand-primary font-mono font-bold">
@@ -816,7 +746,6 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                               {member.roles?.[0] || member.role || 'Operational Staff'}
                                             </span>
                                           </td>
-                                          <td className="p-2.5 text-slate-500 font-medium">{member.branchName || 'Delhi Central'}</td>
                                           <td className="p-2.5 text-center">
                                             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${member.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                               {member.isActive ? 'Active' : 'Inactive'}
