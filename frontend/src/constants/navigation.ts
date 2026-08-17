@@ -14,39 +14,59 @@ export const NAVIGATION_MENU: NavItem[] = [
     ]
   },
   {
-    title: 'Company & Product Master',
-    href: 'masters/companies',
-    icon: 'Building',
+    title: 'Master Data',
+    href: 'masters',
+    icon: 'Boxes',
     requiredPermissions: ['masters:manage', 'manage:masters'],
     children: [
-      { title: 'Companies', href: 'masters/companies', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Branches', href: 'masters/branches', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Warehouses', href: 'masters/warehouses', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Departments', href: 'masters/departments', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Products SKU', href: 'masters/products', icon: 'Boxes', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Product Categories', href: 'masters/categories', icon: 'Tags', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Brands & Non-Brands', href: 'masters/brands', icon: 'ClipboardList', requiredPermissions: ['masters:manage', 'manage:masters'] }
-    ]
-  },
-  {
-    title: 'Employees Master',
-    href: 'masters/employees',
-    icon: 'UserCheck',
-    requiredPermissions: ['masters:manage', 'manage:masters'],
-    children: [
-      { title: 'Employee Roster', href: 'masters/employees', icon: 'UserCheck', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Designations', href: 'masters/designations', icon: 'Briefcase', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Roles & Rights Access', href: 'admin/security-center/user-management', icon: 'Shield', requiredPermissions: ['iam:manage', 'admin:manage_users'] }
-    ]
-  },
-  {
-    title: 'Customers & Suppliers Master',
-    href: 'masters/customers',
-    icon: 'Users2',
-    requiredPermissions: ['masters:manage', 'manage:masters'],
-    children: [
-      { title: 'Customers Directory', href: 'masters/customers', icon: 'Users2', requiredPermissions: ['masters:manage', 'manage:masters'] },
-      { title: 'Suppliers Directory', href: 'masters/suppliers', icon: 'Truck', requiredPermissions: ['masters:manage', 'manage:masters'] }
+      {
+        title: 'Company',
+        href: 'masters/companies',
+        icon: 'Building',
+        requiredPermissions: ['masters:manage', 'manage:masters'],
+        children: [
+          { title: 'Branches', href: 'masters/branches', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
+          { title: 'Warehouse', href: 'masters/warehouses', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] },
+          { title: 'Department', href: 'masters/departments', icon: 'Building', requiredPermissions: ['masters:manage', 'manage:masters'] }
+        ]
+      },
+      {
+        title: 'Product',
+        href: 'masters/products',
+        icon: 'Boxes',
+        requiredPermissions: ['masters:manage', 'manage:masters'],
+        children: [
+          { title: 'Category', href: 'masters/categories', icon: 'Tags', requiredPermissions: ['masters:manage', 'manage:masters'] },
+          { title: 'Brands', href: 'masters/brands', icon: 'ClipboardList', requiredPermissions: ['masters:manage', 'manage:masters'] }
+        ]
+      },
+      {
+        title: 'Employee',
+        href: 'masters/employees',
+        icon: 'UserCheck',
+        requiredPermissions: ['masters:manage', 'manage:masters'],
+        children: [
+          { title: 'Designation', href: 'masters/designations', icon: 'Briefcase', requiredPermissions: ['masters:manage', 'manage:masters'] }
+        ]
+      },
+      {
+        title: 'Customer',
+        href: 'masters/customers',
+        icon: 'Users2',
+        requiredPermissions: ['masters:manage', 'manage:masters'],
+        children: [
+          { title: 'Sub Customer (Channels)', href: 'masters/customers?view=channels', icon: 'Users2', requiredPermissions: ['masters:manage', 'manage:masters'] }
+        ]
+      },
+      {
+        title: 'Supplier',
+        href: 'masters/suppliers',
+        icon: 'Truck',
+        requiredPermissions: ['masters:manage', 'manage:masters'],
+        children: [
+          { title: 'Industry (Vendor Types)', href: 'masters/suppliers?view=industry', icon: 'Truck', requiredPermissions: ['masters:manage', 'manage:masters'] }
+        ]
+      }
     ]
   },
   { 
