@@ -2010,27 +2010,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 13. BUSINESS PARTNER MASTER FORM */}
               {(module === 'partners' || module === 'masters/partners' || module === 'customers' || module === 'masters/customers' || module === 'suppliers' || module === 'masters/suppliers') && (
                 <div className="space-y-6 text-xs">
-                  {/* Role Selector Pill */}
-                  <div className="p-4 bg-blue-50/40 rounded-lg border border-blue-100 space-y-2">
-                    <label className="font-bold text-brand-text-primary block text-xs">Select Business Partner Trade Role <span className="text-red-500">*</span></label>
-                    <div className="flex items-center gap-3">
-                      {(['Customer', 'Supplier', 'Both'] as const).map(role => (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => setPartnerRole(role)}
-                          className={`px-4 py-2 rounded-md font-bold text-xs border transition cursor-pointer flex items-center gap-1.5 ${
-                            partnerRole === role
-                              ? 'bg-brand-primary text-white border-brand-primary shadow-xs'
-                              : 'bg-white text-brand-text-secondary border-brand-border hover:bg-brand-bg-secondary'
-                          }`}
-                        >
-                          {role === 'Customer' ? '🛒 Customer (Buyer)' : role === 'Supplier' ? '🚚 Supplier (Vendor)' : '🔄 Dual Trade Partner (Both)'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Partner Code <span className="text-red-500">*</span></label>
