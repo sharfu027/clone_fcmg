@@ -39,7 +39,7 @@ import AssignRoleModal from './AssignRoleModal';
 import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../SecurityCenter/components/EmployeeSecurityDetailsDrawer';
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
-import { LocationEnrollmentModal } from '../SecurityCenter/components/LocationEnrollmentModal';
+import { AdminTeamInspectorModal } from './AdminTeamInspectorModal';
 
 interface UserManagementModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
@@ -68,6 +68,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editUserTarget, setEditUserTarget] = useState<any | null>(null);
   const [assignRoleTarget, setAssignRoleTarget] = useState<any | null>(null);
+  const [inspectAdminTarget, setInspectAdminTarget] = useState<any | null>(null);
 
   // Security Drawer & Face Modals State
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSecurityDetails | null>(null);
@@ -548,10 +549,14 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
                       {/* Full Name & Email */}
                       <td className="p-3">
-                        <span className="font-bold text-brand-text-primary block">
+                        <button
+                          type="button"
+                          onClick={() => setInspectAdminTarget(u)}
+                          className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition flex items-center gap-1"
+                        >
                           {u.displayName || `${u.firstName} ${u.lastName}`}
-                        </span>
-                        <span className="text-[11px] text-brand-text-secondary flex items-center gap-1">
+                        </button>
+                        <span className="text-[11px] text-brand-text-secondary flex items-center gap-1 mt-0.5">
                           <Mail size={11} /> {u.email}
                         </span>
                       </td>
@@ -650,7 +655,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                       <td className="p-3 text-right">
                         <div className="flex justify-end items-center gap-1">
                           
-                          {/* 1. View Security Details & Audit Logs */}
+                          {/* 1. Inspect Admin Team Roster & Roles Breakdown */}
+                          <button
+                            onClick={() => setInspectAdminTarget(u)}
+                            title="Inspect Admin Roles & Operational Team Roster"
+                            className="p-1.5 border border-blue-200 text-brand-primary hover:bg-blue-50 rounded-md transition cursor-pointer"
+                          >
+                            <ShieldCheck size={14} />
+                          </button>
+
+                          {/* 2. View Security Details & Audit Logs */}
                           <button
                             onClick={() => handleViewDetails(u)}
                             title="View Security Details & Audit Logs"
@@ -860,6 +874,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
             branch: locationTarget.branchName || 'Delhi Central',
           }}
           onTriggerToast={onTriggerToast}
+        />
+      )}
+
+      {inspectAdminTarget && (
+        <AdminTeamInspectorModal
+          isOpen={Boolean(inspectAdminTarget)}
+          onClose={() => setInspectAdminTarget(null)}
+          adminUser={inspectAdminTarget}
+          allUsers={users}
+          onEditUser={(userToEdit) => setEditUserTarget(userToEdit)}
         />
       )}
 

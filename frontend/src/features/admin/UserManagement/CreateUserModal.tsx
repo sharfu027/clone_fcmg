@@ -405,13 +405,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 Grant specific FMCG ERP module permissions to this Sub-Admin. Root clearance (<code className="text-rose-600">manage:all</code>) and IAM Security (<code className="text-rose-600">iam:manage</code>) are protected Super-Admin rights.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto pt-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start max-h-72 overflow-y-auto pt-1">
                 {CANONICAL_MODULE_PERMISSIONS.filter((p) => !p.protected).map((perm) => {
                   const isChecked = selectedPermissions.includes(perm.code);
                   return (
                     <div
                       key={perm.code}
-                      className={`p-2.5 rounded-lg border text-left cursor-pointer transition space-y-2 ${
+                      className={`p-2.5 rounded-lg border text-left cursor-pointer transition space-y-1.5 ${
                         isChecked
                           ? 'border-brand-primary bg-white shadow-xs'
                           : 'border-brand-border bg-slate-50 hover:bg-white'
@@ -428,13 +428,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                         <div>
                           <div className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
                             {perm.name}
+                            {isChecked && <CheckCircle size={11} className="text-brand-primary" />}
                           </div>
                           <div className="text-[10px] text-slate-500 leading-tight">{perm.description}</div>
                         </div>
                       </div>
 
                       {/* Granular Master Data Sub-Module Clearances */}
-                      {perm.code === 'masters:manage' && isChecked && (
+                      {perm.code === 'masters:manage' && isChecked ? (
                         <div className="mt-2 pt-2 border-t border-blue-100 space-y-1.5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
@@ -479,7 +480,11 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                             })}
                           </div>
                         </div>
-                      )}
+                      ) : isChecked ? (
+                        <div className="pt-1 border-t border-slate-100 flex items-center gap-1 text-[10px] text-emerald-600 font-bold">
+                          <CheckCircle size={10} /> Full Module Access Authorized
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
