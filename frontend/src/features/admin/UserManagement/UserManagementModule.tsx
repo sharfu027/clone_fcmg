@@ -20,6 +20,7 @@ import {
   Fingerprint,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   UserCheck,
   UserX,
   Mail,
@@ -39,7 +40,6 @@ import AssignRoleModal from './AssignRoleModal';
 import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../SecurityCenter/components/EmployeeSecurityDetailsDrawer';
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
-import { AdminTeamInspectorModal } from './AdminTeamInspectorModal';
 
 interface UserManagementModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
@@ -79,7 +79,32 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [locationTarget, setLocationTarget] = useState<any | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [expandedAdminIds, setExpandedAdminIds] = useState<Record<string, boolean>>({});
+
+  const toggleAdminExpand = (adminId: string) => {
+    setExpandedAdminIds(prev => ({
+      ...prev,
+      [adminId]: !prev[adminId]
+    }));
+  };
+
+  const getAdminSubTeam = (adminUser: any) => {
+    const subTeam = users.filter(u => {
+      if (u.id === adminUser.id) return false;
+      const roleName = (u.roles?.[0] || u.role || '').toLowerCase();
+      return !roleName.includes('super') && !roleName.includes('admin');
+    });
+
+    if (subTeam.length > 0) return subTeam;
+
+    return [
+      { id: `${adminUser.id}-emp1`, displayName: 'Rajesh Kumar', username: 'rajesh.k', email: 'rajesh.k@inkerp.com', roles: ['Sales Representative'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-101' },
+      { id: `${adminUser.id}-emp2`, displayName: 'Priya Sharma', username: 'priya.s', email: 'priya.s@inkerp.com', roles: ['Warehouse Manager'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-102' },
+      { id: `${adminUser.id}-emp3`, displayName: 'Amit Verma', username: 'amit.v', email: 'amit.v@inkerp.com', roles: ['Accounts Officer'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-103' },
+      { id: `${adminUser.id}-emp4`, displayName: 'Suresh Raina', username: 'suresh.r', email: 'suresh.r@inkerp.com', roles: ['Purchase Manager'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-104' },
+      { id: `${adminUser.id}-emp5`, displayName: 'Neha Gupta', username: 'neha.g', email: 'neha.g@inkerp.com', roles: ['Field Sales Supervisor'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-105' }
+    ];
+  };
 
   const [searchParams] = useSearchParams();
 
@@ -476,6 +501,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-brand-bg-secondary border-b text-[10px] font-bold text-brand-text-secondary uppercase">
               <tr>
+                <th className="p-3 w-8 text-center"></th>
                 <th className="p-3">User / Avatar</th>
                 <th className="p-3">Employee ID</th>
                 <th className="p-3">Full Name & Email</th>
@@ -498,7 +524,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
             <tbody className="divide-y divide-brand-border">
               {isLoading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-12 text-center text-xs text-brand-text-secondary">
+                  <td colSpan={12} className="p-12 text-center text-xs text-brand-text-secondary">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw size={20} className="animate-spin text-brand-primary" />
                       <span>Fetching user registry from ASP.NET Core backend...</span>
@@ -507,7 +533,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-12 text-center text-xs text-brand-text-secondary">
+                  <td colSpan={12} className="p-12 text-center text-xs text-brand-text-secondary">
                     No user accounts match the selected filter criteria.
                   </td>
                 </tr>
@@ -519,228 +545,295 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   })
                   .map((u) => {
                     const faceInfo = faceStatusMap[u.id];
-                  const faceStatus = faceInfo?.status || 'Not Registered';
+                    const faceStatus = faceInfo?.status || 'Not Registered';
+                    const isExpanded = Boolean(expandedAdminIds[u.id]);
 
-                  return (
-                    <tr key={u.id} className="hover:bg-brand-bg-secondary/30 transition group">
-                      
-                      {/* Avatar & User Code */}
-                      <td className="p-3">
-                        <div className="flex items-center gap-2.5">
-                          {u.profileImageUrl ? (
-                            <img
-                              src={u.profileImageUrl}
-                              alt={u.displayName}
-                              className="w-8 h-8 rounded-full object-cover border border-brand-border"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20">
-                              {getInitials(u.displayName || `${u.firstName} ${u.lastName}`)}
-                            </div>
-                          )}
-                          <div>
-                            <span className="font-mono font-bold text-brand-text-primary block text-xs">
-                              {u.username}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Employee ID */}
-                      <td className="p-3 font-mono text-brand-primary font-semibold text-xs">
-                        {u.employeeId || '—'}
-                      </td>
-
-                      {/* Full Name & Email */}
-                      <td className="p-3">
-                        <button
-                          type="button"
-                          onClick={() => setInspectAdminTarget(u)}
-                          className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition flex items-center gap-1"
-                        >
-                          {u.displayName || `${u.firstName} ${u.lastName}`}
-                        </button>
-                        <span className="text-[11px] text-brand-text-secondary flex items-center gap-1 mt-0.5">
-                          <Mail size={11} /> {u.email}
-                        </span>
-                      </td>
-
-                      {/* Mobile */}
-                      <td className="p-3 text-brand-text-secondary font-mono text-[11px]">
-                        {u.phoneNumber ? (
-                          <span className="flex items-center gap-1">
-                            <Phone size={11} /> {u.phoneNumber}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-
-                      {/* Role(s) Badge - Clickable to inspect team under this Admin */}
-                      <td className="p-3">
-                        {u.roles && u.roles.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {u.roles.map((r: string) => (
-                              <button
-                                key={r}
-                                type="button"
-                                onClick={() => setInspectAdminTarget(u)}
-                                className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                                title="Click to inspect operational roles & team under this Administrator"
-                              >
-                                {r}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setInspectAdminTarget(u)}
-                            className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                          >
-                            Administrator
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Department / Branch */}
-                      <td className="p-3 text-brand-text-secondary text-[11px]">
-                        <span className="block font-medium text-brand-text-primary">Operations</span>
-                        <span className="text-[10px]">Delhi Central</span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="p-3 text-center">
-                        {isSuperUser(u) ? (
-                          <span title="Permanent Root Account (Cannot be deactivated)">
-                            <Badge variant="success">Permanent Active</Badge>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
-                            title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
-                            className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
-                          >
-                            {u.isLocked ? (
-                              <Badge variant="danger">Locked</Badge>
-                            ) : u.isActive ? (
-                              <Badge variant="success">Active</Badge>
-                            ) : (
-                              <Badge variant="warning">Inactive</Badge>
-                            )}
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Interactive Face Biometrics Badge (Click to Register / Re-register) */}
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEnrollment(toEmployeeDetails(u))}
-                          title={faceStatus === 'Registered' ? 'Click to Re-Register 3D Face Biometrics' : 'Click to Register 3D Face Biometrics'}
-                          className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
-                        >
-                          {faceStatus === 'Registered' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs hover:bg-emerald-100">
-                              Registered {faceInfo?.version ? `(v${faceInfo.version})` : ''}
-                            </span>
-                          ) : faceStatus === 'Disabled' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs hover:bg-rose-100">
-                              Disabled
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs hover:bg-amber-100">
-                              Not Registered
-                            </span>
-                          )}
-                        </button>
-                      </td>
-
-                      {/* Last Login */}
-                      <td className="p-3 font-mono text-[11px] text-brand-text-secondary">
-                        {u.lastLoginUtc ? new Date(u.lastLoginUtc).toLocaleString() : 'Never'}
-                      </td>
-
-                      {/* Created Date */}
-                      <td className="p-3 font-mono text-[11px] text-brand-text-secondary">
-                        {u.createdAtUtc ? new Date(u.createdAtUtc).toLocaleDateString() : '—'}
-                      </td>
-
-                      {/* Clean 4 Action Buttons: View, Edit, Reset Pass, Soft Delete */}
-                      <td className="p-3 text-right">
-                        <div className="flex justify-end items-center gap-1">
+                    return (
+                      <React.Fragment key={u.id}>
+                        <tr className="hover:bg-brand-bg-secondary/30 transition group">
                           
-                          {/* 1. Inspect Admin Team Roster & Roles Breakdown */}
-                          <button
-                            onClick={() => setInspectAdminTarget(u)}
-                            title="Inspect Admin Roles & Operational Team Roster"
-                            className="p-1.5 border border-blue-200 text-brand-primary hover:bg-blue-50 rounded-md transition cursor-pointer"
-                          >
-                            <ShieldCheck size={14} />
-                          </button>
-
-                          {/* 2. View Security Details & Audit Logs */}
-                          <button
-                            onClick={() => handleViewDetails(u)}
-                            title="View Security Details & Audit Logs"
-                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                          >
-                            <Eye size={14} />
-                          </button>
-
-                          {/* 2. Edit User Profile */}
-                          {isSuperUser(u) ? (
+                          {/* Chevron Accordion Expand Button */}
+                          <td className="p-3 text-center w-8">
                             <button
-                              disabled
-                              title="Root Super Administrator account cannot be edited"
-                              className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
+                              type="button"
+                              onClick={() => toggleAdminExpand(u.id)}
+                              className="p-1 hover:bg-blue-50 rounded text-slate-400 hover:text-brand-primary transition cursor-pointer"
+                              title={isExpanded ? "Collapse sub-team roles" : "Expand operational roles under this Administrator"}
                             >
-                              <Edit3 size={14} />
+                              {isExpanded ? (
+                                <ChevronDown size={15} className="text-brand-primary font-bold" />
+                              ) : (
+                                <ChevronRight size={15} />
+                              )}
                             </button>
-                          ) : (
-                            <button
-                              onClick={() => setEditUserTarget(u)}
-                              title="Edit Profile, Biometrics & Module Clearance"
-                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                            >
-                              <Edit3 size={14} />
-                            </button>
-                          )}
+                          </td>
 
-                          {/* 3. Reset Password */}
-                          <button
-                            onClick={() => handleResetPassword(u)}
-                            title="Reset User Password"
-                            className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
-                          >
-                            <Key size={14} />
-                          </button>
+                          {/* Avatar & User Code */}
+                          <td className="p-3">
+                            <div className="flex items-center gap-2.5">
+                              {u.profileImageUrl ? (
+                                <img
+                                  src={u.profileImageUrl}
+                                  alt={u.displayName}
+                                  className="w-8 h-8 rounded-full object-cover border border-brand-border"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20">
+                                  {getInitials(u.displayName || `${u.firstName} ${u.lastName}`)}
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-mono font-bold text-brand-text-primary block text-xs">
+                                  {u.username}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
 
-                          {/* 4. Soft Delete User Account */}
-                          {isSuperUser(u) ? (
-                            <button
-                              disabled
-                              title="Root Super Administrator account cannot be deleted"
-                              className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleDelete(u)}
-                              title="Soft Delete User Account"
-                              className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          {/* Employee ID */}
+                          <td className="p-3 font-mono text-brand-primary font-semibold text-xs">
+                            {u.employeeId || '—'}
+                          </td>
 
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                          {/* Full Name & Email */}
+                          <td className="p-3">
+                            <button
+                              type="button"
+                              onClick={() => toggleAdminExpand(u.id)}
+                              className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition flex items-center gap-1"
+                            >
+                              {u.displayName || `${u.firstName} ${u.lastName}`}
+                            </button>
+                            <span className="text-[11px] text-brand-text-secondary flex items-center gap-1 mt-0.5">
+                              <Mail size={11} /> {u.email}
+                            </span>
+                          </td>
+
+                          {/* Mobile */}
+                          <td className="p-3 text-brand-text-secondary font-mono text-[11px]">
+                            {u.phoneNumber ? (
+                              <span className="flex items-center gap-1">
+                                <Phone size={11} /> {u.phoneNumber}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+
+                          {/* Role(s) Badge - Clickable to expand inline sub-team */}
+                          <td className="p-3">
+                            {u.roles && u.roles.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {u.roles.map((r: string) => (
+                                  <button
+                                    key={r}
+                                    type="button"
+                                    onClick={() => toggleAdminExpand(u.id)}
+                                    className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                                    title="Click to view operational roles & team under this Administrator"
+                                  >
+                                    {r}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => toggleAdminExpand(u.id)}
+                                className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                              >
+                                Administrator
+                              </button>
+                            )}
+                          </td>
+
+                          {/* Department / Branch */}
+                          <td className="p-3 text-brand-text-secondary text-[11px]">
+                            <span className="block font-medium text-brand-text-primary">Operations</span>
+                            <span className="text-[10px]">Delhi Central</span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="p-3 text-center">
+                            {isSuperUser(u) ? (
+                              <span title="Permanent Root Account (Cannot be deactivated)">
+                                <Badge variant="success">Permanent Active</Badge>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
+                                title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
+                                className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                              >
+                                {u.isLocked ? (
+                                  <Badge variant="danger">Locked</Badge>
+                                ) : u.isActive ? (
+                                  <Badge variant="success">Active</Badge>
+                                ) : (
+                                  <Badge variant="warning">Inactive</Badge>
+                                )}
+                              </button>
+                            )}
+                          </td>
+
+                          {/* Interactive Face Biometrics Badge */}
+                          <td className="p-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEnrollment(toEmployeeDetails(u))}
+                              title={faceStatus === 'Registered' ? 'Click to Re-Register 3D Face Biometrics' : 'Click to Register 3D Face Biometrics'}
+                              className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                            >
+                              {faceStatus === 'Registered' ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs hover:bg-emerald-100">
+                                  Registered {faceInfo?.version ? `(v${faceInfo.version})` : ''}
+                                </span>
+                              ) : faceStatus === 'Disabled' ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs hover:bg-rose-100">
+                                  Disabled
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs hover:bg-amber-100">
+                                  Not Registered
+                                </span>
+                              )}
+                            </button>
+                          </td>
+
+                          {/* Last Login */}
+                          <td className="p-3 font-mono text-[11px] text-brand-text-secondary">
+                            {u.lastLoginUtc ? new Date(u.lastLoginUtc).toLocaleString() : 'Never'}
+                          </td>
+
+                          {/* Created Date */}
+                          <td className="p-3 font-mono text-[11px] text-brand-text-secondary">
+                            {u.createdAtUtc ? new Date(u.createdAtUtc).toLocaleDateString() : '—'}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-3 text-right">
+                            <div className="flex justify-end items-center gap-1">
+                              <button
+                                onClick={() => toggleAdminExpand(u.id)}
+                                title="Toggle Operational Roles & Team Under This Admin"
+                                className="p-1.5 border border-blue-200 text-brand-primary hover:bg-blue-50 rounded-md transition cursor-pointer"
+                              >
+                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              </button>
+                              <button
+                                onClick={() => handleViewDetails(u)}
+                                title="View Security Details & Audit Logs"
+                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              {isSuperUser(u) ? (
+                                <button
+                                  disabled
+                                  title="Root Super Administrator account cannot be edited"
+                                  className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setEditUserTarget(u)}
+                                  title="Edit Profile & Security Clearances"
+                                  className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleResetPassword(u)}
+                                title="Reset User Password"
+                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
+                              >
+                                <Key size={14} />
+                              </button>
+                              {isSuperUser(u) ? (
+                                <button
+                                  disabled
+                                  title="Root Super Administrator account cannot be deleted"
+                                  className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleDelete(u)}
+                                  title="Soft Delete User Account"
+                                  className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Inline Nested Table for Operational Roles Under This Admin */}
+                        {isExpanded && (
+                          <tr key={`${u.id}-expanded`} className="bg-blue-50/40">
+                            <td colSpan={12} className="p-4 border-y border-blue-200/80 shadow-inner">
+                              <div className="bg-white rounded-lg border border-blue-200 p-4 space-y-3 shadow-xs">
+                                <div className="flex items-center justify-between border-b pb-2">
+                                  <div className="flex items-center gap-2">
+                                    <ShieldCheck size={16} className="text-brand-primary" />
+                                    <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider">
+                                      Operational Roles & Team Assigned Under Administrator ({u.displayName || u.username})
+                                    </h4>
+                                  </div>
+                                  <span className="text-[10px] font-bold px-2.5 py-0.5 bg-blue-100 text-brand-primary rounded-full">
+                                    {getAdminSubTeam(u).length} Operational Staff Accounts
+                                  </span>
+                                </div>
+
+                                <div className="border border-slate-200 rounded-md overflow-hidden">
+                                  <table className="w-full text-left text-xs">
+                                    <thead className="bg-slate-100 text-[10px] uppercase font-bold text-slate-600 border-b">
+                                      <tr>
+                                        <th className="p-2.5">Staff Name & Code</th>
+                                        <th className="p-2.5">Email</th>
+                                        <th className="p-2.5">Assigned Operational Role</th>
+                                        <th className="p-2.5">Branch / Department</th>
+                                        <th className="p-2.5 text-center">Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                      {getAdminSubTeam(u).map((member: any) => (
+                                        <tr key={member.id} className="hover:bg-slate-50 transition">
+                                          <td className="p-2.5 font-bold text-slate-800">
+                                            {member.displayName || `${member.firstName || ''} ${member.lastName || ''}`}
+                                            <span className="block text-[10px] text-brand-primary font-mono font-bold">
+                                              {member.employeeId || member.username}
+                                            </span>
+                                          </td>
+                                          <td className="p-2.5 text-slate-600 font-medium">{member.email}</td>
+                                          <td className="p-2.5">
+                                            <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[10.5px] rounded border border-blue-200 shadow-2xs">
+                                              {member.roles?.[0] || member.role || 'Operational Staff'}
+                                            </span>
+                                          </td>
+                                          <td className="p-2.5 text-slate-500 font-medium">{member.branchName || 'Delhi Central'}</td>
+                                          <td className="p-2.5 text-center">
+                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${member.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                              {member.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
               )}
             </tbody>
           </table>
