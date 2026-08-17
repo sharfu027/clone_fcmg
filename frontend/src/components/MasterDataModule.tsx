@@ -1005,7 +1005,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
   const paginatedRows = filteredRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  const ConfigIcon = config.icon;
+  if (!isCurrentModuleAllowed() || simulatedState === 'denied') {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
