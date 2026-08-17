@@ -1041,6 +1041,52 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         )}
       </div>
 
+      {/* SUB-MENU TABS FOR INSTANT NAVIGATION BETWEEN SUB-MODULES */}
+      {(module.includes('companies') || module.includes('branches') || module.includes('warehouses') || module.includes('departments')) && (
+        <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Company Sub-Menus:</span>
+          <a href="/masters/companies" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('companies') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Building size={13} /> Company
+          </a>
+          <a href="/masters/branches" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('branches') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Building size={13} /> Branches
+          </a>
+          <a href="/masters/warehouses" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('warehouses') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Building size={13} /> Warehouse
+          </a>
+          <a href="/masters/departments" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('departments') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Building size={13} /> Departments
+          </a>
+        </div>
+      )}
+
+      {(module.includes('products') || module.includes('categories') || module.includes('brands')) && (
+        <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Product Sub-Menus:</span>
+          <a href="/masters/products" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('products') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Boxes size={13} /> Products
+          </a>
+          <a href="/masters/categories" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('categories') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Tags size={13} /> Category
+          </a>
+          <a href="/masters/brands" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('brands') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <ClipboardList size={13} /> Brands
+          </a>
+        </div>
+      )}
+
+      {(module.includes('employees') || module.includes('designations')) && (
+        <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Employee Sub-Menus:</span>
+          <a href="/masters/employees" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employees') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <User size={13} /> Employees Roster
+          </a>
+          <a href="/masters/designations" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('designations') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Briefcase size={13} /> Designation
+          </a>
+        </div>
+      )}
+
       {/* DISPLAY WINDOW WITH REAL & DEBUG STATE HANDLING */}
       {simulatedState === 'loading' ? (
         <div className="bg-white p-24 border border-brand-border rounded-lg text-center space-y-3 shadow-sm">
