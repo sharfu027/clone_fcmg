@@ -278,10 +278,10 @@ export const EmployeeSecurityDetailsDrawer: React.FC<EmployeeSecurityDetailsDraw
             </div>
           </div>
 
-          {/* 3. ADMINISTRATOR ACTIONS */}
+          {/* 3. ADMIN ACTIONS */}
           <div className="bg-white rounded-lg border border-brand-border p-4 space-y-3">
             <h3 className="font-bold text-brand-text-primary border-b pb-2 text-xs uppercase tracking-wider">
-              Administrator Biometric Actions
+              Admin Biometric Actions
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

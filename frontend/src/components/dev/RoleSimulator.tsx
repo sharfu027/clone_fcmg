@@ -22,8 +22,8 @@ export function RoleSimulator({ currentRole, onRoleChange }: RoleSimulatorProps)
         onChange={(e) => onRoleChange(e.target.value as UserRole)}
         className="w-full text-xs bg-brand-bg-secondary border border-brand-border rounded px-2 py-1 focus:outline-none focus:border-brand-primary font-medium cursor-pointer"
       >
-        <option value="Super Administrator">Super Administrator</option>
-        <option value="Administrator">Administrator</option>
+        <option value="Super Admin">Super Admin</option>
+        <option value="Admin">Admin</option>
         <option value="Procurement Manager">Procurement Manager</option>
         <option value="Warehouse Manager">Warehouse Manager</option>
         <option value="Inventory Controller">Inventory Controller</option>

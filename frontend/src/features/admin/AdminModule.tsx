@@ -61,7 +61,7 @@ type TabOption =
   | 'audit-trail';
 
 // Roles allowed to perform face management actions
-const FACE_ADMIN_ROLES = ['Super Administrator', 'Administrator', 'Security Officer'];
+const FACE_ADMIN_ROLES = ['Super Admin', 'Admin', 'Security Officer'];
 
 function canManageFace(role: string): boolean {
   return FACE_ADMIN_ROLES.some(r => role.toLowerCase().includes(r.toLowerCase()));

@@ -66,7 +66,7 @@ public class CreatePurchaseRequisitionCommandHandler : IRequestHandler<CreatePur
 
         var requisitionNumber = await _requisitionRepository.GenerateNextRequisitionNumberAsync(request.CompanyId, cancellationToken);
         var requestedUserId = _currentUserService.UserId ?? "SYSTEM";
-        var requestedUsername = _currentUserService.Username ?? "Administrator";
+        var requestedUsername = _currentUserService.Username ?? "Admin";
 
         var pr = new PurchaseRequisition
         {
@@ -428,7 +428,7 @@ public class SubmitPurchaseRequisitionCommandHandler : IRequestHandler<SubmitPur
         pr.SubmittedAtUtc = DateTime.UtcNow;
 
         var userId = _currentUserService.UserId ?? "SYSTEM";
-        var userName = _currentUserService.Username ?? "Administrator";
+        var userName = _currentUserService.Username ?? "Admin";
 
         var statusHistory = new PurchaseRequisitionStatusHistory
         {
@@ -522,7 +522,7 @@ public class ApprovePurchaseRequisitionCommandHandler : IRequestHandler<ApproveP
         pr.ApprovedAtUtc = DateTime.UtcNow;
 
         var userId = _currentUserService.UserId ?? "SYSTEM";
-        var userName = _currentUserService.Username ?? "Administrator";
+        var userName = _currentUserService.Username ?? "Admin";
 
         var statusHistory = new PurchaseRequisitionStatusHistory
         {
@@ -622,7 +622,7 @@ public class RejectPurchaseRequisitionCommandHandler : IRequestHandler<RejectPur
         pr.RejectedAtUtc = DateTime.UtcNow;
 
         var userId = _currentUserService.UserId ?? "SYSTEM";
-        var userName = _currentUserService.Username ?? "Administrator";
+        var userName = _currentUserService.Username ?? "Admin";
 
         var statusHistory = new PurchaseRequisitionStatusHistory
         {
@@ -716,7 +716,7 @@ public class CancelPurchaseRequisitionCommandHandler : IRequestHandler<CancelPur
         pr.CancelledAtUtc = DateTime.UtcNow;
 
         var userId = _currentUserService.UserId ?? "SYSTEM";
-        var userName = _currentUserService.Username ?? "Administrator";
+        var userName = _currentUserService.Username ?? "Admin";
 
         var statusHistory = new PurchaseRequisitionStatusHistory
         {

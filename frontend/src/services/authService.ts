@@ -28,7 +28,7 @@ function storeSession(response: AuthResponse): AuthResponse {
       || `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim()
       || response.user.username
       || 'User',
-    role: response.user.role || (response.user.roles && response.user.roles[0]) || 'Administrator',
+    role: response.user.role || (response.user.roles && response.user.roles[0]) || 'Admin',
     branch: response.user.branch || 'Delhi Central'
   };
   localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(userObj));

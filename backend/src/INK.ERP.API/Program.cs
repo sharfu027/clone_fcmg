@@ -52,9 +52,9 @@ builder.Services.AddAuthorization(options =>
 {
     Func<Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext, bool> isSuperOrAdmin = ctx =>
         (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated) &&
-        (ctx.User.IsInRole("Super Administrator") ||
+        (ctx.User.IsInRole("Super Admin") ||
          ctx.User.IsInRole("SUPERADMIN") ||
-         ctx.User.IsInRole("Administrator") ||
+         ctx.User.IsInRole("Admin") ||
          ctx.User.IsInRole("ADMIN") ||
          ctx.User.HasClaim("permission", "manage:all") ||
          ctx.User.HasClaim("permission", "iam:manage") ||
@@ -103,7 +103,7 @@ builder.Services.AddAuthorization(options =>
     // Master Data Sub-Module Dual-Check Policies
     Func<Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext, bool> isRootSuper = ctx =>
         (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated) &&
-        (ctx.User.IsInRole("Super Administrator") ||
+        (ctx.User.IsInRole("Super Admin") ||
          ctx.User.IsInRole("SUPERADMIN") ||
          ctx.User.HasClaim("permission", "manage:all"));
 

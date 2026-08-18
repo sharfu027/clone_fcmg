@@ -21,7 +21,7 @@ export const AdminTeamInspectorModal: React.FC<AdminTeamInspectorModalProps> = (
   if (!isOpen || !adminUser) return null;
 
   // Retrieve custom access settings for this admin
-  const userAccess = getUserAccessSettings(adminUser.id, adminUser.email, adminUser.roles?.[0] || 'Administrator');
+  const userAccess = getUserAccessSettings(adminUser.id, adminUser.email, adminUser.roles?.[0] || 'Admin');
   const userPerms = userAccess.permissions || [];
 
   // Filter operational team members assigned exclusively under THIS admin
@@ -69,7 +69,7 @@ export const AdminTeamInspectorModal: React.FC<AdminTeamInspectorModalProps> = (
                   {adminUser.displayName || `${adminUser.firstName} ${adminUser.lastName}`}
                 </h3>
                 <span className="px-2 py-0.5 bg-blue-100 text-brand-primary text-[10px] font-extrabold rounded-full uppercase tracking-wider">
-                  {adminUser.roles?.[0] || 'Administrator'}
+                  {adminUser.roles?.[0] || 'Admin'}
                 </span>
               </div>
               <p className="text-xs text-brand-text-secondary mt-0.5 flex items-center gap-3">

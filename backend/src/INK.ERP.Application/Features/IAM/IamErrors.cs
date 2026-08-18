@@ -16,7 +16,7 @@ public static class IamErrors
             new("IAM.USER.DUPLICATE_EMAIL", $"Email '{email}' is already registered.", ErrorType.Conflict);
 
         public static readonly Error CannotDeactivateLastAdmin = 
-            new("IAM.USER.CANNOT_DEACTIVATE_LAST_ADMIN", "Cannot deactivate the last administrator.", ErrorType.Failure);
+            new("IAM.USER.CANNOT_DEACTIVATE_LAST_ADMIN", "Cannot deactivate the last admin.", ErrorType.Failure);
 
         public static readonly Error CannotLockSelf = 
             new("IAM.USER.CANNOT_LOCK_SELF", "You cannot lock your own account.", ErrorType.Failure);
@@ -43,7 +43,7 @@ public static class IamErrors
             new("IAM.ROLE.SYSTEM_ROLE_CANNOT_BE_DELETED", "Cannot delete a system role.", ErrorType.Failure);
 
         public static readonly Error CannotRemoveLastAdminRole = 
-            new("IAM.ROLE.CANNOT_REMOVE_LAST_ADMIN", "Cannot remove the last administrator role assignment.", ErrorType.Failure);
+            new("IAM.ROLE.CANNOT_REMOVE_LAST_ADMIN", "Cannot remove the last admin role assignment.", ErrorType.Failure);
 
         public static Error DuplicateAssignment(string roleName) => 
             new("IAM.ROLE.DUPLICATE_ASSIGNMENT", $"User already has role '{roleName}'.", ErrorType.Conflict);

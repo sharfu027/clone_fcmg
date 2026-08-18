@@ -67,7 +67,7 @@ export default function SecurityPolicyConsole({ onTriggerToast }: SecurityPolicy
   
   // Custom settings per role
   const [roleSettings, setRoleSettings] = useState<Record<string, typeof defaultRolePolicies>>({
-    'Administrator': {
+    'Admin': {
       requireFace: true,
       requireGps: false,
       require2Fa: true,
@@ -168,7 +168,7 @@ export default function SecurityPolicyConsole({ onTriggerToast }: SecurityPolicy
   // SIMULATED AUDIT LOGS
   // ==========================================
   const [auditLogs] = useState([
-    { id: 'LOG-882', timestamp: '2026-07-21 03:15:22', user: 'Siddharth Mehra', role: 'Super Administrator', ip: '192.168.1.104', action: 'Modified GPS Fence radius globally to 200m', status: 'Success', type: 'Policy Change' },
+    { id: 'LOG-882', timestamp: '2026-07-21 03:15:22', user: 'Siddharth Mehra', role: 'Super Admin', ip: '192.168.1.104', action: 'Modified GPS Fence radius globally to 200m', status: 'Success', type: 'Policy Change' },
     { id: 'LOG-881', timestamp: '2026-07-21 02:58:10', user: 'Amit Sharma', role: 'Sales Representative', ip: '112.196.34.82', action: 'Biometric Face signature match approved', status: 'Success', type: 'Authentication' },
     { id: 'LOG-880', timestamp: '2026-07-21 02:44:02', user: 'Priya Patel', role: 'Sales Representative', ip: '202.54.10.43', action: 'GPS Boundary failure (Delhi Depot boundary violation)', status: 'Blocked', type: 'Security Violation' },
     { id: 'LOG-879', timestamp: '2026-07-21 01:20:15', user: 'Karan Anand', role: 'Procurement Manager', ip: '192.168.1.112', action: 'Forced password reset on next authentication pipeline', status: 'Success', type: 'Credential Update' },

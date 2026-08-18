@@ -105,7 +105,7 @@ public sealed class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand
         if ((user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase)) ||
             (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase)))
         {
-            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Administrator root account cannot be deleted."));
+            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Admin root account cannot be deleted."));
         }
 
         user.IsDeleted = true;
@@ -186,7 +186,7 @@ public sealed class DeactivateUserCommandHandler : IRequestHandler<DeactivateUse
         if ((user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase)) ||
             (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase)))
         {
-            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Administrator root account cannot be deactivated."));
+            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Admin root account cannot be deactivated."));
         }
 
         var domainValidation = await _userDomainService.CanDeactivateUserAsync(request.UserId, cancellationToken);
@@ -241,7 +241,7 @@ public sealed class LockUserCommandHandler : IRequestHandler<LockUserCommand, Re
         if ((user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase)) ||
             (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase)))
         {
-            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Administrator root account cannot be locked."));
+            return Result.Failure<Unit>(Error.Validation("IAM.RootAccountProtected", "The Super Admin root account cannot be locked."));
         }
 
         user.IsLocked = true;

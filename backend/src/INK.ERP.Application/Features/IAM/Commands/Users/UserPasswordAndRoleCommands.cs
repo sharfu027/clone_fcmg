@@ -166,19 +166,19 @@ public sealed class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand
         var user = await userRepo.GetByIdAsync(request.UserId, cancellationToken);
         var role = await roleRepo.GetByIdAsync(request.RoleId, cancellationToken);
 
-        // Security Protection: Only one system Super Administrator account is permitted
+        // Security Protection: Only one system Super Admin account is permitted
         var targetRoleName = role?.Name ?? role?.Code ?? string.Empty;
-        if (targetRoleName.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase) ||
-            targetRoleName.Equals("SUPER_ADMINISTRATOR", StringComparison.OrdinalIgnoreCase) ||
+        if (targetRoleName.Equals("Super Admin", StringComparison.OrdinalIgnoreCase) ||
+            targetRoleName.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
             targetRoleName.Equals("SUPERADMIN", StringComparison.OrdinalIgnoreCase))
         {
-            return Result.Failure<Unit>(Error.Validation("IAM.SuperAdminSingletonRestriction", "Only one system Super Administrator account is permitted. Additional Super Administrator accounts cannot be created or assigned."));
+            return Result.Failure<Unit>(Error.Validation("IAM.SuperAdminSingletonRestriction", "Only one system Super Admin account is permitted. Additional Super Admin accounts cannot be created or assigned."));
         }
 
-        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
-        if (!isSuperAdmin && targetRoleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Admin");
+        if (!isSuperAdmin && targetRoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase))
         {
-            return Result.Failure<Unit>(Error.Unauthorized("IAM.PrivilegeEscalation", "Only Super Administrators can create or assign administrative roles."));
+            return Result.Failure<Unit>(Error.Unauthorized("IAM.PrivilegeEscalation", "Only Super Admins can create or assign administrative roles."));
         }
 
         var userRole = new UserRole

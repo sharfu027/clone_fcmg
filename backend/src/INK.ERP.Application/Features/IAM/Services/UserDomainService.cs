@@ -45,7 +45,7 @@ public class UserDomainService : IUserDomainService
         var roleRepo = _unitOfWork.Repository<ApplicationRole>();
         var userRoleRepo = _unitOfWork.Repository<UserRole>();
 
-        var adminRoles = await roleRepo.FindAsync(r => r.Code == "ADMIN" || r.Name == "Administrator", cancellationToken);
+        var adminRoles = await roleRepo.FindAsync(r => r.Code == "ADMIN" || r.Name == "Admin", cancellationToken);
         if (adminRoles.Any())
         {
             var adminRoleId = adminRoles.First().Id;

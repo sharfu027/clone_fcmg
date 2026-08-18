@@ -52,9 +52,9 @@ export default function EnterpriseDashboard({ onTriggerToast }: DashboardProps) 
   const [activityFilter, setActivityFilter] = useState<'all' | 'warning' | 'danger'>('all');
   const [activities, setActivities] = useState<ActivityLog[]>([
     { id: 'ACT-90', timestamp: '2026-07-21 01:45', user: 'Siddharth Mehra', role: 'Finance Manager', action: 'Approved credit limit exception for Britannia', module: 'Finance', status: 'success' },
-    { id: 'ACT-91', timestamp: '2026-07-21 01:22', user: 'System Agent', role: 'Super Administrator', action: 'SignalR Socket Connection warning triggered', module: 'Infrastructure', status: 'warning' },
+    { id: 'ACT-91', timestamp: '2026-07-21 01:22', user: 'System Agent', role: 'Super Admin', action: 'SignalR Socket Connection warning triggered', module: 'Infrastructure', status: 'warning' },
     { id: 'ACT-92', timestamp: '2026-07-21 00:58', user: 'Aman Deep', role: 'Warehouse Manager', action: 'Failed SKU verification on Bin W45-A', module: 'Warehouse', status: 'danger' },
-    { id: 'ACT-93', timestamp: '2026-07-20 23:12', user: 'System Scheduler', role: 'Super Administrator', action: 'Completed monthly sales database backup', module: 'Administration', status: 'info' }
+    { id: 'ACT-93', timestamp: '2026-07-20 23:12', user: 'System Scheduler', role: 'Super Admin', action: 'Completed monthly sales database backup', module: 'Administration', status: 'info' }
   ]);
 
   // Pending Approvals State
@@ -473,7 +473,7 @@ export default function EnterpriseDashboard({ onTriggerToast }: DashboardProps) 
           <div className="flex items-center justify-between border-b pb-2">
             <div>
               <h4 className="text-xs font-bold text-brand-text-primary uppercase tracking-wider">Executive Approval Queue</h4>
-              <p className="text-[11px] text-brand-text-secondary mt-0.5">Requires Super Administrator override credentials</p>
+              <p className="text-[11px] text-brand-text-secondary mt-0.5">Requires Super Admin override credentials</p>
             </div>
             <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-brand-warning rounded border border-amber-100">
               {approvals.length} Pending

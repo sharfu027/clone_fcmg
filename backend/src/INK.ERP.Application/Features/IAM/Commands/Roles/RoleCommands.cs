@@ -298,9 +298,9 @@ public sealed class DeactivateRoleCommandHandler : IRequestHandler<DeactivateRol
         var role = await roleRepo.GetByIdAsync(request.RoleId, cancellationToken);
         if (role is null || role.IsDeleted) return Result.Failure<Unit>(IamErrors.Role.NotFound(request.RoleId));
 
-        if (role.Code == "ADMIN" || role.Name == "Administrator")
+        if (role.Code == "ADMIN" || role.Name == "Admin")
         {
-            return Result.Failure<Unit>(Error.Validation("Role.AdminProtected", "The primary Administrator role cannot be deactivated."));
+            return Result.Failure<Unit>(Error.Validation("Role.AdminProtected", "The primary Admin role cannot be deactivated."));
         }
 
         role.IsActive = false;
@@ -503,13 +503,13 @@ public sealed class RemoveUserFromRoleCommandHandler : IRequestHandler<RemoveUse
 
         var userRoleRepo = _unitOfWork.Repository<UserRole>();
 
-        // Last Administrator Protection Validation
-        if (role.Code == "ADMIN" || role.Name == "Administrator")
+        // Last Admin Protection Validation
+        if (role.Code == "ADMIN" || role.Name == "Admin")
         {
             var adminUserRoles = await userRoleRepo.FindAsync(ur => ur.RoleId == role.Id && !ur.IsDeleted, cancellationToken);
             if (adminUserRoles.Count <= 1)
             {
-                return Result.Failure<Unit>(Error.Validation("Role.LastAdminProtection", "Cannot remove the last user assigned to the Administrator role."));
+                return Result.Failure<Unit>(Error.Validation("Role.LastAdminProtection", "Cannot remove the last user assigned to the Admin role."));
             }
         }
 

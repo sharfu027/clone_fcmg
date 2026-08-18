@@ -42,7 +42,7 @@ public class SuperAdminIsolationTests
         var superAdminRoleGuid = Guid.NewGuid();
 
         _mockCurrentUserService.Setup(c => c.UserId).Returns(subAdminId.ToString());
-        _mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Administrator" });
+        _mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Admin" });
 
         var superAdminUser = new ApplicationUser
         {
@@ -61,7 +61,7 @@ public class SuperAdminIsolationTests
             .ReturnsAsync(new List<UserRole> { new() { UserId = superAdminId, RoleId = superAdminRoleGuid } });
 
         _mockRoleRepo.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationRole, bool>>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ApplicationRole> { new() { Id = superAdminRoleGuid, Name = "Super Administrator", Code = "SUPER_ADMIN" } });
+            .ReturnsAsync(new List<ApplicationRole> { new() { Id = superAdminRoleGuid, Name = "Super Admin", Code = "SUPER_ADMIN" } });
 
         var handler = new GetUserByIdQueryHandler(_mockUnitOfWork.Object, _mockCurrentUserService.Object);
 
@@ -83,13 +83,13 @@ public class SuperAdminIsolationTests
 
         _mockCurrentUserService.Setup(c => c.UserId).Returns(subAdminId.ToString());
         _mockCurrentUserService.Setup(c => c.Username).Returns("subadmin_user");
-        _mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Administrator" });
+        _mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Admin" });
 
         _mockUserDomainService.Setup(s => s.CanAssignRoleToUserAsync(targetUserId, superAdminRoleId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
         var targetUser = new ApplicationUser { Id = targetUserId, UserName = "target_user", IsActive = true };
-        var superAdminRole = new ApplicationRole { Id = superAdminRoleId, Name = "Super Administrator", Code = "SUPER_ADMIN" };
+        var superAdminRole = new ApplicationRole { Id = superAdminRoleId, Name = "Super Admin", Code = "SUPER_ADMIN" };
 
         _mockUserRepo.Setup(r => r.GetByIdAsync(targetUserId, It.IsAny<CancellationToken>())).ReturnsAsync(targetUser);
         _mockRoleRepo.Setup(r => r.GetByIdAsync(superAdminRoleId, It.IsAny<CancellationToken>())).ReturnsAsync(superAdminRole);
@@ -121,13 +121,13 @@ public class SuperAdminIsolationTests
 
         _mockCurrentUserService.Setup(c => c.UserId).Returns(superAdminId.ToString());
         _mockCurrentUserService.Setup(c => c.Username).Returns("superadmin_boss");
-        _mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Super Administrator" });
+        _mockCurrentUserService.Setup(c => c.Roles).Returns(new List<string> { "Super Admin" });
 
         _mockUserDomainService.Setup(s => s.CanAssignRoleToUserAsync(targetUserId, subAdminRoleId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
         var targetUser = new ApplicationUser { Id = targetUserId, UserName = "target_user", IsActive = true };
-        var subAdminRole = new ApplicationRole { Id = subAdminRoleId, Name = "Administrator", Code = "ADMIN" };
+        var subAdminRole = new ApplicationRole { Id = subAdminRoleId, Name = "Admin", Code = "ADMIN" };
 
         _mockUserRepo.Setup(r => r.GetByIdAsync(targetUserId, It.IsAny<CancellationToken>())).ReturnsAsync(targetUser);
         _mockRoleRepo.Setup(r => r.GetByIdAsync(subAdminRoleId, It.IsAny<CancellationToken>())).ReturnsAsync(subAdminRole);
@@ -145,6 +145,6 @@ public class SuperAdminIsolationTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        _mockSessionRevocationService.Verify(s => s.RevokeUserSessions(targetUserId, It.Is<string>(r => r.Contains("Administrator"))), Times.Once);
+        _mockSessionRevocationService.Verify(s => s.RevokeUserSessions(targetUserId, It.Is<string>(r => r.Contains("Admin"))), Times.Once);
     }
 }

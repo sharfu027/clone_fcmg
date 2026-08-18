@@ -68,7 +68,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
     'SEC-ADMIN': {
       profileId: 'SEC-ADMIN',
       profileName: 'Admin Security',
-      description: 'High-privilege security profile for system administrators and directors.',
+      description: 'High-privilege security profile for system admins and directors.',
       defaultPolicy: {
         policyId: 'POL-ADMIN',
         policyName: 'Admin Security Policy',
@@ -133,19 +133,19 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
                       storedUser?.username?.toLowerCase().includes('superadmin');
 
       const userEmail = email || storedUser?.email || '';
-      const userAccess = getUserAccessSettings(storedUser?.id, userEmail, storedUser?.role || 'Administrator');
+      const userAccess = getUserAccessSettings(storedUser?.id, userEmail, storedUser?.role || 'Admin');
       const userRoleSetting = userAccess.roleName;
 
-      const displayName = isSuper ? 'Super Administrator' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
-      const roleName = isSuper ? 'Super Administrator' : userRoleSetting;
+      const displayName = isSuper ? 'Super Admin' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
+      const roleName = isSuper ? 'Super Admin' : userRoleSetting;
 
       await loginAsUser(displayName, roleName, userEmail, storedUser?.id);
       onLoginSuccess(displayName, roleName);
     } catch {
       const isSuper = email.toLowerCase().includes('superadmin');
-      const roleName = isSuper ? 'Super Administrator' : 'Sales Representative';
-      await loginAsUser(isSuper ? 'Super Administrator' : 'Enterprise User', roleName, email);
-      onLoginSuccess(isSuper ? 'Super Administrator' : 'Enterprise User', roleName);
+      const roleName = isSuper ? 'Super Admin' : 'Sales Representative';
+      await loginAsUser(isSuper ? 'Super Admin' : 'Enterprise User', roleName, email);
+      onLoginSuccess(isSuper ? 'Super Admin' : 'Enterprise User', roleName);
     }
   };
 
@@ -552,7 +552,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
           setActiveScreen('face-scan');
           handleRequestCamera();
         } else {
-          onTriggerToast('success', 'Location Verified', 'Face Authentication bypassed by Administrator.');
+          onTriggerToast('success', 'Location Verified', 'Face Authentication bypassed by Admin.');
           triggerLoginSuccess();
         }
       } else {
@@ -621,7 +621,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
       setIsSubmitting(false);
 
       if (isSuperAdmin) {
-        onTriggerToast('success', 'Super Administrator Clearance', 'GPS location and face authentication skipped for Root Super Admin.');
+        onTriggerToast('success', 'Super Admin Clearance', 'GPS location and face authentication skipped for Root Super Admin.');
         await triggerLoginSuccess();
         return;
       }
@@ -636,7 +636,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
         setActiveScreen('face-scan');
         handleRequestCamera();
       } else {
-        onTriggerToast('success', 'Multi-Factor Policies Bypassed', 'Location & Face authentication bypassed by Administrator.');
+        onTriggerToast('success', 'Multi-Factor Policies Bypassed', 'Location & Face authentication bypassed by Admin.');
         await triggerLoginSuccess();
       }
     } catch (err: any) {
@@ -739,7 +739,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
         onTriggerToast('info', 'Bypassed Face Check', 'Entering ERP System...');
         triggerLoginSuccess();
       } else {
-        onLoginSuccess(activeUser?.displayName || 'Super Administrator', 'Super Administrator');
+        onLoginSuccess(activeUser?.displayName || 'Super Admin', 'Super Admin');
       }
     } else {
       setOverrideError('Invalid authorization passcode. Event flagged.');
@@ -1616,7 +1616,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
           )}
 
           {/* ========================================================== */}
-          {/* SCREEN 13: MANUAL VERIFICATION (ADMINISTRATOR OVERRIDE) */}
+          {/* SCREEN 13: MANUAL VERIFICATION (ADMIN OVERRIDE) */}
           {/* ========================================================== */}
           {activeScreen === 'admin-override' && (
             <form onSubmit={handleAdminOverrideSubmit} className="space-y-4">
@@ -1748,7 +1748,7 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
               <div className="p-3 bg-slate-50 border border-brand-border rounded text-left">
                 <h5 className="text-[10px] font-bold text-brand-text-primary uppercase mb-1">Attendance Inquiries</h5>
                 <ul className="text-[10px] text-brand-text-secondary space-y-1 list-disc list-inside">
-                  <li>Verify system administrator security clearances</li>
+                  <li>Verify system admin security clearances</li>
                   <li>Inquire with Delhi HR about timesheet node mapping</li>
                 </ul>
               </div>

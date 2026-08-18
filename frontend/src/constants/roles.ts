@@ -1,8 +1,8 @@
 import { UserRole } from '../types';
 
 export const ROLES: UserRole[] = [
-  'Super Administrator',
-  'Administrator',
+  'Super Admin',
+  'Admin',
   'Procurement Manager',
   'Warehouse Manager',
   'Inventory Controller',
@@ -102,7 +102,7 @@ export const CANONICAL_MODULE_PERMISSIONS: FMCGModulePermission[] = [
 ];
 
 export const ROLE_PERMISSIONS_MAP: Record<UserRole, string[]> = {
-  'Super Administrator': [
+  'Super Admin': [
     'manage:all', 'read:dashboard', 'iam:manage', 'admin:manage_users', 'masters:manage',
     'pricing:manage', 'procurement:manage', 'wms:manage', 'inventory:manage', 'sfa:manage',
     'o2c:manage', 'returns:manage', 'finance:manage', 'workflow:manage', 'hrms:manage',
@@ -110,7 +110,7 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, string[]> = {
     'manage:masters', 'manage:procurement', 'manage:warehouse', 'manage:inventory',
     'manage:sales', 'manage:finance', 'manage:security', 'manage:users'
   ],
-  'Administrator': [
+  'Admin': [
     'read:dashboard'
   ],
   'Procurement Manager': [

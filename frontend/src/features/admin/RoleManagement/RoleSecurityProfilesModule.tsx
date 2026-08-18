@@ -1277,7 +1277,7 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
                       <span className="font-bold text-emerald-700">Role Created</span>
                       <span>{new Date(selectedRoleDetail.createdAtUtc).toLocaleString()}</span>
                     </div>
-                    <p className="text-slate-500">Action logged by administrator. Initial code: {selectedRoleDetail.code}</p>
+                    <p className="text-slate-500">Action logged by admin. Initial code: {selectedRoleDetail.code}</p>
                   </div>
                 </div>
               )}

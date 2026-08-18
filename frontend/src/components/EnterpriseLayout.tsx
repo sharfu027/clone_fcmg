@@ -89,9 +89,9 @@ export default function EnterpriseLayout({
   const hasMasterDataSubmoduleAccess = (subCode: string): boolean => {
     if (!user || !user.permissions || user.permissions.length === 0) return false;
 
-    // Root Super Administrator bypass
-    const isRootSuper = activeRole === 'Super Administrator' ||
-                        user?.role === 'Super Administrator' ||
+    // Root Super Admin bypass
+    const isRootSuper = activeRole === 'Super Admin' ||
+                        user?.role === 'Super Admin' ||
                         user?.permissions?.includes('manage:all') ||
                         (user?.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;
@@ -107,8 +107,8 @@ export default function EnterpriseLayout({
     if (item.href === 'dashboard') return true;
     if (!user || !user.permissions || user.permissions.length === 0) return false;
 
-    const isRootSuper = activeRole === 'Super Administrator' ||
-                        user?.role === 'Super Administrator' ||
+    const isRootSuper = activeRole === 'Super Admin' ||
+                        user?.role === 'Super Admin' ||
                         user?.permissions?.includes('manage:all') ||
                         (user?.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;

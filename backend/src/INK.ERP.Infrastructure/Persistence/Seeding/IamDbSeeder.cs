@@ -302,11 +302,11 @@ public static class IamDbSeeder
             logger.LogWarning(ex, "Table creation or seeding for pricing.currencies / pricing.exchange_rates skipped or handled.");
         }
 
-        // 1. Seed Roles (13 Production Default Roles including Super Administrator)
+        // 1. Seed Roles (13 Production Default Roles including Super Admin)
         var defaultRoles = new (string Code, string Name, string Description, int Priority, bool IsSystem)[]
         {
-            ("SUPER_ADMIN", "Super Administrator", "Super Administrator with complete system clearance and full multi-admin management", 0, true),
-            ("ADMIN", "Administrator", "Sub-Admin with configurable module permissions assigned by Super Admin", 1, true),
+            ("SUPER_ADMIN", "Super Admin", "Super Admin with complete system clearance and full multi-admin management", 0, true),
+            ("ADMIN", "Admin", "Sub-Admin with configurable module permissions assigned by Super Admin", 1, true),
             ("SALES_MANAGER", "Sales Manager", "Manages sales operations, approvals, and reps", 2, true),
             ("SALES_REP", "Sales Representative", "Sales order processing and customer relations", 3, false),
             ("PURCHASE_MANAGER", "Purchase Manager", "Procurement, vendor management, and purchase approvals", 4, false),
@@ -459,7 +459,7 @@ public static class IamDbSeeder
         }
 
         // 4. Link All Permissions to ADMIN Role
-        var adminRole = await roleManager.FindByNameAsync("Administrator");
+        var adminRole = await roleManager.FindByNameAsync("Admin");
         if (adminRole != null)
         {
             foreach (var permId in allPermissionIds)
@@ -479,11 +479,11 @@ public static class IamDbSeeder
             await context.SaveChangesAsync();
         }
 
-        // 5. Seed Super Administrator User
+        // 5. Seed Super Admin User
         const string superAdminEmail = "superadmin@inkerp.com";
         const string superAdminUsername = "superadmin";
 
-        var superAdminRole = await roleManager.FindByNameAsync("Super Administrator");
+        var superAdminRole = await roleManager.FindByNameAsync("Super Admin");
         var superAdminUser = await context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.NormalizedUserName == superAdminUsername.ToUpperInvariant() || u.NormalizedEmail == superAdminEmail.ToUpperInvariant());
         if (superAdminUser == null)
         {
@@ -496,8 +496,8 @@ public static class IamDbSeeder
                 NormalizedEmail = superAdminEmail.ToUpperInvariant(),
                 EmailConfirmed = true,
                 FirstName = "Super",
-                LastName = "Administrator",
-                DisplayName = "Super Administrator",
+                LastName = "Admin",
+                DisplayName = "Super Admin",
                 IsActive = true,
                 IsLocked = false,
                 IsDeleted = false,
@@ -513,7 +513,7 @@ public static class IamDbSeeder
                 user.IsDeleted = false;
                 await userManager.UpdateAsync(user);
                 superAdminUser = user;
-                logger.LogInformation("Seeded Default Super Administrator Account: {Email}", superAdminEmail);
+                logger.LogInformation("Seeded Default Super Admin Account: {Email}", superAdminEmail);
             }
             else
             {
@@ -530,7 +530,7 @@ public static class IamDbSeeder
             superAdminUser.LockoutEnd = null;
             context.Users.Update(superAdminUser);
             await context.SaveChangesAsync();
-            logger.LogInformation("Updated Default Super Administrator Account password and status: {Email}", superAdminEmail);
+            logger.LogInformation("Updated Default Super Admin Account password and status: {Email}", superAdminEmail);
         }
 
         if (superAdminUser != null && superAdminRole != null)
@@ -549,7 +549,7 @@ public static class IamDbSeeder
             }
         }
 
-        // 6. Seed First Administrator User
+        // 6. Seed First Admin User
         const string adminEmail = "admin@inkerp.com";
         const string adminUsername = "admin";
 
@@ -565,8 +565,8 @@ public static class IamDbSeeder
                 NormalizedEmail = adminEmail.ToUpperInvariant(),
                 EmailConfirmed = true,
                 FirstName = "System",
-                LastName = "Administrator",
-                DisplayName = "System Administrator",
+                LastName = "Admin",
+                DisplayName = "System Admin",
                 IsActive = true,
                 IsLocked = false,
                 IsDeleted = false,
@@ -582,7 +582,7 @@ public static class IamDbSeeder
                 user.IsDeleted = false;
                 await userManager.UpdateAsync(user);
                 adminUser = user;
-                logger.LogInformation("Seeded Default Administrator Account: {Email}", adminEmail);
+                logger.LogInformation("Seeded Default Admin Account: {Email}", adminEmail);
             }
             else
             {
@@ -599,7 +599,7 @@ public static class IamDbSeeder
             adminUser.LockoutEnd = null;
             context.Users.Update(adminUser);
             await context.SaveChangesAsync();
-            logger.LogInformation("Updated Default Administrator Account password and status: {Email}", adminEmail);
+            logger.LogInformation("Updated Default Admin Account password and status: {Email}", adminEmail);
         }
 
         if (adminUser != null && adminRole != null)

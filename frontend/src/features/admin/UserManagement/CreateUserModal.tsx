@@ -15,9 +15,9 @@ interface CreateUserModalProps {
   existingUsers?: any[];
 }
 
-// 12 Standard ERP Login Types / Roles required (Super Administrator is a unique root system account)
+// 12 Standard ERP Login Types / Roles required (Super Admin is a unique root system account)
 export const ERP_LOGIN_ROLES = [
-  { code: 'ADMINISTRATOR', name: 'Administrator', desc: 'Sub-Admin with Tailored Module Access' },
+  { code: 'ADMIN', name: 'Admin', desc: 'Sub-Admin with Tailored Module Access' },
   { code: 'SALES_MANAGER', name: 'Sales Manager', desc: 'Regional Sales & Team Control' },
   { code: 'SALES_REP', name: 'Sales Representative', desc: 'Field Orders & Customer Visits' },
   { code: 'PURCHASE_MANAGER', name: 'Purchase Manager', desc: 'Procurement & Vendor Orders' },
@@ -49,7 +49,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     employeeId: '',
     companyName: 'INK FMCG India Pvt Ltd',
     companyLogo: '',
-    selectedRoleCode: 'ADMINISTRATOR',
+    selectedRoleCode: 'ADMIN',
     preferredLanguage: 'en',
     timeZone: 'Asia/Kolkata',
   });
@@ -91,7 +91,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         if (match) {
           usedNumbers.add(parseInt(match[1], 10));
         } else {
-          const isSuper = u.username?.toLowerCase().includes('superadmin') || u.email?.toLowerCase().includes('superadmin') || (u.roles && u.roles.includes('Super Administrator'));
+          const isSuper = u.username?.toLowerCase().includes('superadmin') || u.email?.toLowerCase().includes('superadmin') || (u.roles && u.roles.includes('Super Admin'));
           if (!isSuper) {
             usedNumbers.add(idx + 1);
           }
@@ -285,7 +285,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           userId,
           cleanEmail,
           roleName,
-          formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : [],
+          formData.selectedRoleCode === 'ADMIN' ? selectedPermissions : [],
           formData.companyName.trim(),
           formData.companyLogo,
           formData.employeeId
@@ -331,7 +331,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     }
   };
 
-  const isSubAdminSelected = formData.selectedRoleCode === 'ADMINISTRATOR';
+  const isSubAdminSelected = formData.selectedRoleCode === 'ADMIN';
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs p-4 sm:p-6 flex items-start justify-center">

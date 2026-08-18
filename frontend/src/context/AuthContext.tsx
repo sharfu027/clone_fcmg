@@ -40,11 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                               ((parsed as any).userName && (parsed as any).userName.toLowerCase().includes('superadmin')) ||
                               ((parsed as any).username && (parsed as any).username.toLowerCase().includes('superadmin'));
 
-          const rawRole = parsed.role || (parsed.roles && (parsed.roles[0] as any)) || 'Administrator';
-          const access = getUserAccessSettings(parsed.id, parsed.email, isRootSuper ? 'Super Administrator' : rawRole);
-          const resolvedRole = (isRootSuper ? 'Super Administrator' : access.roleName) as UserRole;
+          const rawRole = parsed.role || (parsed.roles && (parsed.roles[0] as any)) || 'Admin';
+          const access = getUserAccessSettings(parsed.id, parsed.email, isRootSuper ? 'Super Admin' : rawRole);
+          const resolvedRole = (isRootSuper ? 'Super Admin' : access.roleName) as UserRole;
           const resolvedPermissions = (isRootSuper
-            ? ROLE_PERMISSIONS_MAP['Super Administrator']
+            ? ROLE_PERMISSIONS_MAP['Super Admin']
             : access.permissions) as UserPermission[];
 
           try {
@@ -100,11 +100,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             ((validUser as any).userName && (validUser as any).userName.toLowerCase().includes('superadmin')) ||
                             ((validUser as any).username && (validUser as any).username.toLowerCase().includes('superadmin'));
 
-        const rawRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Administrator';
-        const access = getUserAccessSettings(validUser.id, validUser.email, isRootSuper ? 'Super Administrator' : rawRole);
-        const resolvedRole = (isRootSuper ? 'Super Administrator' : access.roleName) as UserRole;
+        const rawRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Admin';
+        const access = getUserAccessSettings(validUser.id, validUser.email, isRootSuper ? 'Super Admin' : rawRole);
+        const resolvedRole = (isRootSuper ? 'Super Admin' : access.roleName) as UserRole;
         const resolvedPermissions = (isRootSuper
-          ? ROLE_PERMISSIONS_MAP['Super Administrator']
+          ? ROLE_PERMISSIONS_MAP['Super Admin']
           : access.permissions) as UserPermission[];
 
         setUser({
@@ -142,8 +142,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const rawRole = response.user.role || (response.user.roles && (response.user.roles[0] as any)) || 'Sales Representative';
         const access = getUserAccessSettings(response.user.id, response.user.email, rawRole);
         const resolvedRole = access.roleName as UserRole;
-        const resolvedPermissions = (resolvedRole === 'Super Administrator'
-          ? ROLE_PERMISSIONS_MAP['Super Administrator']
+        const resolvedPermissions = (resolvedRole === 'Super Admin'
+          ? ROLE_PERMISSIONS_MAP['Super Admin']
           : access.permissions) as UserPermission[];
 
         const fullUser: UserProfile = {
@@ -169,9 +169,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userEmail = actualEmail || `${userName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
     const access = getUserAccessSettings(actualId, userEmail, role);
     const isRootSuper = userEmail.toLowerCase().includes('superadmin') || userName.toLowerCase().includes('superadmin');
-    const resolvedRole = (isRootSuper ? 'Super Administrator' : access.roleName) as UserRole;
+    const resolvedRole = (isRootSuper ? 'Super Admin' : access.roleName) as UserRole;
     const resolvedPermissions = (isRootSuper
-      ? ROLE_PERMISSIONS_MAP['Super Administrator']
+      ? ROLE_PERMISSIONS_MAP['Super Admin']
       : access.permissions) as UserPermission[];
 
     try {

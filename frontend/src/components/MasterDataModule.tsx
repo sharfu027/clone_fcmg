@@ -113,7 +113,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
   const { user } = useAuth();
   const userPerms = user?.permissions || [];
-  const isSuper = user?.role === 'Super Administrator' ||
+  const isSuper = user?.role === 'Super Admin' ||
                   userPerms.includes('manage:all') ||
                   (user?.email && user.email.toLowerCase().includes('superadmin'));
 

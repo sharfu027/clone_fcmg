@@ -51,8 +51,8 @@ export const saveUserRoleAndPermissions = (
               (username && pUser === username) ||
               (rawUsername && pUser === rawUsername) ||
               (pName && username && pName.includes(username)) ||
-              prof.role === 'Administrator' ||
-              (prof.roles && prof.roles.includes('Administrator'));
+              prof.role === 'Admin' ||
+              (prof.roles && prof.roles.includes('Admin'));
 
             if (isCurrentMatch && !pEmail.includes('superadmin')) {
               prof.permissions = permissions;
@@ -107,8 +107,8 @@ export const getUserAccessSettings = (
         const isRootSuperAdmin = cleanEmail.includes('superadmin') || (rawUsername && rawUsername.includes('superadmin')) || (username && username.includes('superadmin'));
         if (isRootSuperAdmin) {
           return {
-            roleName: 'Super Administrator',
-            permissions: ROLE_PERMISSIONS_MAP['Super Administrator'],
+            roleName: 'Super Admin',
+            permissions: ROLE_PERMISSIONS_MAP['Super Admin'],
             companyName: parsed.companyName,
             companyLogo: parsed.companyLogo,
             adminCode: 'SA-001'
@@ -129,11 +129,11 @@ export const getUserAccessSettings = (
     console.error('Error reading user access settings:', e);
   }
 
-  // Super Administrator root fallback
+  // Super Admin root fallback
   if (email && email.toLowerCase().includes('superadmin')) {
     return {
-      roleName: 'Super Administrator',
-      permissions: ROLE_PERMISSIONS_MAP['Super Administrator']
+      roleName: 'Super Admin',
+      permissions: ROLE_PERMISSIONS_MAP['Super Admin']
     };
   }
 
@@ -152,10 +152,10 @@ export const filterByTenantScope = <T extends Record<string, any>>(
   if (!currentUser) return items;
 
   const isSuper =
-    currentUser.role === 'Super Administrator' ||
+    currentUser.role === 'Super Admin' ||
     (currentUser.email && currentUser.email.toLowerCase().includes('superadmin'));
 
-  if (isSuper) return items; // Super Administrator sees all records across all tenants
+  if (isSuper) return items; // Super Admin sees all records across all tenants
 
   const userCompany = (currentUser.companyName || '').trim().toLowerCase();
   const userId = currentUser.id;

@@ -137,8 +137,8 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
 
         // Fetch permissions and role names safely without concurrent DbContext execution
         var roleNames = isSuperAdminUser
-            ? new List<string> { "Super Administrator" }
-            : new List<string> { "Administrator" };
+            ? new List<string> { "Super Admin" }
+            : new List<string> { "Admin" };
 
         var permissions = isSuperAdminUser
             ? new List<string> {
@@ -413,8 +413,8 @@ public sealed class DevLoginCommandHandler : IRequestHandler<DevLoginCommand, Re
 
         bool isSuperAdminUser = cleanEmail.Contains("superadmin", StringComparison.OrdinalIgnoreCase);
         var roleNames = isSuperAdminUser
-            ? new System.Collections.Generic.List<string> { "Super Administrator" }
-            : new System.Collections.Generic.List<string> { string.IsNullOrWhiteSpace(request.RoleName) ? "Administrator" : request.RoleName };
+            ? new System.Collections.Generic.List<string> { "Super Admin" }
+            : new System.Collections.Generic.List<string> { string.IsNullOrWhiteSpace(request.RoleName) ? "Admin" : request.RoleName };
 
         System.Collections.Generic.List<string> permissions;
 

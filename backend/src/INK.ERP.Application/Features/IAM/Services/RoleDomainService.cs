@@ -55,7 +55,7 @@ public class RoleDomainService : IRoleDomainService
         var userRoleRepo = _unitOfWork.Repository<UserRole>();
 
         var role = await roleRepo.GetByIdAsync(roleId, cancellationToken);
-        if (role != null && (role.Code == "ADMIN" || role.Name == "Administrator"))
+        if (role != null && (role.Code == "ADMIN" || role.Name == "Admin"))
         {
             var allAdminUserRoles = await userRoleRepo.FindAsync(ur => ur.RoleId == roleId && !ur.IsDeleted, cancellationToken);
             if (allAdminUserRoles.Count <= 1)

@@ -150,8 +150,8 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
       });
 
       const allLoaded = (res.items || []).map((u: any) => {
-        const access = getUserAccessSettings(u.id, u.email, u.role || u.roles?.[0] || 'Administrator');
-        const roleName = access.roleName || u.role || u.roles?.[0] || 'Administrator';
+        const access = getUserAccessSettings(u.id, u.email, u.role || u.roles?.[0] || 'Admin');
+        const roleName = access.roleName || u.role || u.roles?.[0] || 'Admin';
         return {
           ...u,
           role: roleName,
@@ -163,12 +163,12 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
       // Super Admin sees ALL Admin accounts across companies.
       // Company Admin sees ONLY user accounts belonging to THEIR company!
       const currentCompanyName = (currentUser?.companyName || '').trim().toLowerCase();
-      const isSuperAdmin = currentUser?.role === 'Super Administrator' ||
+      const isSuperAdmin = currentUser?.role === 'Super Admin' ||
                            (currentUser?.email && currentUser.email.toLowerCase().includes('superadmin'));
 
       const adminOnlyUsers = allLoaded.filter((u: any) => {
         const roleLower = (u.role || u.roles?.[0] || '').toLowerCase();
-        const isAdminRole = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
+        const isAdminRole = roleLower.includes('admin') || roleLower.includes('admin') || roleLower.includes('super');
         if (!isAdminRole) return false;
 
         if (isSuperAdmin) return true; // Super Admin sees all companies
@@ -243,11 +243,11 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   const isSuperUser = (u: any) =>
     u.username?.toLowerCase().includes('superadmin') ||
     u.email?.toLowerCase().includes('superadmin') ||
-    (u.roles && u.roles.includes('Super Administrator'));
+    (u.roles && u.roles.includes('Super Admin'));
 
   const handleDeactivate = async (user: any) => {
     if (isSuperUser(user)) {
-      onTriggerToast('warning', 'Root Account Protected', 'The Super Administrator account cannot be deactivated.');
+      onTriggerToast('warning', 'Root Account Protected', 'The Super Admin account cannot be deactivated.');
       return;
     }
     if (!window.confirm(`Deactivate account for ${user.displayName}? User will be unable to log in.`)) return;
@@ -262,7 +262,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
   const handleLock = async (user: any) => {
     if (isSuperUser(user)) {
-      onTriggerToast('warning', 'Root Account Protected', 'The Super Administrator account cannot be locked.');
+      onTriggerToast('warning', 'Root Account Protected', 'The Super Admin account cannot be locked.');
       return;
     }
     try {
@@ -286,7 +286,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
   const handleDelete = async (user: any) => {
     if (isSuperUser(user)) {
-      onTriggerToast('warning', 'Root Account Protected', 'The Super Administrator account cannot be deleted.');
+      onTriggerToast('warning', 'Root Account Protected', 'The Super Admin account cannot be deleted.');
       return;
     }
     if (!window.confirm(`Soft delete user '${user.displayName}' (${user.username})? This action will archive the record in PostgreSQL.`)) return;
@@ -580,10 +580,10 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                 </tr>
               ) : (
                 users.map((u, idx) => {
-                  const roleStr = u.roles?.[0] || u.role || 'Administrator';
+                  const roleStr = u.roles?.[0] || u.role || 'Admin';
                   const roleLower = roleStr.toLowerCase();
                   const isSuper = isSuperUser(u) || roleLower.includes('super') || (u.email && u.email.toLowerCase().includes('superadmin'));
-                  const isAdmin = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
+                  const isAdmin = roleLower.includes('admin') || roleLower.includes('admin') || roleLower.includes('super');
                   const faceInfo = faceStatusMap[u.id];
                   const faceStatus = faceInfo?.status || 'Not Registered';
                   const isExpanded = Boolean(expandedAdminIds[u.id]) && !isSuper;
@@ -608,14 +608,14 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                     <React.Fragment key={u.id}>
                       <tr className="hover:bg-brand-bg-secondary/30 transition group">
                         
-                        {/* Chevron Accordion Expand Button (Standard Admins only, NOT Super Administrator) */}
+                        {/* Chevron Accordion Expand Button (Standard Admins only, NOT Super Admin) */}
                         <td className="p-3 text-center w-8">
                           {isAdmin && !isSuper ? (
                             <button
                               type="button"
                               onClick={() => toggleAdminExpand(u.id)}
                               className="p-1 hover:bg-blue-50 rounded text-slate-400 hover:text-brand-primary transition cursor-pointer"
-                              title={isExpanded ? "Collapse sub-team roles" : "Expand operational roles under this Administrator"}
+                              title={isExpanded ? "Collapse sub-team roles" : "Expand operational roles under this Admin"}
                             >
                               {isExpanded ? (
                                 <ChevronDown size={15} className="text-brand-primary font-bold" />
@@ -684,7 +684,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               type="button"
                               onClick={() => toggleAdminExpand(u.id)}
                               className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                              title="Click to view operational roles & team under this Administrator"
+                              title="Click to view operational roles & team under this Admin"
                             >
                               {roleStr}
                             </button>
@@ -740,7 +740,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               {isSuperUser(u) ? (
                                 <button
                                   disabled
-                                  title="Root Super Administrator account cannot be edited"
+                                  title="Root Super Admin account cannot be edited"
                                   className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
                                 >
                                   <Edit3 size={14} />
@@ -764,7 +764,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               {isSuperUser(u) ? (
                                 <button
                                   disabled
-                                  title="Root Super Administrator account cannot be deleted"
+                                  title="Root Super Admin account cannot be deleted"
                                   className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
                                 >
                                   <Trash2 size={14} />
@@ -791,7 +791,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                   <div className="flex items-center gap-2">
                                     <ShieldCheck size={16} className="text-brand-primary" />
                                     <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider">
-                                      Roles & Operational Roster Assigned Under Administrator ({u.displayName || u.username})
+                                      Roles & Operational Roster Assigned Under Admin ({u.displayName || u.username})
                                     </h4>
                                   </div>
                                   <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 rounded-full">

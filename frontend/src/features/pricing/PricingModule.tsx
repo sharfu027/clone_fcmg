@@ -1655,7 +1655,7 @@ export default function PricingModule({ onTriggerToast }: PricingModuleProps) {
                   <Calculator size={18} className="text-amber-400" />
                   <h3 className="font-bold text-sm text-white">Diagnostic Discount Calculator</h3>
                   <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono uppercase font-bold border border-amber-500/30">
-                    Administrator Simulation Tool
+                    Admin Simulation Tool
                   </span>
                 </div>
                 <button onClick={() => setIsCalculatorOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">

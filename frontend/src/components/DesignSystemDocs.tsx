@@ -470,7 +470,7 @@ export default function DesignSystemDocs({ onTriggerToast }: ComponentDocsProps)
                   )}
                 </div>
                 {inputError && (
-                  <p className="text-[10px] text-brand-danger font-medium">Invalid administrator token sequence. Verification failed.</p>
+                  <p className="text-[10px] text-brand-danger font-medium">Invalid admin token sequence. Verification failed.</p>
                 )}
               </div>
 
@@ -656,7 +656,7 @@ export default function DesignSystemDocs({ onTriggerToast }: ComponentDocsProps)
                     <div className="p-3 bg-blue-50/50 rounded border border-blue-100 flex items-start gap-2.5">
                       <Info size={16} className="text-brand-info shrink-0 mt-0.5" />
                       <div className="text-[11px] text-brand-text-primary leading-normal">
-                        <strong>Security Rule:</strong> Super Administrator approval is required for orders exceeding ₹5,00,000.
+                        <strong>Security Rule:</strong> Super Admin approval is required for orders exceeding ₹5,00,000.
                       </div>
                     </div>
                   </div>

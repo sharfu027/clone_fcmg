@@ -55,7 +55,7 @@ public class SecurityPolicyController : BaseApiController
                 {
                     Status = StatusCodes.Status412PreconditionFailed,
                     Title = "Precondition Failed",
-                    Detail = "The security policy has been modified by another administrator since you fetched it. Please refresh and try again.",
+                    Detail = "The security policy has been modified by another admin since you fetched it. Please refresh and try again.",
                     Instance = HttpContext.Request.Path
                 });
             }
@@ -86,7 +86,7 @@ public class SecurityPolicyController : BaseApiController
                 {
                     Status = StatusCodes.Status412PreconditionFailed,
                     Title = "Precondition Failed",
-                    Detail = "The user security policy has been modified by another administrator. Please refresh and try again.",
+                    Detail = "The user security policy has been modified by another admin. Please refresh and try again.",
                     Instance = HttpContext.Request.Path
                 });
             }

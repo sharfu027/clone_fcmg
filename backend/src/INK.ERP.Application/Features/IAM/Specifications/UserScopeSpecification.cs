@@ -7,8 +7,8 @@ namespace INK.ERP.Application.Features.IAM.Specifications;
 
 /// <summary>
 /// Reusable specification enforcing strict server-side multi-admin scope isolation.
-/// - Super Administrator: Full visibility across all user accounts.
-/// - Administrator (Sub-Admin): Can view operational users and self, but CANNOT view Super Admins or other Sub-Admins.
+/// - Super Admin: Full visibility across all user accounts.
+/// - Admin (Sub-Admin): Can view operational users and self, but CANNOT view Super Admins or other Sub-Admins.
 /// </summary>
 public class UserScopeSpecification : BaseSpecification<ApplicationUser>
 {

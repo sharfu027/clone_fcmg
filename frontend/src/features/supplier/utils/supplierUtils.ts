@@ -42,8 +42,8 @@ export const getPerformanceTextColor = (pct: number): string => {
 
 export const hasPermission = (userRole: string, action: string): boolean => {
   const permissions: Record<string, string[]> = {
-    'Super Administrator': ['create', 'edit', 'archive', 'block', 'approve', 'export', 'view'],
-    'Administrator': ['create', 'edit', 'archive', 'approve', 'export', 'view'],
+    'Super Admin': ['create', 'edit', 'archive', 'block', 'approve', 'export', 'view'],
+    'Admin': ['create', 'edit', 'archive', 'approve', 'export', 'view'],
     'Procurement Manager': ['create', 'edit', 'export', 'view'],
     'Finance Manager': ['view', 'export'],
     'Director': ['view', 'approve', 'export'],
