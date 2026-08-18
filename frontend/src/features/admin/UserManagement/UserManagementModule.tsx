@@ -621,7 +621,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               </div>
                             )}
                             <div>
-                              <div className="flex items-center gap-1.5">
+                              <div>
                                 {isAdmin && !isSuper ? (
                                   <button
                                     type="button"
@@ -633,11 +633,6 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                                 ) : (
                                   <span className="font-bold text-brand-text-primary block text-xs">
                                     {u.displayName || `${u.firstName} ${u.lastName}`}
-                                  </span>
-                                )}
-                                {userCompanyName && (
-                                  <span className="px-1.5 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 text-[10px] font-bold rounded">
-                                    {userCompanyName}
                                   </span>
                                 )}
                               </div>
