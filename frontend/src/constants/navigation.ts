@@ -25,9 +25,9 @@ export const NAVIGATION_MENU: NavItem[] = [
         icon: 'Building',
         requiredPermissions: ['masters:company'],
         children: [
-          { title: 'Branches', href: 'masters/branches', icon: 'Building', requiredPermissions: ['masters:company'] },
-          { title: 'Warehouse', href: 'masters/warehouses', icon: 'Building', requiredPermissions: ['masters:company'] },
-          { title: 'Department', href: 'masters/departments', icon: 'Building', requiredPermissions: ['masters:company'] }
+          { title: 'Branches', href: 'masters/branches', icon: 'Building', requiredPermissions: ['masters:branch'] },
+          { title: 'Warehouse', href: 'masters/warehouses', icon: 'Building', requiredPermissions: ['masters:warehouse'] },
+          { title: 'Department', href: 'masters/departments', icon: 'Building', requiredPermissions: ['masters:department'] }
         ]
       },
       {
@@ -36,8 +36,8 @@ export const NAVIGATION_MENU: NavItem[] = [
         icon: 'Boxes',
         requiredPermissions: ['masters:product'],
         children: [
-          { title: 'Category', href: 'masters/categories', icon: 'Tags', requiredPermissions: ['masters:product'] },
-          { title: 'Brands', href: 'masters/brands', icon: 'ClipboardList', requiredPermissions: ['masters:product'] }
+          { title: 'Category', href: 'masters/categories', icon: 'Tags', requiredPermissions: ['masters:category'] },
+          { title: 'Brands', href: 'masters/brands', icon: 'ClipboardList', requiredPermissions: ['masters:brand'] }
         ]
       },
       {
@@ -46,7 +46,7 @@ export const NAVIGATION_MENU: NavItem[] = [
         icon: 'UserCheck',
         requiredPermissions: ['masters:employee'],
         children: [
-          { title: 'Designation', href: 'masters/designations', icon: 'Briefcase', requiredPermissions: ['masters:employee'] }
+          { title: 'Designation', href: 'masters/designations', icon: 'Briefcase', requiredPermissions: ['masters:designation'] }
         ]
       },
       {

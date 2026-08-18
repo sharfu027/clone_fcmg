@@ -22,13 +22,63 @@ export interface FMCGModulePermission {
   protected?: boolean;
 }
 
-export const MASTER_DATA_SUBMODULES = [
-  { code: 'masters:company', name: 'Company', category: 'Company', subRoutes: ['masters/companies', 'masters/branches', 'masters/warehouses', 'masters/departments'] },
-  { code: 'masters:product', name: 'Product', category: 'Product', subRoutes: ['masters/products', 'masters/categories', 'masters/brands', 'masters/units'] },
-  { code: 'masters:employee', name: 'Employee', category: 'Employee', subRoutes: ['masters/employees', 'masters/designations'] },
-  { code: 'masters:customer', name: 'Customer', category: 'Customer', subRoutes: ['masters/customers'] },
-  { code: 'masters:supplier', name: 'Supplier', category: 'Supplier', subRoutes: ['masters/suppliers'] }
+export interface MasterDataSubModuleGroup {
+  groupName: string;
+  groupKey: string;
+  items: { code: string; name: string; subRoute: string }[];
+}
+
+export const MASTER_DATA_SUBMODULE_GROUPS: MasterDataSubModuleGroup[] = [
+  {
+    groupName: 'Company Master',
+    groupKey: 'company',
+    items: [
+      { code: 'masters:company', name: 'Company Details', subRoute: 'masters/companies' },
+      { code: 'masters:branch', name: 'Branches', subRoute: 'masters/branches' },
+      { code: 'masters:warehouse', name: 'Warehouse', subRoute: 'masters/warehouses' },
+      { code: 'masters:department', name: 'Departments', subRoute: 'masters/departments' },
+    ]
+  },
+  {
+    groupName: 'Product Master',
+    groupKey: 'product',
+    items: [
+      { code: 'masters:category', name: 'Category', subRoute: 'masters/categories' },
+      { code: 'masters:brand', name: 'Brands', subRoute: 'masters/brands' },
+      { code: 'masters:product', name: 'Products (SKUs)', subRoute: 'masters/products' },
+      { code: 'masters:unit', name: 'Units (UOM)', subRoute: 'masters/units' },
+    ]
+  },
+  {
+    groupName: 'Employee Master',
+    groupKey: 'employee',
+    items: [
+      { code: 'masters:employee', name: 'Employees Roster', subRoute: 'masters/employees' },
+      { code: 'masters:designation', name: 'Designations', subRoute: 'masters/designations' },
+    ]
+  },
+  {
+    groupName: 'Customer Master',
+    groupKey: 'customer',
+    items: [
+      { code: 'masters:customer', name: 'Customer Registry', subRoute: 'masters/customers' },
+    ]
+  },
+  {
+    groupName: 'Supplier Master',
+    groupKey: 'supplier',
+    items: [
+      { code: 'masters:supplier', name: 'Supplier & Partner Registry', subRoute: 'masters/suppliers' },
+    ]
+  }
 ];
+
+export const MASTER_DATA_SUBMODULES = MASTER_DATA_SUBMODULE_GROUPS.flatMap(g => g.items.map(item => ({
+  code: item.code,
+  name: item.name,
+  category: g.groupName,
+  subRoutes: [item.subRoute]
+})));
 
 export const CANONICAL_MODULE_PERMISSIONS: FMCGModulePermission[] = [
   { code: 'manage:all', name: 'Root System Clearance', category: 'Root', description: 'Complete unrestricted access across all 17 FMCG ERP modules', protected: true },

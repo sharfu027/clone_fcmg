@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle, Building, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
-import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES } from '../../../constants/roles';
+import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS } from '../../../constants/roles';
 import { saveUserRoleAndPermissions, getUserAccessSettings } from '../../../services/userPermissionsService';
 
 interface EditUserModalProps {
@@ -543,7 +543,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
                     {/* Granular Master Data Sub-Module Clearances */}
                     {perm.code === 'masters:manage' && isChecked ? (
-                      <div className="mt-2 pt-2 border-t border-blue-100 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-2 pt-2 border-t border-blue-100 space-y-2" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
                             <Sliders size={11} /> Master Data Sub-Module Access:
@@ -566,27 +566,59 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                           </button>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 bg-blue-50/60 p-2 rounded-lg border border-blue-100">
-                          {MASTER_DATA_SUBMODULES.map((sub) => {
-                            const isSubChecked = selectedPermissions.includes(sub.code);
+                        <div className="space-y-2 bg-blue-50/60 p-2.5 rounded-lg border border-blue-100">
+                          {MASTER_DATA_SUBMODULE_GROUPS.map((group) => {
+                            const groupSubCodes = group.items.map(item => item.code);
+                            const isAllGroupChecked = groupSubCodes.every(c => selectedPermissions.includes(c));
+
                             return (
-                              <label
-                                key={sub.code}
-                                onClick={(e) => e.stopPropagation()}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-bold cursor-pointer transition ${
-                                  isSubChecked
-                                    ? 'bg-white border-brand-primary text-brand-primary shadow-2xs'
-                                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-white'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSubChecked}
-                                  onChange={() => togglePermission(sub.code)}
-                                  className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
-                                />
-                                <span>{sub.name}</span>
-                              </label>
+                              <div key={group.groupKey} className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5 shadow-2xs">
+                                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="checkbox"
+                                      checked={isAllGroupChecked}
+                                      onChange={() => {
+                                        if (isAllGroupChecked) {
+                                          setSelectedPermissions(prev => prev.filter(p => !groupSubCodes.includes(p)));
+                                        } else {
+                                          setSelectedPermissions(prev => Array.from(new Set([...prev, ...groupSubCodes])));
+                                        }
+                                      }}
+                                      className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                    />
+                                    <span className="text-[11px] font-bold text-slate-800">{group.groupName}</span>
+                                  </div>
+                                  <span className="text-[9px] font-semibold text-slate-500">
+                                    {groupSubCodes.filter(c => selectedPermissions.includes(c)).length} / {group.items.length} Enabled
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  {group.items.map((sub) => {
+                                    const isSubChecked = selectedPermissions.includes(sub.code);
+                                    return (
+                                      <label
+                                        key={sub.code}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold cursor-pointer transition ${
+                                          isSubChecked
+                                            ? 'bg-blue-50/80 border-brand-primary text-brand-primary'
+                                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isSubChecked}
+                                          onChange={() => togglePermission(sub.code)}
+                                          className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                        />
+                                        <span>{sub.name}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>

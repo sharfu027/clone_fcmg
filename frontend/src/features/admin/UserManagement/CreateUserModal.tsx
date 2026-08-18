@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle, Sliders, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { RoleDefinition } from '../../../types/admin';
-import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES } from '../../../constants/roles';
+import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS } from '../../../constants/roles';
 import { saveUserRoleAndPermissions } from '../../../services/userPermissionsService';
 
 const isGuid = (val: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
@@ -12,6 +12,7 @@ interface CreateUserModalProps {
   onClose: () => void;
   onSuccess: (message: string) => void;
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
+  existingUsers?: any[];
 }
 
 // 12 Standard ERP Login Types / Roles required (Super Administrator is a unique root system account)
@@ -35,6 +36,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onClose,
   onSuccess,
   onTriggerToast,
+  existingUsers = [],
 }) => {
   const [formData, setFormData] = useState({
     username: '',
@@ -75,21 +77,55 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const getNextAutoAdminCode = async (): Promise<string> => {
     try {
       const res = await adminService.getUsers({ pageNumber: 1, pageSize: 100 });
-      const existingList = res?.items || res || [];
-      const existingCodes = new Set(
-        existingList.map((u: any) => String(u.employeeId || u.employeeCode || u.userCode || '').toUpperCase().trim())
-      );
+      const apiList = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : [];
+      const combinedList = [...apiList, ...existingUsers];
 
-      let counter = 1;
-      while (counter < 10000) {
-        const candidate = `ADM-${String(counter).padStart(3, '0')}`;
-        if (!existingCodes.has(candidate)) {
-          return candidate;
+      const savedCodesRaw = localStorage.getItem('erp_admin_codes');
+      const savedCodes: string[] = savedCodesRaw ? JSON.parse(savedCodesRaw) : [];
+
+      const usedNumbers = new Set<number>();
+
+      combinedList.forEach((u: any, idx: number) => {
+        const codeStr = String(u.employeeId || u.userCode || u.employeeCode || u.adminCode || '').toUpperCase().trim();
+        const match = codeStr.match(/ADM-(\d+)/);
+        if (match) {
+          usedNumbers.add(parseInt(match[1], 10));
+        } else {
+          const isSuper = u.username?.toLowerCase().includes('superadmin') || u.email?.toLowerCase().includes('superadmin') || (u.roles && u.roles.includes('Super Administrator'));
+          if (!isSuper) {
+            usedNumbers.add(idx + 1);
+          }
         }
-        counter++;
+      });
+
+      savedCodes.forEach((codeStr) => {
+        const match = String(codeStr).toUpperCase().trim().match(/ADM-(\d+)/);
+        if (match) usedNumbers.add(parseInt(match[1], 10));
+      });
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('ink_user_access_') || key.startsWith('user_access_'))) {
+          try {
+            const val = JSON.parse(localStorage.getItem(key) || '{}');
+            if (val.adminCode) {
+              const match = String(val.adminCode).toUpperCase().trim().match(/ADM-(\d+)/);
+              if (match) usedNumbers.add(parseInt(match[1], 10));
+            }
+          } catch {}
+        }
       }
-    } catch {}
-    return 'ADM-001';
+
+      let maxNum = 0;
+      usedNumbers.forEach((n) => {
+        if (n > maxNum) maxNum = n;
+      });
+
+      const nextNum = maxNum + 1;
+      return `ADM-${String(nextNum).padStart(3, '0')}`;
+    } catch {
+      return 'ADM-006';
+    }
   };
 
   useEffect(() => {
@@ -236,13 +272,23 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       const roleName = matchedRoleDef ? matchedRoleDef.name : 'Sales Representative';
 
       if (userId) {
+        // Persist generated code to local storage history
+        try {
+          const savedCodesRaw = localStorage.getItem('erp_admin_codes');
+          const savedCodes: string[] = savedCodesRaw ? JSON.parse(savedCodesRaw) : [];
+          if (formData.employeeId && !savedCodes.includes(formData.employeeId)) {
+            localStorage.setItem('erp_admin_codes', JSON.stringify([...savedCodes, formData.employeeId]));
+          }
+        } catch {}
+
         saveUserRoleAndPermissions(
           userId,
           cleanEmail,
           roleName,
           formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : [],
           formData.companyName.trim(),
-          formData.companyLogo
+          formData.companyLogo,
+          formData.employeeId
         );
 
         const matchedRole = availableRoles.find(
@@ -665,7 +711,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
                       {/* Granular Master Data Sub-Module Clearances */}
                       {perm.code === 'masters:manage' && isChecked ? (
-                        <div className="mt-2 pt-2 border-t border-blue-100 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="mt-2 pt-2 border-t border-blue-100 space-y-2" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
                               <Sliders size={11} /> Master Data Sub-Module Access:
@@ -688,27 +734,59 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                             </button>
                           </div>
 
-                          <div className="flex flex-wrap gap-2 bg-blue-50/60 p-2 rounded-lg border border-blue-100">
-                            {MASTER_DATA_SUBMODULES.map((sub) => {
-                              const isSubChecked = selectedPermissions.includes(sub.code);
+                          <div className="space-y-2 bg-blue-50/60 p-2.5 rounded-lg border border-blue-100">
+                            {MASTER_DATA_SUBMODULE_GROUPS.map((group) => {
+                              const groupSubCodes = group.items.map(item => item.code);
+                              const isAllGroupChecked = groupSubCodes.every(c => selectedPermissions.includes(c));
+
                               return (
-                                <label
-                                  key={sub.code}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-bold cursor-pointer transition ${
-                                    isSubChecked
-                                      ? 'bg-white border-brand-primary text-brand-primary shadow-2xs'
-                                      : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-white'
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isSubChecked}
-                                    onChange={() => togglePermission(sub.code)}
-                                    className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
-                                  />
-                                  <span>{sub.name}</span>
-                                </label>
+                                <div key={group.groupKey} className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5 shadow-2xs">
+                                  <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={isAllGroupChecked}
+                                        onChange={() => {
+                                          if (isAllGroupChecked) {
+                                            setSelectedPermissions(prev => prev.filter(p => !groupSubCodes.includes(p)));
+                                          } else {
+                                            setSelectedPermissions(prev => Array.from(new Set([...prev, ...groupSubCodes])));
+                                          }
+                                        }}
+                                        className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                      />
+                                      <span className="text-[11px] font-bold text-slate-800">{group.groupName}</span>
+                                    </div>
+                                    <span className="text-[9px] font-semibold text-slate-500">
+                                      {groupSubCodes.filter(c => selectedPermissions.includes(c)).length} / {group.items.length} Enabled
+                                    </span>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {group.items.map((sub) => {
+                                      const isSubChecked = selectedPermissions.includes(sub.code);
+                                      return (
+                                        <label
+                                          key={sub.code}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold cursor-pointer transition ${
+                                            isSubChecked
+                                              ? 'bg-blue-50/80 border-brand-primary text-brand-primary'
+                                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isSubChecked}
+                                            onChange={() => togglePermission(sub.code)}
+                                            className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                          />
+                                          <span>{sub.name}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               );
                             })}
                           </div>

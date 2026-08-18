@@ -7,10 +7,11 @@ export const saveUserRoleAndPermissions = (
   roleName: string,
   permissions: string[],
   companyName?: string,
-  companyLogo?: string
+  companyLogo?: string,
+  adminCode?: string
 ): void => {
   try {
-    const data = { roleName, permissions, companyName, companyLogo, updatedAt: new Date().toISOString() };
+    const data = { roleName, permissions, companyName, companyLogo, adminCode, updatedAt: new Date().toISOString() };
     const cleanEmail = email ? email.toLowerCase().trim() : '';
     const rawUsername = cleanEmail ? cleanEmail.split('@')[0] : '';
     const username = rawUsername.replace(/\s+/g, '');
@@ -58,6 +59,7 @@ export const saveUserRoleAndPermissions = (
               prof.role = roleName;
               if (companyName) prof.companyName = companyName;
               if (companyLogo) prof.companyLogo = companyLogo;
+              if (adminCode) prof.adminCode = adminCode;
               localStorage.setItem(key, JSON.stringify(prof));
             }
           }
@@ -68,7 +70,7 @@ export const saveUserRoleAndPermissions = (
     });
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ink_permissions_updated', { detail: { userId, email, permissions, companyName, companyLogo } }));
+      window.dispatchEvent(new CustomEvent('ink_permissions_updated', { detail: { userId, email, permissions, companyName, companyLogo, adminCode } }));
       window.dispatchEvent(new Event('storage'));
     }
   } catch (e) {
@@ -80,7 +82,7 @@ export const getUserAccessSettings = (
   userId?: string,
   email?: string,
   defaultRole: string = 'Sales Representative'
-): { roleName: string; permissions: string[]; companyName?: string; companyLogo?: string } => {
+): { roleName: string; permissions: string[]; companyName?: string; companyLogo?: string; adminCode?: string } => {
   try {
     let raw = null;
     const cleanEmail = email ? email.toLowerCase().trim() : '';
@@ -108,7 +110,8 @@ export const getUserAccessSettings = (
             roleName: 'Super Administrator',
             permissions: ROLE_PERMISSIONS_MAP['Super Administrator'],
             companyName: parsed.companyName,
-            companyLogo: parsed.companyLogo
+            companyLogo: parsed.companyLogo,
+            adminCode: 'SA-001'
           };
         }
 
@@ -117,7 +120,8 @@ export const getUserAccessSettings = (
           roleName: storedRole,
           permissions: resolvedPerms,
           companyName: parsed.companyName,
-          companyLogo: parsed.companyLogo
+          companyLogo: parsed.companyLogo,
+          adminCode: parsed.adminCode
         };
       }
     }
@@ -138,4 +142,35 @@ export const getUserAccessSettings = (
     roleName: defaultRole,
     permissions: ['read:dashboard']
   };
+};
+
+export const filterByTenantScope = <T extends Record<string, any>>(
+  items: T[],
+  currentUser: { id?: string; email?: string; role?: string; companyName?: string } | null
+): T[] => {
+  if (!items || !Array.isArray(items)) return [];
+  if (!currentUser) return items;
+
+  const isSuper =
+    currentUser.role === 'Super Administrator' ||
+    (currentUser.email && currentUser.email.toLowerCase().includes('superadmin'));
+
+  if (isSuper) return items; // Super Administrator sees all records across all tenants
+
+  const userCompany = (currentUser.companyName || '').trim().toLowerCase();
+  const userId = currentUser.id;
+
+  return items.filter((item) => {
+    if (!item) return false;
+    const itemCompany = (item.companyName || item.legalName || item.tenantKey || item.company || '').trim().toLowerCase();
+    const itemCreator = item.createdById || item.userId || item.adminId || item.ownerId;
+
+    // Direct owner match
+    if (userId && itemCreator === userId) return true;
+
+    // Company scope match
+    if (userCompany && itemCompany && (itemCompany === userCompany || userCompany.includes(itemCompany) || itemCompany.includes(userCompany))) return true;
+
+    return false;
+  });
 };

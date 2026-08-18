@@ -159,10 +159,28 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
         };
       });
 
-      // Super Admin can see ONLY Admins in the main roster table
+      // Multi-Tenant Data Isolation Filter:
+      // Super Admin sees ALL Admin accounts across companies.
+      // Company Admin sees ONLY user accounts belonging to THEIR company!
+      const currentCompanyName = (currentUser?.companyName || '').trim().toLowerCase();
+      const isSuperAdmin = currentUser?.role === 'Super Administrator' ||
+                           (currentUser?.email && currentUser.email.toLowerCase().includes('superadmin'));
+
       const adminOnlyUsers = allLoaded.filter((u: any) => {
         const roleLower = (u.role || u.roles?.[0] || '').toLowerCase();
-        return roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
+        const isAdminRole = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
+        if (!isAdminRole) return false;
+
+        if (isSuperAdmin) return true; // Super Admin sees all companies
+
+        // Company Admin sees ONLY users matching their own companyName or created by them
+        const access = getUserAccessSettings(u.id, u.email);
+        const userCompany = (u.companyName || access.companyName || '').trim().toLowerCase();
+
+        return (
+          u.id === currentUser?.id ||
+          (userCompany && currentCompanyName && userCompany === currentCompanyName)
+        );
       });
 
       setUsers(adminOnlyUsers);
@@ -573,7 +591,18 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   const accessSettings = getUserAccessSettings(u.id, u.email);
                   const userCompanyName = isSuper ? 'INK WORLDWIDE' : (u.companyName || accessSettings.companyName || 'INK FMCG India Pvt Ltd');
                   const userCompanyLogo = u.companyLogo || accessSettings.companyLogo;
-                  const formattedAdminCode = isSuper ? 'SA-001' : (u.employeeId || u.userCode || u.employeeCode || u.adminCode || `ADM-${String(idx + 1).padStart(3, '0')}`);
+                  let formattedAdminCode = 'SA-001';
+                  if (!isSuper) {
+                    if (u.employeeId && String(u.employeeId).startsWith('ADM-')) {
+                      formattedAdminCode = u.employeeId;
+                    } else if (accessSettings.adminCode && String(accessSettings.adminCode).startsWith('ADM-')) {
+                      formattedAdminCode = accessSettings.adminCode;
+                    } else if (u.userCode && String(u.userCode).startsWith('ADM-')) {
+                      formattedAdminCode = u.userCode;
+                    } else {
+                      formattedAdminCode = `ADM-${String(idx + 1).padStart(3, '0')}`;
+                    }
+                  }
 
                   return (
                     <React.Fragment key={u.id}>
@@ -865,6 +894,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
           loadUsers();
         }}
         onTriggerToast={onTriggerToast}
+        existingUsers={users}
       />
 
       <EditUserModal
