@@ -13,6 +13,7 @@ public record CreateWarehouseCommand(
     string Code,
     string Name,
     string WarehouseType,
+    string Status,
     Guid? ManagerEmployeeId,
     string AddressLine1,
     string? AddressLine2,
@@ -21,6 +22,13 @@ public record CreateWarehouseCommand(
     string PostalCode,
     string Country,
     double? CapacitySqFt,
+    int? PalletCapacity,
+    int? CartonCapacity,
+    string? ContactNumber,
+    string? Email,
+    double? Latitude,
+    double? Longitude,
+    string? Remarks,
     bool IsTemperatureControlled) : IRequest<Result<WarehouseDto>>;
 
 public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseCommand, Result<WarehouseDto>>
@@ -55,12 +63,20 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             BranchId = request.BranchId,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
-            WarehouseType = request.WarehouseType,
+            WarehouseType = string.IsNullOrWhiteSpace(request.WarehouseType) ? "Central Warehouse" : request.WarehouseType.Trim(),
+            Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim(),
             ManagerEmployeeId = request.ManagerEmployeeId,
-            Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country),
+            Address = new Address(request.AddressLine1.Trim(), request.AddressLine2?.Trim(), request.City.Trim(), request.State.Trim(), request.PostalCode.Trim(), string.IsNullOrWhiteSpace(request.Country) ? "India" : request.Country.Trim()),
             CapacitySqFt = request.CapacitySqFt,
+            PalletCapacity = request.PalletCapacity,
+            CartonCapacity = request.CartonCapacity,
+            ContactNumber = request.ContactNumber?.Trim(),
+            Email = request.Email?.Trim().ToLowerInvariant(),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            Remarks = request.Remarks?.Trim(),
             IsTemperatureControlled = request.IsTemperatureControlled,
-            IsActive = true
+            IsActive = !string.Equals(request.Status, "Inactive", StringComparison.OrdinalIgnoreCase)
         };
 
         await _warehouseRepository.AddAsync(warehouse, cancellationToken);
@@ -73,6 +89,7 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             warehouse.Code,
             warehouse.Name,
             warehouse.WarehouseType,
+            warehouse.Status,
             warehouse.ManagerEmployeeId,
             warehouse.Address.AddressLine1,
             warehouse.Address.AddressLine2,
@@ -81,6 +98,13 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             warehouse.Address.PostalCode,
             warehouse.Address.Country,
             warehouse.CapacitySqFt,
+            warehouse.PalletCapacity,
+            warehouse.CartonCapacity,
+            warehouse.ContactNumber,
+            warehouse.Email,
+            warehouse.Latitude,
+            warehouse.Longitude,
+            warehouse.Remarks,
             warehouse.IsTemperatureControlled,
             warehouse.IsActive,
             warehouse.CreatedAtUtc);
@@ -96,6 +120,7 @@ public record UpdateWarehouseCommand(
     string Code,
     string Name,
     string WarehouseType,
+    string Status,
     Guid? ManagerEmployeeId,
     string AddressLine1,
     string? AddressLine2,
@@ -104,6 +129,13 @@ public record UpdateWarehouseCommand(
     string PostalCode,
     string Country,
     double? CapacitySqFt,
+    int? PalletCapacity,
+    int? CartonCapacity,
+    string? ContactNumber,
+    string? Email,
+    double? Latitude,
+    double? Longitude,
+    string? Remarks,
     bool IsTemperatureControlled,
     bool IsActive) : IRequest<Result<WarehouseDto>>;
 
@@ -143,10 +175,18 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
         warehouse.BranchId = request.BranchId;
         warehouse.Code = request.Code.ToUpperInvariant().Trim();
         warehouse.Name = request.Name.Trim();
-        warehouse.WarehouseType = request.WarehouseType;
+        warehouse.WarehouseType = string.IsNullOrWhiteSpace(request.WarehouseType) ? "Central Warehouse" : request.WarehouseType.Trim();
+        warehouse.Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim();
         warehouse.ManagerEmployeeId = request.ManagerEmployeeId;
-        warehouse.Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country);
+        warehouse.Address = new Address(request.AddressLine1.Trim(), request.AddressLine2?.Trim(), request.City.Trim(), request.State.Trim(), request.PostalCode.Trim(), string.IsNullOrWhiteSpace(request.Country) ? "India" : request.Country.Trim());
         warehouse.CapacitySqFt = request.CapacitySqFt;
+        warehouse.PalletCapacity = request.PalletCapacity;
+        warehouse.CartonCapacity = request.CartonCapacity;
+        warehouse.ContactNumber = request.ContactNumber?.Trim();
+        warehouse.Email = request.Email?.Trim().ToLowerInvariant();
+        warehouse.Latitude = request.Latitude;
+        warehouse.Longitude = request.Longitude;
+        warehouse.Remarks = request.Remarks?.Trim();
         warehouse.IsTemperatureControlled = request.IsTemperatureControlled;
         warehouse.IsActive = request.IsActive;
 
@@ -160,6 +200,7 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             warehouse.Code,
             warehouse.Name,
             warehouse.WarehouseType,
+            warehouse.Status,
             warehouse.ManagerEmployeeId,
             warehouse.Address.AddressLine1,
             warehouse.Address.AddressLine2,
@@ -168,6 +209,13 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             warehouse.Address.PostalCode,
             warehouse.Address.Country,
             warehouse.CapacitySqFt,
+            warehouse.PalletCapacity,
+            warehouse.CartonCapacity,
+            warehouse.ContactNumber,
+            warehouse.Email,
+            warehouse.Latitude,
+            warehouse.Longitude,
+            warehouse.Remarks,
             warehouse.IsTemperatureControlled,
             warehouse.IsActive,
             warehouse.CreatedAtUtc);

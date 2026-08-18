@@ -31,6 +31,7 @@ public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuer
             warehouse.Code,
             warehouse.Name,
             warehouse.WarehouseType,
+            warehouse.Status,
             warehouse.ManagerEmployeeId,
             warehouse.Address.AddressLine1,
             warehouse.Address.AddressLine2,
@@ -39,6 +40,13 @@ public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuer
             warehouse.Address.PostalCode,
             warehouse.Address.Country,
             warehouse.CapacitySqFt,
+            warehouse.PalletCapacity,
+            warehouse.CartonCapacity,
+            warehouse.ContactNumber,
+            warehouse.Email,
+            warehouse.Latitude,
+            warehouse.Longitude,
+            warehouse.Remarks,
             warehouse.IsTemperatureControlled,
             warehouse.IsActive,
             warehouse.CreatedAtUtc);
@@ -88,8 +96,8 @@ public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPaged
 
         if (!string.IsNullOrWhiteSpace(request.Status) && !string.Equals(request.Status, "All", StringComparison.OrdinalIgnoreCase))
         {
-            bool isActive = string.Equals(request.Status, "Active", StringComparison.OrdinalIgnoreCase);
-            query = query.Where(w => w.IsActive == isActive);
+            query = query.Where(w => string.Equals(w.Status, request.Status, StringComparison.OrdinalIgnoreCase) ||
+                                     (string.Equals(request.Status, "Active", StringComparison.OrdinalIgnoreCase) && w.IsActive));
         }
 
         var list = query
@@ -101,6 +109,7 @@ public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPaged
                 warehouse.Code,
                 warehouse.Name,
                 warehouse.WarehouseType,
+                warehouse.Status,
                 warehouse.ManagerEmployeeId,
                 warehouse.Address.AddressLine1,
                 warehouse.Address.AddressLine2,
@@ -109,6 +118,13 @@ public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPaged
                 warehouse.Address.PostalCode,
                 warehouse.Address.Country,
                 warehouse.CapacitySqFt,
+                warehouse.PalletCapacity,
+                warehouse.CartonCapacity,
+                warehouse.ContactNumber,
+                warehouse.Email,
+                warehouse.Latitude,
+                warehouse.Longitude,
+                warehouse.Remarks,
                 warehouse.IsTemperatureControlled,
                 warehouse.IsActive,
                 warehouse.CreatedAtUtc))

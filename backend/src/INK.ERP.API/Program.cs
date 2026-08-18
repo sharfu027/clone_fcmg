@@ -113,6 +113,16 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy("Masters.Company", policy =>
         policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+    options.AddPolicy("Masters.Companies.Create", policy =>
+        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+    options.AddPolicy("Masters.Companies.Update", policy =>
+        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+    options.AddPolicy("Masters.Companies.Archive", policy =>
+        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+    options.AddPolicy("Masters.Companies.Restore", policy =>
+        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+    options.AddPolicy("Masters.Companies.Delete", policy =>
+        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
 
     options.AddPolicy("Masters.Product", policy =>
         policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:product")));

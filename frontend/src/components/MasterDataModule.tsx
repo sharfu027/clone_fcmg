@@ -19,7 +19,9 @@ import {
   MapPin,
   ClipboardList,
   Briefcase,
-  ShieldCheck
+  ShieldCheck,
+  Box,
+  Globe
 } from 'lucide-react';
 
 import { 
@@ -133,10 +135,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   // Master Repositories (Production Architecture: Companies live data)
   const [dbCompanies, setDbCompanies] = useState<any[]>([]);
 
-  const [dbBranches, setDbBranches] = useState([
-    { id: '1', companyId: '1', companyName: 'INK FMCG India Pvt Ltd', code: 'BR-DEL-HQ', name: 'Delhi Main Branch', gstin: '07AAAAA0000A1Z5', phone: '+91 11 4500 8801', email: 'delhi.branch@ink-fmcg.com', addressLine1: 'Okhla Phase III', city: 'New Delhi', state: 'Delhi', postalCode: '110020', country: 'India', isHeadquarters: true, status: 'Active' },
-    { id: '2', companyId: '1', companyName: 'INK FMCG India Pvt Ltd', code: 'BR-MUM-W', name: 'Mumbai West Depot', gstin: '27AAAAA0000A1Z2', phone: '+91 22 6700 9901', email: 'mumbai.branch@ink-fmcg.com', addressLine1: 'Andheri East Area', city: 'Mumbai', state: 'Maharashtra', postalCode: '400069', country: 'India', isHeadquarters: false, status: 'Active' }
-  ]);
+  const [dbBranches, setDbBranches] = useState<any[]>([]);
 
   const [dbDepartments, setDbDepartments] = useState([
     { id: '1', branchId: '1', branchName: 'Delhi Main Branch', code: 'DEP-SCM', name: 'Supply Chain & Logistics', description: 'Manages warehouse stocking and distribution routes.', status: 'Active' },
@@ -255,11 +254,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [catHsnDefault, setCatHsnDefault] = useState('1006.30');
 
   // 8. Warehouse
-  const [whCompanyId, setWhCompanyId] = useState('1');
-  const [whBranchId, setWhBranchId] = useState('1');
+  const [whCompanyId, setWhCompanyId] = useState('');
+  const [whBranchId, setWhBranchId] = useState('');
   const [whName, setWhName] = useState('');
-  const [whType, setWhType] = useState('Central Depot');
-  const [whCapacitySqFt, setWhCapacitySqFt] = useState<number>(150000);
+  const [whType, setWhType] = useState('Central Warehouse');
+  const [whStatus, setWhStatus] = useState<'Active' | 'Inactive' | 'Under Maintenance'>('Active');
+  const [whAddrLine1, setWhAddrLine1] = useState('');
+  const [whAddrLine2, setWhAddrLine2] = useState('');
+  const [whCity, setWhCity] = useState('');
+  const [whState, setWhState] = useState('');
+  const [whCountry, setWhCountry] = useState('India');
+  const [whPostalCode, setWhPostalCode] = useState('');
+  const [whStorageAreaSqFt, setWhStorageAreaSqFt] = useState<number | ''>(150000);
+  const [whPalletCapacity, setWhPalletCapacity] = useState<number | ''>(5000);
+  const [whCartonCapacity, setWhCartonCapacity] = useState<number | ''>(50000);
+  const [whManagerEmployeeId, setWhManagerEmployeeId] = useState('');
+  const [whContactNumber, setWhContactNumber] = useState('');
+  const [whEmail, setWhEmail] = useState('');
+  const [whLatitude, setWhLatitude] = useState<number | ''>('');
+  const [whLongitude, setWhLongitude] = useState<number | ''>('');
+  const [whRemarks, setWhRemarks] = useState('');
   const [whTempControl, setWhTempControl] = useState(false);
 
   // 9. Product
@@ -375,6 +389,38 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             }
           } catch (e) {}
         }
+
+        // Ensure live branches are loaded for warehouse & child dropdowns
+        try {
+          const brRes = await masterDataService.fetchBranches({});
+          const brItems = Array.isArray(brRes) ? brRes : (brRes && Array.isArray(brRes.items) ? brRes.items : []);
+          if (brItems.length > 0) {
+            const mappedBranches = brItems.map((x: any) => ({
+              id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+              gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
+              addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
+              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            }));
+            setDbBranches(mappedBranches);
+            if (mappedBranches[0]?.id && (!whBranchId || !mappedBranches.some((b: any) => b.id === whBranchId))) {
+              setWhBranchId(mappedBranches[0].id);
+            }
+          }
+        } catch (e) {}
+
+        // Ensure live employees are loaded for manager dropdowns
+        try {
+          const empRes = await masterDataService.fetchEmployees({});
+          const empItems = Array.isArray(empRes) ? empRes : (empRes && Array.isArray(empRes.items) ? empRes.items : []);
+          if (empItems.length > 0) {
+            const mappedEmployees = empItems.map((x: any) => ({
+              id: x.id, employeeCode: x.code || x.employeeCode, firstName: x.firstName, lastName: x.lastName, email: x.email, phone: x.phone,
+              joiningDate: x.joiningDate, salary: x.salary, companyId: x.companyId, branchId: x.branchId, departmentId: x.departmentId, designationId: x.designationId,
+              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            }));
+            setDbEmployees(mappedEmployees);
+          }
+        } catch (e) {}
         
                 if (module === 'companies' || module === 'masters/companies') {
           apiData = await masterDataService.fetchCompanies(queryParams);
@@ -483,8 +529,32 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchWarehouses(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbWarehouses(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.name, manager: x.managerName || x.type || 'N/A', capacitySft: x.capacitySqFt || x.capacitySft || 0,
-            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            id: x.id,
+            companyId: x.companyId,
+            branchId: x.branchId,
+            branchName: x.branchName || dbBranches.find(b => b.id === x.branchId)?.name || 'Main Branch',
+            code: x.code,
+            name: x.name,
+            warehouseType: x.warehouseType || 'Central Warehouse',
+            status: x.status || (x.isActive ? 'Active' : 'Inactive'),
+            managerEmployeeId: x.managerEmployeeId,
+            manager: dbEmployees.find(e => e.id === x.managerEmployeeId) ? `${dbEmployees.find(e => e.id === x.managerEmployeeId)?.firstName} ${dbEmployees.find(e => e.id === x.managerEmployeeId)?.lastName}` : (x.managerName || 'N/A'),
+            addressLine1: x.addressLine1 || '',
+            addressLine2: x.addressLine2 || '',
+            city: x.city || '',
+            state: x.state || '',
+            postalCode: x.postalCode || '',
+            country: x.country || 'India',
+            storageAreaSqFt: x.capacitySqFt || x.storageAreaSqFt || x.capacitySft || 0,
+            capacitySft: x.capacitySqFt || x.storageAreaSqFt || x.capacitySft || 0,
+            palletCapacity: x.palletCapacity,
+            cartonCapacity: x.cartonCapacity,
+            contactNumber: x.contactNumber,
+            email: x.email,
+            latitude: x.latitude,
+            longitude: x.longitude,
+            remarks: x.remarks,
+            isTemperatureControlled: x.isTemperatureControlled || false
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
         } else if (module === 'customers' || module === 'masters/customers') {
@@ -511,7 +581,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       }
     }
     loadLiveData();
-  }, [module]);
+  }, [module, refreshTrigger]);
 
   const populateForm = (id: string) => {
     setFormErrors({});
@@ -569,7 +639,29 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'warehouses' || module === 'masters/warehouses') {
       const x = dbWarehouses.find(w => w.id === id);
       if (x) {
-        setFormCode(x.code); setWhName(x.name); setWhCapacitySqFt(x.capacitySft); setWhType(x.manager); setFormStatus(x.status as any);
+        setFormCode(x.code);
+        setWhName(x.name);
+        setWhCompanyId(x.companyId || '');
+        setWhBranchId(x.branchId || '');
+        setWhType(x.warehouseType || 'Central Warehouse');
+        setWhStatus((x.status as any) || 'Active');
+        setWhManagerEmployeeId(x.managerEmployeeId || '');
+        setWhAddrLine1(x.addressLine1 || '');
+        setWhAddrLine2(x.addressLine2 || '');
+        setWhCity(x.city || '');
+        setWhState(x.state || '');
+        setWhCountry(x.country || 'India');
+        setWhPostalCode(x.postalCode || '');
+        setWhStorageAreaSqFt(x.storageAreaSqFt || x.capacitySft || 150000);
+        setWhPalletCapacity(x.palletCapacity ?? '');
+        setWhCartonCapacity(x.cartonCapacity ?? '');
+        setWhContactNumber(x.contactNumber || '');
+        setWhEmail(x.email || '');
+        setWhLatitude(x.latitude ?? '');
+        setWhLongitude(x.longitude ?? '');
+        setWhRemarks(x.remarks || '');
+        setWhTempControl(Boolean(x.isTemperatureControlled));
+        setFormStatus((x.status as any) || 'Active');
       }
     } else if (module === 'customers' || module === 'masters/customers') {
       const x = dbCustomers.find(c => c.id === id);
@@ -582,6 +674,64 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         setFormCode(x.code); setSuppLegalName(x.name); setSuppPhone(x.contact); setSuppEmail(x.email); setSuppCreditLimit(x.balance); setFormStatus(x.status as any);
       }
     }
+  };
+
+  const getNextAutoCode = () => {
+    let prefix = 'REC';
+    let currentList: any[] = [];
+
+    if (module === 'companies' || module === 'masters/companies') {
+      prefix = 'COM';
+      currentList = dbCompanies;
+    } else if (module === 'branches' || module === 'masters/branches') {
+      prefix = 'BR';
+      currentList = dbBranches;
+    } else if (module === 'warehouses' || module === 'masters/warehouses') {
+      prefix = 'WH';
+      currentList = dbWarehouses;
+    } else if (module === 'departments' || module === 'masters/departments') {
+      prefix = 'DEP';
+      currentList = dbDepartments;
+    } else if (module === 'designations' || module === 'masters/designations') {
+      prefix = 'DSG';
+      currentList = dbDesignations;
+    } else if (module === 'employees' || module === 'masters/employees') {
+      prefix = 'EMP';
+      currentList = dbEmployees;
+    } else if (module === 'products' || module === 'masters/products') {
+      prefix = 'PROD';
+      currentList = dbProducts;
+    } else if (module === 'categories' || module === 'masters/categories') {
+      prefix = 'CAT';
+      currentList = dbCategories;
+    } else if (module === 'brands' || module === 'masters/brands') {
+      prefix = 'BRD';
+      currentList = dbBrands;
+    } else if (module === 'units' || module === 'masters/units') {
+      prefix = 'UOM';
+      currentList = dbUnits;
+    } else if (module === 'customers' || module === 'masters/customers') {
+      prefix = 'CST';
+      currentList = dbCustomers;
+    } else if (module === 'suppliers' || module === 'masters/suppliers') {
+      prefix = 'SUP';
+      currentList = dbSuppliers;
+    }
+
+    const existingCodes = new Set(
+      currentList.map(item => String(item.code || item.employeeCode || '').toUpperCase().trim())
+    );
+
+    let counter = 1;
+    while (counter < 10000) {
+      const candidate = `${prefix}-${String(counter).padStart(3, '0')}`;
+      if (!existingCodes.has(candidate)) {
+        return candidate;
+      }
+      counter++;
+    }
+
+    return `${prefix}-001`;
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -618,7 +768,33 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'units' || module === 'masters/units') {
       if (!uomName.trim()) errors.uomName = 'Unit Name is required. Example: Kilograms';
     } else if (module === 'warehouses' || module === 'masters/warehouses') {
-      if (!whName.trim()) errors.whName = 'Warehouse Facility Name is required. Example: Delhi Central Depot';
+      if (!whBranchId) errors.whBranchId = 'Branch Link is required.';
+      if (!whName.trim()) errors.whName = 'Warehouse Name is required. Example: Delhi Central Depot';
+      if (!whType.trim()) errors.whType = 'Warehouse Type is required.';
+      if (!whStatus.trim()) errors.whStatus = 'Status is required.';
+      if (!whAddrLine1.trim()) errors.whAddrLine1 = 'Address Line 1 is required.';
+      if (!whCity.trim()) errors.whCity = 'City is required.';
+      if (!whState.trim()) errors.whState = 'State is required.';
+      if (!whCountry.trim()) errors.whCountry = 'Country is required.';
+      if (!whPostalCode.trim()) errors.whPostalCode = 'Pincode is required.';
+      if (whEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(whEmail.trim())) {
+        errors.whEmail = 'Email address is not in a valid format.';
+      }
+      if (whStorageAreaSqFt !== '' && typeof whStorageAreaSqFt === 'number' && whStorageAreaSqFt < 0) {
+        errors.whStorageAreaSqFt = 'Storage Area cannot be negative.';
+      }
+      if (whPalletCapacity !== '' && typeof whPalletCapacity === 'number' && whPalletCapacity < 0) {
+        errors.whPalletCapacity = 'Pallet Capacity cannot be negative.';
+      }
+      if (whCartonCapacity !== '' && typeof whCartonCapacity === 'number' && whCartonCapacity < 0) {
+        errors.whCartonCapacity = 'Carton Capacity cannot be negative.';
+      }
+      if (whLatitude !== '' && typeof whLatitude === 'number' && (whLatitude < -90 || whLatitude > 90)) {
+        errors.whLatitude = 'Latitude must be between -90 and 90 degrees.';
+      }
+      if (whLongitude !== '' && typeof whLongitude === 'number' && (whLongitude < -180 || whLongitude > 180)) {
+        errors.whLongitude = 'Longitude must be between -180 and 180 degrees.';
+      }
     } else if (module === 'customers' || module === 'masters/customers') {
       if (!custLegalName.trim()) errors.custLegalName = 'Customer Name is required. Example: Apex Retail Distributors';
     } else if (module === 'suppliers' || module === 'masters/suppliers') {
@@ -635,10 +811,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       const isNew = mode === 'create';
       
       if (module === 'companies' || module === 'masters/companies') {
+        const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
+        const autoGstin = `07AAAAA${uniqueSuffix}A1Z5`;
+        const autoPan = `AAAAA${uniqueSuffix}A`;
+
         if (isNew) {
           await masterDataService.createCompany({ 
             code: formCode.toUpperCase().trim(), legalName: compLegalName.trim(), tradeName: (compTradeName || compLegalName).trim(), 
-            taxRegistrationNumber: (compGstin || '07AAAAA0000A1Z5').toUpperCase().trim(), panNumber: (compPan || 'AAAAA0000A').toUpperCase().trim(), 
+            taxRegistrationNumber: (compGstin || autoGstin).toUpperCase().trim(), panNumber: (compPan || autoPan).toUpperCase().trim(), 
             email: (compEmail || 'admin@company.com').trim(), phone: (compPhone || '+91 98100 12345').trim(), 
             currencyCode: compCurrency || 'INR', timeZoneId: 'Asia/Kolkata', financialYearStartMonth: 4, isActive: formStatus === 'Active', 
             addressLine1: (addrLine1 || 'Corporate Headquarters').trim(), city: (addrCity || 'Delhi').trim(), state: (addrState || 'Delhi').trim(), 
@@ -648,7 +828,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         } else {
           await masterDataService.updateCompany(selectedId!, {
             id: selectedId!, code: formCode.toUpperCase().trim(), legalName: compLegalName.trim(), tradeName: (compTradeName || compLegalName).trim(), 
-            taxRegistrationNumber: (compGstin || '07AAAAA0000A1Z5').toUpperCase().trim(), panNumber: (compPan || 'AAAAA0000A').toUpperCase().trim(), 
+            taxRegistrationNumber: (compGstin || autoGstin).toUpperCase().trim(), panNumber: (compPan || autoPan).toUpperCase().trim(), 
             email: (compEmail || 'admin@company.com').trim(), phone: (compPhone || '+91 98100 12345').trim(), 
             currencyCode: compCurrency || 'INR', timeZoneId: 'Asia/Kolkata', financialYearStartMonth: 4, isActive: formStatus === 'Active', 
             addressLine1: (addrLine1 || 'Corporate Headquarters').trim(), city: (addrCity || 'Delhi').trim(), state: (addrState || 'Delhi').trim(), 
@@ -830,27 +1010,40 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Unit Updated', 'Unit of Measure configured.');
         }
       } else if (module === 'warehouses' || module === 'masters/warehouses') {
-        const validCompId = isGuid(whCompanyId) ? whCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
-        const validBranchId = isGuid(whBranchId) ? whBranchId : (dbBranches.find(b => isGuid(b.id))?.id || 'a59e6217-3baa-426c-aff5-ba8fa06e48ac');
+        const validBranch = dbBranches.find(b => b.id === whBranchId) || dbBranches[0];
+        const validBranchId = isGuid(whBranchId) ? whBranchId : (validBranch?.id || 'a59e6217-3baa-426c-aff5-ba8fa06e48ac');
+        const validCompId = isGuid(whCompanyId) ? whCompanyId : (validBranch?.companyId || dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
+        const validManagerId = isGuid(whManagerEmployeeId) ? whManagerEmployeeId : undefined;
+
         const payload = { 
           companyId: validCompId, 
           branchId: validBranchId, 
           code: formCode.toUpperCase().trim(), 
           name: whName.trim(), 
-          warehouseType: whType || 'Central Depot', 
-          addressLine1: (addrLine1 || 'Warehouse Address').trim(), 
-          city: (addrCity || 'Delhi').trim(), 
-          state: (addrState || 'Delhi').trim(), 
-          postalCode: (addrPostalCode || '110001').trim(), 
-          country: (addrCountry || 'India').trim(), 
-          capacitySqFt: typeof whCapacitySqFt === 'number' ? whCapacitySqFt : (parseFloat(whCapacitySqFt) || 50000), 
-          isTemperatureControlled: Boolean(whTempControl) 
+          warehouseType: whType || 'Central Warehouse',
+          status: whStatus || 'Active',
+          managerEmployeeId: validManagerId,
+          addressLine1: (whAddrLine1 || 'Warehouse Address').trim(),
+          addressLine2: (whAddrLine2 || '').trim() || undefined,
+          city: (whCity || 'Delhi').trim(),
+          state: (whState || 'Delhi').trim(),
+          postalCode: (whPostalCode || '110001').trim(),
+          country: (whCountry || 'India').trim(),
+          capacitySqFt: typeof whStorageAreaSqFt === 'number' ? whStorageAreaSqFt : undefined,
+          palletCapacity: typeof whPalletCapacity === 'number' ? whPalletCapacity : undefined,
+          cartonCapacity: typeof whCartonCapacity === 'number' ? whCartonCapacity : undefined,
+          contactNumber: whContactNumber.trim() || undefined,
+          email: whEmail.trim() || undefined,
+          latitude: typeof whLatitude === 'number' ? whLatitude : undefined,
+          longitude: typeof whLongitude === 'number' ? whLongitude : undefined,
+          remarks: whRemarks.trim() || undefined,
+          isTemperatureControlled: Boolean(whTempControl)
         };
         if (isNew) {
            await masterDataService.createWarehouse(payload);
            onTriggerToast('success', 'Warehouse Saved', 'Warehouse configured.');
         } else {
-           await masterDataService.updateWarehouse(selectedId!, { ...payload, id: selectedId! });
+           await masterDataService.updateWarehouse(selectedId!, { ...payload, id: selectedId!, isActive: whStatus === 'Active' });
            onTriggerToast('success', 'Warehouse Updated', 'Warehouse configured.');
         }
       } else if (module === 'customers' || module === 'masters/customers') {
@@ -915,24 +1108,34 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       setRefreshTrigger(prev => prev + 1);
       setSimulatedState('normal');
     } catch (err: any) {
-      // Seamless local state update fallback
-      const newId = `${Date.now()}`;
-      if (module === 'companies' || module === 'masters/companies') setDbCompanies(prev => [{ id: newId, code: formCode, legalName: compLegalName || 'New Company', gstin: compGstin, city: addrCity || 'HQ', currency: compCurrency || 'INR', status: formStatus }, ...prev]);
-      else if (module === 'branches' || module === 'masters/branches') setDbBranches(prev => [{ id: newId, code: formCode, name: branchName || 'New Branch', companyName: 'Company', city: addrCity || 'City', isHeadquarters: branchIsHq, status: formStatus }, ...prev]);
-      else if (module === 'departments' || module === 'masters/departments') setDbDepartments(prev => [{ id: newId, code: formCode, name: deptName || 'New Department', branchName: 'Branch', description: deptDesc, status: formStatus }, ...prev]);
-      else if (module === 'designations' || module === 'masters/designations') setDbDesignations(prev => [{ id: newId, code: formCode, title: desigTitle || 'New Designation', companyName: 'Company', level: desigLevel, approvalLimit: desigApprovalLimit, status: formStatus }, ...prev]);
-      else if (module === 'employees' || module === 'masters/employees') setDbEmployees(prev => [{ id: newId, employeeCode: formCode, firstName: empFirstName || 'First', lastName: empLastName || 'Last', email: empEmail, phone: empPhone, salary: empSalary, status: formStatus }, ...prev]);
-      else if (module === 'products' || module === 'masters/products') setDbProducts(prev => [{ id: newId, code: formCode, name: prodName || 'New Product SKU', category: 'Category', brand: 'Brand', price: prodBasePrice, status: formStatus }, ...prev]);
-      else if (module === 'categories' || module === 'masters/categories') setDbCategories(prev => [{ id: newId, code: formCode, name: catName || 'New Category', description: 'Category', productCount: 0, status: formStatus }, ...prev]);
-      else if (module === 'brands' || module === 'masters/brands') setDbBrands(prev => [{ id: newId, code: formCode, name: brandName || 'New Brand', origin: brandOrigin, productCount: 0, status: formStatus }, ...prev]);
-      else if (module === 'units' || module === 'masters/units') setDbUnits(prev => [{ id: newId, code: formCode, name: uomName || 'New UOM', baseUnit: uomBaseCode, conversionFactor: uomConversionFactor, status: formStatus }, ...prev]);
-      else if (module === 'warehouses' || module === 'masters/warehouses') setDbWarehouses(prev => [{ id: newId, code: formCode, name: whName || 'New Warehouse', manager: 'Manager', capacitySft: whCapacitySqFt, status: formStatus }, ...prev]);
-      else if (module === 'customers' || module === 'masters/customers') setDbCustomers(prev => [{ id: `cust-${newId}`, code: formCode, name: custLegalName || 'New Customer', contact: custPhone || 'N/A', email: custEmail || 'N/A', balance: custCreditLimit, status: formStatus }, ...prev]);
-      else if (module === 'suppliers' || module === 'masters/suppliers') setDbSuppliers(prev => [{ id: `supp-${newId}`, code: formCode, name: suppLegalName || 'New Supplier', contact: suppPhone || 'N/A', email: suppEmail || 'N/A', balance: suppCreditLimit, status: formStatus }, ...prev]);
+      console.error('Master Data save error:', err);
+      const errorMsg = err?.data?.detail || err?.data?.title || err?.message || 'Failed to save record to PostgreSQL database.';
+      const lower = errorMsg.toLowerCase();
+      const newErrors: Record<string, string> = {};
 
-      onTriggerToast('success', 'Record Saved', `${config.singular} configured and saved successfully.`);
-      setMode('list');
-      setSimulatedState('normal');
+      if (lower.includes('gstin') || lower.includes('tax registration')) {
+        if (module === 'companies' || module === 'masters/companies') newErrors.compGstin = errorMsg;
+        else if (module === 'branches' || module === 'masters/branches') newErrors.branchGstin = errorMsg;
+        else if (module === 'suppliers' || module === 'masters/suppliers') newErrors.suppGstin = errorMsg;
+        else newErrors.custGstin = errorMsg;
+      } else if (lower.includes('code')) {
+        newErrors.code = errorMsg;
+      } else if (lower.includes('legal name') || lower.includes('name')) {
+        if (module === 'companies' || module === 'masters/companies') newErrors.compLegalName = errorMsg;
+        else if (module === 'branches' || module === 'masters/branches') newErrors.branchName = errorMsg;
+        else if (module === 'departments' || module === 'masters/departments') newErrors.deptName = errorMsg;
+        else if (module === 'warehouses' || module === 'masters/warehouses') newErrors.whName = errorMsg;
+        else if (module === 'products' || module === 'masters/products') newErrors.prodName = errorMsg;
+        else if (module === 'categories' || module === 'masters/categories') newErrors.catName = errorMsg;
+        else if (module === 'brands' || module === 'masters/brands') newErrors.brandName = errorMsg;
+        else if (module === 'units' || module === 'masters/units') newErrors.uomName = errorMsg;
+        else if (module === 'suppliers' || module === 'masters/suppliers') newErrors.suppLegalName = errorMsg;
+        else newErrors.custLegalName = errorMsg;
+      } else {
+        newErrors.code = errorMsg;
+      }
+
+      setFormErrors(newErrors);
     } finally {
       setIsSaving(false);
     }
@@ -1176,13 +1379,19 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
                   <button
                     onClick={() => {
-                      setFormCode(`${config.singular.toUpperCase().slice(0,3)}-${Math.floor(100 + Math.random() * 900)}`);
+                      setFormCode(getNextAutoCode());
                       setFormStatus('Active');
                       setFormErrors({});
                       if (module === 'suppliers' || module === 'masters/suppliers') {
                         setPartnerRole('Supplier');
                       } else if (module === 'customers' || module === 'masters/customers') {
                         setPartnerRole('Customer');
+                      } else if (module === 'branches' || module === 'masters/branches') {
+                        const parent = dbCompanies.find(c => c.id === branchCompanyId) || dbCompanies[0];
+                        if (parent) {
+                          setBranchCompanyId(parent.id);
+                          if (parent.gstin) setBranchGstin(parent.gstin);
+                        }
                       }
                       setMode('create');
                     }}
@@ -1418,7 +1627,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Company Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className={`w-full p-2 border rounded text-brand-text-primary font-mono font-bold ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="CMP-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded text-brand-text-primary font-mono font-bold bg-gray-100/80 cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="COM-001" />
                       {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
@@ -1485,13 +1694,24 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Parent Company <span className="text-red-500">*</span></label>
-                      <select value={branchCompanyId} onChange={e => setBranchCompanyId(e.target.value)} className="w-full p-2 border rounded bg-white font-semibold border-brand-border">
+                      <select 
+                        value={branchCompanyId} 
+                        onChange={e => {
+                          const selectedId = e.target.value;
+                          setBranchCompanyId(selectedId);
+                          const parent = dbCompanies.find(c => c.id === selectedId);
+                          if (parent?.gstin) {
+                            setBranchGstin(parent.gstin);
+                          }
+                        }} 
+                        className="w-full p-2 border rounded bg-white font-semibold border-brand-border"
+                      >
                         {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Branch Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="BR-DEL-01" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 cursor-not-allowed" placeholder="BR-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="branchName" className="font-bold text-brand-text-primary">Branch Name <span className="text-red-500">*</span></label>
@@ -1533,7 +1753,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Department Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="DEP-SCM" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 cursor-not-allowed" placeholder="DEP-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="deptName" className="font-bold text-brand-text-primary">Department Name <span className="text-red-500">*</span></label>
@@ -1560,7 +1780,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Designation Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="DSG-RSM" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 cursor-not-allowed" placeholder="DSG-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="desigTitle" className="font-bold text-brand-text-primary">Designation Title <span className="text-red-500">*</span></label>
@@ -1587,7 +1807,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Employee Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="EMP-1001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 cursor-not-allowed" placeholder="EMP-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="empFirstName" className="font-bold text-brand-text-primary">First Name <span className="text-red-500">*</span></label>
@@ -1706,7 +1926,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">SKU Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => { setFormCode(e.target.value); setFormErrors(p => ({ ...p, code: '' })); }} disabled={mode === 'edit'} className={`w-full p-2 border rounded font-mono font-bold ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="PROD-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="PROD-001" />
                       {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1 md:col-span-2">
@@ -1847,7 +2067,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Category Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="CAT-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="CAT-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="catName" className="font-bold text-brand-text-primary">Category Name <span className="text-red-500">*</span></label>
@@ -1885,7 +2105,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Brand Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="BRND-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="BRD-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="brandName" className="font-bold text-brand-text-primary">Brand Name <span className="text-red-500">*</span></label>
@@ -1918,7 +2138,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">UOM Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="UOM-KG" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="UOM-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="uomName" className="font-bold text-brand-text-primary">Unit Name <span className="text-red-500">*</span></label>
@@ -1940,37 +2160,177 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               )}
 
               {/* 10. WAREHOUSE FORM */}
+              {/* 10. WAREHOUSE FORM (Production-Grade FMCG ERP Layout) */}
               {(module === 'warehouses' || module === 'masters/warehouses') && (
                 <div className="space-y-6 text-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Branch Link <span className="text-red-500">*</span></label>
-                      <select value={whBranchId} onChange={e => setWhBranchId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
-                        {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
+                  {/* SECTION 1: BASIC INFORMATION */}
+                  <div className="p-4 bg-brand-bg-secondary/20 rounded-lg border border-brand-border space-y-4">
+                    <h4 className="font-bold text-brand-text-primary flex items-center gap-1.5 text-xs">
+                      <Building size={14} className="text-brand-primary" /> Basic Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="whBranchId" className="font-bold text-brand-text-primary">Branch Link <span className="text-red-500">*</span></label>
+                        <select id="whBranchId" value={whBranchId} onChange={e => setWhBranchId(e.target.value)} className={`w-full p-2 border rounded bg-white font-semibold ${formErrors.whBranchId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}>
+                          {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                        {formErrors.whBranchId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whBranchId}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="code" className="font-bold text-brand-text-primary">Warehouse Code <span className="text-red-500">*</span></label>
+                        <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="WH-001" />
+                        {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whName" className="font-bold text-brand-text-primary">Warehouse Name <span className="text-red-500">*</span></label>
+                        <input id="whName" type="text" value={whName} onChange={e => setWhName(e.target.value)} className={`w-full p-2 border rounded ${formErrors.whName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Delhi Central Depot" />
+                        {formErrors.whName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whName}</p>}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label htmlFor="code" className="font-bold text-brand-text-primary">Warehouse Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="WH-DEL-HQ" />
-                    </div>
-                    <div className="space-y-1">
-                      <label htmlFor="whName" className="font-bold text-brand-text-primary">Warehouse Name <span className="text-red-500">*</span></label>
-                      <input id="whName" type="text" value={whName} onChange={e => setWhName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Delhi Central Depot" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="whType" className="font-bold text-brand-text-primary">Warehouse Type <span className="text-red-500">*</span></label>
+                        <select id="whType" value={whType} onChange={e => setWhType(e.target.value)} className={`w-full p-2 border rounded bg-white font-semibold ${formErrors.whType ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}>
+                          <option value="Central Warehouse">Central Warehouse</option>
+                          <option value="Regional Warehouse">Regional Warehouse</option>
+                          <option value="Distribution Center">Distribution Center</option>
+                          <option value="Depot">Depot</option>
+                          <option value="Transit Warehouse">Transit Warehouse</option>
+                          <option value="Cold Storage">Cold Storage</option>
+                          <option value="Third-Party Warehouse">Third-Party Warehouse</option>
+                        </select>
+                        {formErrors.whType && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whType}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whStatus" className="font-bold text-brand-text-primary">Status <span className="text-red-500">*</span></label>
+                        <select id="whStatus" value={whStatus} onChange={e => setWhStatus(e.target.value as any)} className={`w-full p-2 border rounded bg-white font-bold ${formErrors.whStatus ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}>
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                          <option value="Under Maintenance">Under Maintenance</option>
+                        </select>
+                        {formErrors.whStatus && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whStatus}</p>}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Depot Type</label>
-                      <select value={whType} onChange={e => setWhType(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        <option value="Central Depot">Central Depot</option>
-                        <option value="Regional Warehouse">Regional Warehouse</option>
-                        <option value="Cold Storage">Cold Storage</option>
-                      </select>
+                  {/* SECTION 2: WAREHOUSE LOCATION */}
+                  <div className="p-4 bg-brand-bg-secondary/20 rounded-lg border border-brand-border space-y-4">
+                    <h4 className="font-bold text-brand-text-primary flex items-center gap-1.5 text-xs">
+                      <MapPin size={14} className="text-brand-primary" /> Warehouse Location
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label htmlFor="whAddrLine1" className="font-bold text-brand-text-primary">Address Line 1 <span className="text-red-500">*</span></label>
+                          <input id="whAddrLine1" type="text" value={whAddrLine1} onChange={e => setWhAddrLine1(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whAddrLine1 ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Plot 45, Okhla Industrial Area Phase 3" />
+                          {formErrors.whAddrLine1 && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whAddrLine1}</p>}
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="whAddrLine2" className="font-semibold text-brand-text-secondary">Address Line 2</label>
+                          <input id="whAddrLine2" type="text" value={whAddrLine2} onChange={e => setWhAddrLine2(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white" placeholder="Near Transport Hub" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label htmlFor="whCity" className="font-bold text-brand-text-primary">City <span className="text-red-500">*</span></label>
+                          <input id="whCity" type="text" value={whCity} onChange={e => setWhCity(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whCity ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="New Delhi" />
+                          {formErrors.whCity && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whCity}</p>}
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="whState" className="font-bold text-brand-text-primary">State <span className="text-red-500">*</span></label>
+                          <input id="whState" type="text" value={whState} onChange={e => setWhState(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whState ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Delhi" />
+                          {formErrors.whState && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whState}</p>}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label htmlFor="whCountry" className="font-bold text-brand-text-primary">Country <span className="text-red-500">*</span></label>
+                          <input id="whCountry" type="text" value={whCountry} onChange={e => setWhCountry(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whCountry ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="India" />
+                          {formErrors.whCountry && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whCountry}</p>}
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="whPostalCode" className="font-bold text-brand-text-primary">Pincode <span className="text-red-500">*</span></label>
+                          <input id="whPostalCode" type="text" value={whPostalCode} onChange={e => setWhPostalCode(e.target.value)} className={`w-full p-2 border rounded bg-white font-mono ${formErrors.whPostalCode ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="110020" />
+                          {formErrors.whPostalCode && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whPostalCode}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 3: CAPACITY & OPERATIONS */}
+                  <div className="p-4 bg-brand-bg-secondary/20 rounded-lg border border-brand-border space-y-4">
+                    <h4 className="font-bold text-brand-text-primary flex items-center gap-1.5 text-xs">
+                      <Box size={14} className="text-brand-primary" /> Capacity & Operations
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="whStorageAreaSqFt" className="font-bold text-brand-text-primary">Storage Area (sq ft)</label>
+                        <input id="whStorageAreaSqFt" type="number" value={whStorageAreaSqFt} onChange={e => setWhStorageAreaSqFt(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full p-2 border rounded bg-white font-mono font-bold ${formErrors.whStorageAreaSqFt ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="150000" />
+                        {formErrors.whStorageAreaSqFt && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whStorageAreaSqFt}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whPalletCapacity" className="font-bold text-brand-text-primary">Pallet Capacity</label>
+                        <input id="whPalletCapacity" type="number" value={whPalletCapacity} onChange={e => setWhPalletCapacity(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full p-2 border rounded bg-white font-mono ${formErrors.whPalletCapacity ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="5000" />
+                        {formErrors.whPalletCapacity && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whPalletCapacity}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whCartonCapacity" className="font-bold text-brand-text-primary">Carton Capacity</label>
+                        <input id="whCartonCapacity" type="number" value={whCartonCapacity} onChange={e => setWhCartonCapacity(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full p-2 border rounded bg-white font-mono ${formErrors.whCartonCapacity ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="50000" />
+                        {formErrors.whCartonCapacity && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whCartonCapacity}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 4: WAREHOUSE CONTACT */}
+                  <div className="p-4 bg-brand-bg-secondary/20 rounded-lg border border-brand-border space-y-4">
+                    <h4 className="font-bold text-brand-text-primary flex items-center gap-1.5 text-xs">
+                      <User size={14} className="text-brand-primary" /> Warehouse Contact
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="whManagerEmployeeId" className="font-bold text-brand-text-primary">Warehouse Manager</label>
+                        <select id="whManagerEmployeeId" value={whManagerEmployeeId} onChange={e => setWhManagerEmployeeId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
+                          <option value="">-- Select Employee Manager --</option>
+                          {dbEmployees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName} ({e.employeeCode})</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whContactNumber" className="font-bold text-brand-text-primary">Contact Number</label>
+                        <input id="whContactNumber" type="text" value={whContactNumber} onChange={e => setWhContactNumber(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whContactNumber ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="+91 98110 54321" />
+                        {formErrors.whContactNumber && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whContactNumber}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whEmail" className="font-bold text-brand-text-primary">Email</label>
+                        <input id="whEmail" type="email" value={whEmail} onChange={e => setWhEmail(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whEmail ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="warehouse.delhi@inkfmcg.com" />
+                        {formErrors.whEmail && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whEmail}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 5: LOCATION / ADDITIONAL INFORMATION */}
+                  <div className="p-4 bg-brand-bg-secondary/20 rounded-lg border border-brand-border space-y-4">
+                    <h4 className="font-bold text-brand-text-primary flex items-center gap-1.5 text-xs">
+                      <Globe size={14} className="text-brand-primary" /> Location / Additional Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="whLatitude" className="font-bold text-brand-text-primary">Latitude</label>
+                        <input id="whLatitude" type="number" step="0.000001" value={whLatitude} onChange={e => setWhLatitude(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full p-2 border rounded bg-white font-mono ${formErrors.whLatitude ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="28.5355" />
+                        {formErrors.whLatitude && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whLatitude}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whLongitude" className="font-bold text-brand-text-primary">Longitude</label>
+                        <input id="whLongitude" type="number" step="0.000001" value={whLongitude} onChange={e => setWhLongitude(e.target.value === '' ? '' : Number(e.target.value))} className={`w-full p-2 border rounded bg-white font-mono ${formErrors.whLongitude ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="77.2610" />
+                        {formErrors.whLongitude && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whLongitude}</p>}
+                      </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Capacity (Square Feet)</label>
-                      <input type="number" value={whCapacitySqFt} onChange={e => setWhCapacitySqFt(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="150000" />
+                      <label htmlFor="whRemarks" className="font-bold text-brand-text-primary">Remarks</label>
+                      <textarea id="whRemarks" rows={3} value={whRemarks} onChange={e => setWhRemarks(e.target.value)} className={`w-full p-2 border rounded bg-white ${formErrors.whRemarks ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Internal notes, loading dock access hours, and operational details..." />
+                      {formErrors.whRemarks && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whRemarks}</p>}
                     </div>
                   </div>
                 </div>
@@ -1982,7 +2342,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Customer Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="CUST-201" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="CST-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Customer / Business Name <span className="text-red-500">*</span></label>
@@ -2021,7 +2381,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Partner Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} onChange={e => setFormCode(e.target.value)} disabled={mode === 'edit'} className="w-full p-2 border border-brand-border rounded font-mono font-bold" placeholder="PART-101" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="PART-001" />
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>

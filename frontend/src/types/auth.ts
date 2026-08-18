@@ -57,6 +57,8 @@ export interface UserProfile {
   permissions?: UserPermission[];
   avatarUrl?: string;
   branch?: string;
+  companyName?: string;
+  companyLogo?: string;
 }
 
 export interface LoginCredentials {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle } from 'lucide-react';
+import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle, Building, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES } from '../../../constants/roles';
 import { saveUserRoleAndPermissions, getUserAccessSettings } from '../../../services/userPermissionsService';
@@ -13,9 +13,12 @@ interface EditUserModalProps {
     lastName: string;
     displayName: string;
     phoneNumber?: string;
-    preferredLanguage: string;
-    timeZone: string;
+    preferredLanguage?: string;
+    timeZone?: string;
     profileImageUrl?: string;
+    email?: string;
+    companyName?: string;
+    companyLogo?: string;
     role?: string;
     roles?: string[];
   } | null;
@@ -23,49 +26,59 @@ interface EditUserModalProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
 }
 
+export const STORAGE_KEY_USER_POLICY_SETTINGS = 'ink_user_security_policies';
+
 export interface UserSecurityPolicySettings {
   userId: string;
   enableLocationAuth: boolean;
   enableFaceAuth: boolean;
 }
 
-export const getUserSecurityPolicy = (userId: string): UserSecurityPolicySettings => {
-  try {
-    const raw = localStorage.getItem(`ink_security_policy_${userId}`);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    console.error('Error reading user security policy:', e);
+export const getUserSecurityPolicy = (userId: string, email?: string): UserSecurityPolicySettings => {
+  const isSuper = (userId && userId.toLowerCase().includes('superadmin')) ||
+                  (email && email.toLowerCase().includes('superadmin'));
+  if (isSuper) {
+    return { userId, enableLocationAuth: false, enableFaceAuth: false };
   }
-  return {
-    userId,
-    enableLocationAuth: true,
-    enableFaceAuth: true,
-  };
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_USER_POLICY_SETTINGS);
+    if (raw) {
+      const list = JSON.parse(raw);
+      const match = Array.isArray(list) ? list.find((item: any) => item.userId === userId) : null;
+      if (match) return match;
+    }
+  } catch (err) {
+    console.error('Error reading user security policy settings:', err);
+  }
+  return { userId, enableLocationAuth: true, enableFaceAuth: true };
 };
 
 export const saveUserSecurityPolicy = (policy: UserSecurityPolicySettings): void => {
   try {
-    localStorage.setItem(`ink_security_policy_${policy.userId}`, JSON.stringify(policy));
-  } catch (e) {
-    console.error('Error saving user security policy:', e);
+    const raw = localStorage.getItem(STORAGE_KEY_USER_POLICY_SETTINGS);
+    let list: UserSecurityPolicySettings[] = [];
+    if (raw) {
+      try { list = JSON.parse(raw); } catch { list = []; }
+    }
+    const idx = list.findIndex((item) => item.userId === policy.userId);
+    if (idx >= 0) { list[idx] = policy; } else { list.push(policy); }
+    localStorage.setItem(STORAGE_KEY_USER_POLICY_SETTINGS, JSON.stringify(list));
+  } catch (err) {
+    console.error('Error saving user security policy settings:', err);
   }
 };
 
-export const getUserPermissions = (userId?: string, email?: string): string[] => {
-  try {
-    const access = getUserAccessSettings(userId, email);
-    if (access && access.permissions) return access.permissions;
-  } catch (e) {
-    console.error('Error reading user permissions:', e);
-  }
-  return [];
+export const getUserPermissions = (userId: string, userEmail?: string): string[] => {
+  const settings = getUserAccessSettings(userId, userEmail);
+  return settings.permissions || [];
 };
 
 export const saveUserPermissions = (userId: string, permissions: string[]): void => {
   try {
     localStorage.setItem(`ink_user_permissions_${userId}`, JSON.stringify(permissions));
-  } catch (e) {
-    console.error('Error saving user permissions:', e);
+  } catch (err) {
+    console.error('Error saving user permissions:', err);
   }
 };
 
@@ -84,7 +97,24 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     preferredLanguage: 'en',
     timeZone: 'Asia/Kolkata',
     profileImageUrl: '',
+    companyName: '',
+    companyLogo: '',
   });
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        onTriggerToast('warning', 'File Too Large', 'Company logo image must be less than 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, companyLogo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [enableLocationAuth, setEnableLocationAuth] = useState(true);
@@ -95,6 +125,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   useEffect(() => {
     if (user) {
       setFieldErrors({});
+      const accessSettings = getUserAccessSettings(user.id, (user as any).email);
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -103,6 +134,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         preferredLanguage: user.preferredLanguage || 'en',
         timeZone: user.timeZone || 'Asia/Kolkata',
         profileImageUrl: user.profileImageUrl || '',
+        companyName: user.companyName || accessSettings.companyName || '',
+        companyLogo: user.companyLogo || accessSettings.companyLogo || '',
       });
 
       const policy = getUserSecurityPolicy(user.id);
@@ -199,7 +232,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         user.id,
         targetEmail,
         user.role || (user as any).roles?.[0] || 'Sales Representative',
-        selectedPermissions
+        selectedPermissions,
+        formData.companyName.trim(),
+        formData.companyLogo
       );
 
       onSuccess(`User profile and authentication policies for '${formData.displayName}' updated successfully.`);
@@ -333,46 +368,98 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-brand-text-primary mb-1">Preferred Language</label>
-              <select
-                name="preferredLanguage"
-                value={formData.preferredLanguage}
-                onChange={handleChange}
-                className="w-full p-2 border rounded-md border-brand-border bg-white"
-              >
-                <option value="en">English (en)</option>
-                <option value="hi">Hindi (hi)</option>
-                <option value="es">Spanish (es)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-brand-text-primary mb-1">Time Zone</label>
-              <select
-                name="timeZone"
-                value={formData.timeZone}
-                onChange={handleChange}
-                className="w-full p-2 border rounded-md border-brand-border bg-white"
-              >
-                <option value="Asia/Kolkata">Asia/Kolkata</option>
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">America/New_York</option>
-              </select>
-            </div>
+          <div>
+            <label className="block font-semibold text-brand-text-primary mb-1">Preferred Language</label>
+            <select
+              name="preferredLanguage"
+              value={formData.preferredLanguage}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md border-brand-border bg-white"
+            >
+              <option value="en">English (en)</option>
+              <option value="hi">Hindi (hi)</option>
+              <option value="es">Spanish (es)</option>
+            </select>
           </div>
 
-          <div>
-            <label className="block font-semibold text-brand-text-primary mb-1">Profile Image URL</label>
-            <input
-              type="text"
-              name="profileImageUrl"
-              value={formData.profileImageUrl}
-              onChange={handleChange}
-              placeholder="https://..."
-              className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none font-mono text-[11px]"
-            />
+          {/* 🏢 COMPANY & CORPORATE BRANDING */}
+          <div className="pt-2 border-t border-brand-border space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-brand-text-secondary uppercase tracking-wider">
+              <Building size={14} className="text-brand-primary" />
+              <span>Company & Branding Details</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label htmlFor="companyName" className="block font-semibold text-brand-text-primary mb-1">
+                  Company / Business Name
+                </label>
+                <input
+                  id="companyName"
+                  name="companyName"
+                  type="text"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  placeholder="e.g. Patanjali Ayurved Ltd"
+                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-brand-text-primary mb-1">
+                  Profile Image URL / Web Link
+                </label>
+                <input
+                  type="url"
+                  name="companyLogo"
+                  value={formData.companyLogo}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Logo Preview & File Upload Bar */}
+            <div className="flex items-center justify-between gap-3 p-2.5 bg-brand-bg-secondary/40 rounded-lg border border-brand-border text-xs">
+              <div className="flex items-center gap-3">
+                {formData.companyLogo ? (
+                  <img
+                    src={formData.companyLogo}
+                    alt="Company Logo Preview"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                    className="w-10 h-10 object-contain rounded-lg border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs">
+                    {formData.companyName.trim() ? formData.companyName.trim().charAt(0).toUpperCase() : 'I'}
+                  </div>
+                )}
+                <div>
+                  <span className="font-semibold text-brand-text-primary block">Company Branding Logo</span>
+                  <span className="text-[11px] text-brand-text-secondary">Paste image URL above or upload image locally from computer</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="px-3 py-1.5 bg-white text-brand-text-primary border border-brand-border rounded-lg text-xs font-semibold hover:bg-gray-50 cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
+                  <Upload size={14} className="text-brand-primary" />
+                  <span>Upload Local File</span>
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
+                {formData.companyLogo && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, companyLogo: '' }))}
+                    className="px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 border border-red-200 rounded-lg font-semibold transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* SECURITY AUTHENTICATION ENFORCEMENT POLICIES */}

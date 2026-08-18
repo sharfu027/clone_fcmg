@@ -41,12 +41,14 @@ import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../Secur
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
 import { getUserAccessSettings } from '../../../services/userPermissionsService';
+import { useAuth } from '../../../context/AuthContext';
 
 interface UserManagementModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
 }
 
 export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTriggerToast }) => {
+  const { user: currentUser } = useAuth();
   // Server-side State
   const [users, setUsers] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -405,12 +407,27 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
         
         {/* Module Header Toolbar */}
         <div className="p-4 border-b bg-brand-bg-secondary/20 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg">
-              <Users size={20} />
-            </div>
+          <div className="flex items-center gap-3">
+            {currentUser?.companyLogo ? (
+              <img
+                src={currentUser.companyLogo}
+                alt={currentUser.companyName || 'Company Logo'}
+                className="w-10 h-10 object-contain rounded-lg border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
+              />
+            ) : (
+              <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg shrink-0">
+                <Users size={20} />
+              </div>
+            )}
             <div>
-              <h2 className="text-base font-bold text-brand-text-primary">Production User Management</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-brand-text-primary">Production User Management</h2>
+                {currentUser?.companyName && (
+                  <span className="px-2 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 text-[10px] font-bold rounded-full">
+                    {currentUser.companyName}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-brand-text-secondary">
                 Manage ERP user accounts, security roles, status lifecycle, and facial biometric enrollment.
               </p>
@@ -519,9 +536,9 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
               <tr>
                 <th className="p-3 w-8 text-center"></th>
                 <th className="p-3">Admin User / Profile</th>
-                <th className="p-3">Employee Code</th>
+                <th className="p-3">Admin Code</th>
                 <th className="p-3">Security Role</th>
-                <th className="p-3">Department & Branch</th>
+                <th className="p-3">Company Name</th>
                 <th className="p-3 text-center">Status</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
@@ -544,14 +561,19 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   </td>
                 </tr>
               ) : (
-                users.map((u) => {
+                users.map((u, idx) => {
                   const roleStr = u.roles?.[0] || u.role || 'Administrator';
                   const roleLower = roleStr.toLowerCase();
-                  const isSuper = isSuperUser(u) || roleLower.includes('super');
+                  const isSuper = isSuperUser(u) || roleLower.includes('super') || (u.email && u.email.toLowerCase().includes('superadmin'));
                   const isAdmin = roleLower.includes('admin') || roleLower.includes('administrator') || roleLower.includes('super');
                   const faceInfo = faceStatusMap[u.id];
                   const faceStatus = faceInfo?.status || 'Not Registered';
                   const isExpanded = Boolean(expandedAdminIds[u.id]) && !isSuper;
+
+                  const accessSettings = getUserAccessSettings(u.id, u.email);
+                  const userCompanyName = isSuper ? 'INK WORLDWIDE' : (u.companyName || accessSettings.companyName || 'INK FMCG India Pvt Ltd');
+                  const userCompanyLogo = u.companyLogo || accessSettings.companyLogo;
+                  const formattedAdminCode = isSuper ? 'SA-001' : (u.employeeId || u.userCode || u.employeeCode || u.adminCode || `ADM-${String(idx + 1).padStart(3, '0')}`);
 
                   return (
                     <React.Fragment key={u.id}>
@@ -577,14 +599,21 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                           )}
                         </td>
 
-                        {/* Admin User / Profile (Avatar + Name + Username + Email) */}
+                        {/* Admin User / Profile (Avatar + Logo + Name + Username + Email) */}
                         <td className="p-3">
                           <div className="flex items-center gap-2.5">
-                            {u.profileImageUrl ? (
+                            {userCompanyLogo ? (
+                              <img
+                                src={userCompanyLogo}
+                                alt={userCompanyName || 'Company Logo'}
+                                className="w-8 h-8 rounded-lg object-contain border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
+                                title={`Company: ${userCompanyName || 'Enterprise ERP'}`}
+                              />
+                            ) : u.profileImageUrl ? (
                               <img
                                 src={u.profileImageUrl}
                                 alt={u.displayName}
-                                className="w-8 h-8 rounded-full object-cover border border-brand-border"
+                                className="w-8 h-8 rounded-full object-cover border border-brand-border shrink-0"
                               />
                             ) : (
                               <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center text-xs border border-brand-primary/20 shrink-0">
@@ -592,19 +621,26 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                               </div>
                             )}
                             <div>
-                              {isAdmin && !isSuper ? (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleAdminExpand(u.id)}
-                                  className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
-                                >
-                                  {u.displayName || `${u.firstName} ${u.lastName}`}
-                                </button>
-                              ) : (
-                                <span className="font-bold text-brand-text-primary block text-xs">
-                                  {u.displayName || `${u.firstName} ${u.lastName}`}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1.5">
+                                {isAdmin && !isSuper ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAdminExpand(u.id)}
+                                    className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
+                                  >
+                                    {u.displayName || `${u.firstName} ${u.lastName}`}
+                                  </button>
+                                ) : (
+                                  <span className="font-bold text-brand-text-primary block text-xs">
+                                    {u.displayName || `${u.firstName} ${u.lastName}`}
+                                  </span>
+                                )}
+                                {userCompanyName && (
+                                  <span className="px-1.5 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 text-[10px] font-bold rounded">
+                                    {userCompanyName}
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[10.5px] text-brand-text-secondary flex items-center gap-1">
                                 <Mail size={10} /> {u.email}
                               </span>
@@ -612,9 +648,9 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                           </div>
                         </td>
 
-                        {/* Employee Code */}
-                        <td className="p-3 font-mono text-brand-primary font-semibold text-xs">
-                          {u.employeeId || '—'}
+                        {/* Admin Code */}
+                        <td className={`p-3 font-mono ${isSuper ? 'text-purple-700 font-extrabold' : 'text-brand-primary font-bold'} text-xs`}>
+                          {formattedAdminCode}
                         </td>
 
                         {/* Role(s) Badge */}
@@ -635,10 +671,12 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                           )}
                         </td>
 
-                          {/* Department / Branch */}
-                          <td className="p-3 text-brand-text-secondary text-[11px]">
-                            <span className="block font-medium text-brand-text-primary">Operations</span>
-                            <span className="text-[10px]">Delhi Central</span>
+                          {/* Company Name */}
+                          <td className="p-3 text-brand-text-secondary text-xs">
+                            <div className="flex items-center gap-1.5 font-bold text-brand-text-primary">
+                              <Building size={14} className="text-brand-primary shrink-0" />
+                              <span>{userCompanyName || 'INK FMCG India Pvt Ltd'}</span>
+                            </div>
                           </td>
 
                           {/* Status */}

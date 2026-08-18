@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle, Sliders } from 'lucide-react';
+import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle, Sliders, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { RoleDefinition } from '../../../types/admin';
 import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES } from '../../../constants/roles';
@@ -45,19 +45,59 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     displayName: '',
     password: '',
     employeeId: '',
-    selectedRoleCode: 'SALES_REP',
+    companyName: 'INK FMCG India Pvt Ltd',
+    companyLogo: '',
+    selectedRoleCode: 'ADMINISTRATOR',
     preferredLanguage: 'en',
     timeZone: 'Asia/Kolkata',
   });
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        onTriggerToast('warning', 'File Too Large', 'Company logo image must be less than 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, companyLogo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const getNextAutoAdminCode = async (): Promise<string> => {
+    try {
+      const res = await adminService.getUsers({ pageNumber: 1, pageSize: 100 });
+      const existingList = res?.items || res || [];
+      const existingCodes = new Set(
+        existingList.map((u: any) => String(u.employeeId || u.employeeCode || u.userCode || '').toUpperCase().trim())
+      );
+
+      let counter = 1;
+      while (counter < 10000) {
+        const candidate = `ADM-${String(counter).padStart(3, '0')}`;
+        if (!existingCodes.has(candidate)) {
+          return candidate;
+        }
+        counter++;
+      }
+    } catch {}
+    return 'ADM-001';
+  };
+
   useEffect(() => {
     if (isOpen) {
       setFieldErrors({});
+      getNextAutoAdminCode().then((code) => {
+        setFormData((prev) => ({ ...prev, employeeId: code }));
+      });
       adminService.getRoles().then((roles) => {
         if (roles && roles.length > 0) {
           setAvailableRoles(roles);
@@ -175,7 +215,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       cleanEmail = `${cleanEmail}@inkerp.com`;
     }
 
-    const cleanEmployeeId = isGuid(formData.employeeId.trim()) ? formData.employeeId.trim() : undefined;
+    const cleanEmployeeId = formData.employeeId.trim() || undefined;
 
     setIsSubmitting(true);
     try {
@@ -200,7 +240,9 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           userId,
           cleanEmail,
           roleName,
-          formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : []
+          formData.selectedRoleCode === 'ADMINISTRATOR' ? selectedPermissions : [],
+          formData.companyName.trim(),
+          formData.companyLogo
         );
 
         const matchedRole = availableRoles.find(
@@ -256,7 +298,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               <UserPlus size={20} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-brand-text-primary">Create Production User Account</h3>
+              <h3 className="text-base font-bold text-brand-text-primary">Create Company Admin Account</h3>
               <p className="text-xs text-brand-text-secondary">Add new user to ERP system with credentials and security role.</p>
             </div>
           </div>
@@ -430,32 +472,110 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mt-3">
+            <div className="text-xs mt-3">
               <div>
-                <label className="block font-semibold text-brand-text-primary mb-1">Employee ID / Code</label>
+                <label className="block font-semibold text-brand-text-primary mb-1">
+                  Admin Code <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="employeeId"
                   value={formData.employeeId}
-                  onChange={handleChange}
-                  placeholder="e.g. INK-EMP-1045"
-                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                  readOnly
+                  disabled={true}
+                  title="Admin Code is auto-generated and cannot be changed manually."
+                  placeholder="ADM-001"
+                  className="w-full p-2 border rounded-md border-brand-border font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed outline-none"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* 🏢 COMPANY & CORPORATE BRANDING */}
+          <div className="pt-2 border-t border-brand-border space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-brand-text-secondary uppercase tracking-wider">
+              <Building size={14} className="text-brand-primary" />
+              <span>Company & Branding Details</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label htmlFor="companyName" className="block font-semibold text-brand-text-primary mb-1">
+                  Company / Business Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="companyName"
+                  name="companyName"
+                  type="text"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  placeholder="e.g. Patanjali Ayurved Ltd"
+                  className={`w-full p-2 border rounded-md outline-none transition ${
+                    fieldErrors.companyName
+                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                  }`}
+                />
+                {fieldErrors.companyName && (
+                  <p className="mt-1 text-[11px] font-bold text-rose-600">
+                    {fieldErrors.companyName}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block font-semibold text-brand-text-primary mb-1">Time Zone</label>
-                <select
-                  name="timeZone"
-                  value={formData.timeZone}
+                <label className="block font-semibold text-brand-text-primary mb-1">
+                  Profile Image URL / Web Link
+                </label>
+                <input
+                  type="url"
+                  name="companyLogo"
+                  value={formData.companyLogo}
                   onChange={handleChange}
-                  className="w-full p-2 border rounded-md border-brand-border bg-white"
-                >
-                  <option value="Asia/Kolkata">Asia/Kolkata (IST +5:30)</option>
-                  <option value="UTC">UTC (Coordinated Universal Time)</option>
-                  <option value="America/New_York">America/New_York (EST)</option>
-                  <option value="Europe/London">Europe/London (GMT)</option>
-                </select>
+                  placeholder="https://..."
+                  className="w-full p-2 border rounded-md border-brand-border focus:ring-1 focus:ring-brand-primary outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Logo Preview & File Upload Bar */}
+            <div className="flex items-center justify-between gap-3 p-2.5 bg-brand-bg-secondary/40 rounded-lg border border-brand-border text-xs">
+              <div className="flex items-center gap-3">
+                {formData.companyLogo ? (
+                  <img
+                    src={formData.companyLogo}
+                    alt="Company Logo Preview"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                    className="w-10 h-10 object-contain rounded-lg border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-xs">
+                    {formData.companyName.trim() ? formData.companyName.trim().charAt(0).toUpperCase() : 'I'}
+                  </div>
+                )}
+                <div>
+                  <span className="font-semibold text-brand-text-primary block">Company Branding Logo</span>
+                  <span className="text-[11px] text-brand-text-secondary">Paste image URL above or upload image locally from computer</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="px-3 py-1.5 bg-white text-brand-text-primary border border-brand-border rounded-lg text-xs font-semibold hover:bg-gray-50 cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
+                  <Upload size={14} className="text-brand-primary" />
+                  <span>Upload Local File</span>
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
+                {formData.companyLogo && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, companyLogo: '' }))}
+                    className="px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 border border-red-200 rounded-lg font-semibold transition"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
           </div>

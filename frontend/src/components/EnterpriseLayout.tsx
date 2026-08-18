@@ -239,13 +239,23 @@ export default function EnterpriseLayout({
         {/* Brand / Logo section */}
         <div className="p-4 border-b border-brand-border flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              I
-            </div>
+            {user?.companyLogo ? (
+              <img
+                src={user.companyLogo}
+                alt={user.companyName || 'Company Logo'}
+                className="w-8 h-8 object-contain rounded-lg border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg shadow-sm shrink-0">
+                {user?.companyName?.trim() ? user.companyName.trim().charAt(0).toUpperCase() : 'I'}
+              </div>
+            )}
             {!sidebarCollapsed && (
               <div className="flex flex-col truncate">
-                <span className="font-bold text-sm text-brand-text-primary leading-tight">INK FMCG ERP</span>
-                <span className="text-[10px] text-brand-text-secondary">Enterprise Sales & Distribution</span>
+                <span className="font-bold text-sm text-brand-text-primary leading-tight truncate">
+                  {user?.companyName || 'INK FMCG ERP'}
+                </span>
+                <span className="text-[10px] text-brand-text-secondary truncate">Enterprise Sales & Distribution</span>
               </div>
             )}
           </div>
@@ -352,9 +362,19 @@ export default function EnterpriseLayout({
           />
           <div className="relative bg-white w-72 h-full flex flex-col p-4 shadow-xl-flat animate-fade-in border-r border-brand-border z-10">
             <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-brand-primary flex items-center justify-center text-white font-bold">I</div>
-                <span className="font-bold text-sm text-brand-text-primary">INK FMCG ERP</span>
+              <div className="flex items-center gap-2 overflow-hidden">
+                {user?.companyLogo ? (
+                  <img
+                    src={user.companyLogo}
+                    alt={user.companyName || 'Company Logo'}
+                    className="w-8 h-8 object-contain rounded border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded bg-brand-primary flex items-center justify-center text-white font-bold shrink-0">
+                    {user?.companyName?.trim() ? user.companyName.trim().charAt(0).toUpperCase() : 'I'}
+                  </div>
+                )}
+                <span className="font-bold text-sm text-brand-text-primary truncate">{user?.companyName || 'INK FMCG ERP'}</span>
               </div>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
@@ -688,9 +708,9 @@ export default function EnterpriseLayout({
         {/* FOOTER */}
         <footer className="bg-white border-t border-brand-border py-4 px-6 flex flex-col md:flex-row md:items-center md:justify-between text-xs text-brand-text-secondary shrink-0">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-brand-text-primary">INK FMCG ERP</span>
+            <span className="font-bold text-brand-text-primary">{user?.companyName || 'INK FMCG ERP'}</span>
             <span>|</span>
-            <span>Design System & Application Shell Foundation</span>
+            <span>Enterprise ERP Application</span>
           </div>
           <div className="flex gap-4 mt-2 md:mt-0 font-mono">
             <span>Server Time: 2026-07-21 01:57 UTC</span>

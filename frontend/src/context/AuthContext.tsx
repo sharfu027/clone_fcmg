@@ -53,7 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const updatedUser = {
                 ...parsed,
                 role: resolvedRole,
-                permissions: resolvedPermissions
+                permissions: resolvedPermissions,
+                companyName: access.companyName || parsed.companyName,
+                companyLogo: access.companyLogo || parsed.companyLogo
               };
               setUser(updatedUser);
               setToken(devRes.accessToken);
@@ -61,7 +63,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch {
             // fallback if backend unreachable
             const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-            setUser({ ...parsed, role: resolvedRole, permissions: resolvedPermissions });
+            setUser({
+              ...parsed,
+              role: resolvedRole,
+              permissions: resolvedPermissions,
+              companyName: access.companyName || parsed.companyName,
+              companyLogo: access.companyLogo || parsed.companyLogo
+            });
             if (storedToken) setToken(storedToken);
           }
         } catch {
@@ -102,7 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser({
           ...validUser,
           role: resolvedRole,
-          permissions: resolvedPermissions
+          permissions: resolvedPermissions,
+          companyName: access.companyName || validUser.companyName,
+          companyLogo: access.companyLogo || validUser.companyLogo
         });
         setToken(storedToken);
       } else {
@@ -139,7 +149,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fullUser: UserProfile = {
           ...response.user,
           role: resolvedRole,
-          permissions: resolvedPermissions
+          permissions: resolvedPermissions,
+          companyName: access.companyName || response.user.companyName,
+          companyLogo: access.companyLogo || response.user.companyLogo
         };
 
         setToken(response.accessToken);
@@ -170,6 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: userName,
           email: userEmail,
           role: resolvedRole,
+          companyName: access.companyName,
+          companyLogo: access.companyLogo,
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
           branch: 'Delhi Central',
           permissions: resolvedPermissions
@@ -188,6 +202,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: userName,
       email: userEmail,
       role: resolvedRole,
+      companyName: access.companyName,
+      companyLogo: access.companyLogo,
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
       branch: 'Delhi Central',
       permissions: resolvedPermissions

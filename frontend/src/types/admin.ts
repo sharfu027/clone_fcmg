@@ -284,6 +284,8 @@ export interface UserAccount {
   department?: string;
   designation?: string;
   branch: string;
+  companyName?: string;
+  companyLogo?: string;
   status: UserAccountStatus;
   securityProfileName?: string;
   lastLoginTimestamp?: string;

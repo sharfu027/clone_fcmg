@@ -613,10 +613,20 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
         setActiveUser(loginRes.user);
         localStorage.setItem('ink_user_profile', JSON.stringify(loginRes.user));
       }
-      const userId = loginRes.user.id;
-      const policy = getUserSecurityPolicy(userId);
+      const userId = loginRes?.user?.id || '';
+      const isSuperAdmin = (email && email.toLowerCase().includes('superadmin')) ||
+                           (loginRes?.user?.email && loginRes.user.email.toLowerCase().includes('superadmin')) ||
+                           (loginRes?.user?.role && loginRes.user.role.toLowerCase().includes('superadmin'));
 
       setIsSubmitting(false);
+
+      if (isSuperAdmin) {
+        onTriggerToast('success', 'Super Administrator Clearance', 'GPS location and face authentication skipped for Root Super Admin.');
+        await triggerLoginSuccess();
+        return;
+      }
+
+      const policy = getUserSecurityPolicy(userId, email);
 
       if (policy.enableLocationAuth) {
         onTriggerToast('success', 'Step 1 Complete: Credentials Verified', 'Proceeding to Step 2: Location Verification.');

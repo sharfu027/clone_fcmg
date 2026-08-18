@@ -322,14 +322,32 @@ export interface UnitOfMeasureDto {
 
 export interface Warehouse {
   id: string;
+  companyId?: string;
+  branchId?: string;
+  branchName?: string;
   code: string;
   name: string;
-  address?: string;
-  capacitySft?: number;
   type?: string;
-  capacity?: string;
-  manager: string;
-  status: 'Active' | 'Inactive';
+  warehouseType?: string;
+  status: 'Active' | 'Inactive' | 'Under Maintenance';
+  managerEmployeeId?: string;
+  manager?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  storageAreaSqFt?: number;
+  capacitySft?: number;
+  palletCapacity?: number;
+  cartonCapacity?: number;
+  contactNumber?: string;
+  email?: string;
+  latitude?: number;
+  longitude?: number;
+  remarks?: string;
+  isTemperatureControlled?: boolean;
 }
 
 export interface WarehouseDto {
@@ -339,6 +357,7 @@ export interface WarehouseDto {
   code: string;
   name: string;
   warehouseType: string;
+  status: string;
   managerEmployeeId?: string;
   addressLine1: string;
   addressLine2?: string;
@@ -347,6 +366,13 @@ export interface WarehouseDto {
   postalCode: string;
   country: string;
   capacitySqFt?: number;
+  palletCapacity?: number;
+  cartonCapacity?: number;
+  contactNumber?: string;
+  email?: string;
+  latitude?: number;
+  longitude?: number;
+  remarks?: string;
   isTemperatureControlled: boolean;
   isActive: boolean;
   createdAtUtc: string;

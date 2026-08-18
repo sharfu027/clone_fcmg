@@ -22,8 +22,21 @@ public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
 
         builder.Property(w => w.WarehouseType)
             .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("Central Warehouse");
+
+        builder.Property(w => w.Status)
+            .IsRequired()
             .HasMaxLength(30)
-            .HasDefaultValue("CentralDepot");
+            .HasDefaultValue("Active");
+
+        builder.Property(w => w.PalletCapacity);
+        builder.Property(w => w.CartonCapacity);
+        builder.Property(w => w.ContactNumber).HasMaxLength(30);
+        builder.Property(w => w.Email).HasMaxLength(100);
+        builder.Property(w => w.Latitude);
+        builder.Property(w => w.Longitude);
+        builder.Property(w => w.Remarks).HasMaxLength(500);
 
         builder.OwnsOne(w => w.Address, address =>
         {

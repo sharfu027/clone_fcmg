@@ -5,10 +5,12 @@ export const saveUserRoleAndPermissions = (
   userId: string,
   email: string,
   roleName: string,
-  permissions: string[]
+  permissions: string[],
+  companyName?: string,
+  companyLogo?: string
 ): void => {
   try {
-    const data = { roleName, permissions, updatedAt: new Date().toISOString() };
+    const data = { roleName, permissions, companyName, companyLogo, updatedAt: new Date().toISOString() };
     const cleanEmail = email ? email.toLowerCase().trim() : '';
     const rawUsername = cleanEmail ? cleanEmail.split('@')[0] : '';
     const username = rawUsername.replace(/\s+/g, '');
@@ -54,6 +56,8 @@ export const saveUserRoleAndPermissions = (
             if (isCurrentMatch && !pEmail.includes('superadmin')) {
               prof.permissions = permissions;
               prof.role = roleName;
+              if (companyName) prof.companyName = companyName;
+              if (companyLogo) prof.companyLogo = companyLogo;
               localStorage.setItem(key, JSON.stringify(prof));
             }
           }
@@ -64,7 +68,7 @@ export const saveUserRoleAndPermissions = (
     });
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ink_permissions_updated', { detail: { userId, email, permissions } }));
+      window.dispatchEvent(new CustomEvent('ink_permissions_updated', { detail: { userId, email, permissions, companyName, companyLogo } }));
       window.dispatchEvent(new Event('storage'));
     }
   } catch (e) {
@@ -76,7 +80,7 @@ export const getUserAccessSettings = (
   userId?: string,
   email?: string,
   defaultRole: string = 'Sales Representative'
-): { roleName: string; permissions: string[] } => {
+): { roleName: string; permissions: string[]; companyName?: string; companyLogo?: string } => {
   try {
     let raw = null;
     const cleanEmail = email ? email.toLowerCase().trim() : '';
@@ -102,14 +106,18 @@ export const getUserAccessSettings = (
         if (isRootSuperAdmin) {
           return {
             roleName: 'Super Administrator',
-            permissions: ROLE_PERMISSIONS_MAP['Super Administrator']
+            permissions: ROLE_PERMISSIONS_MAP['Super Administrator'],
+            companyName: parsed.companyName,
+            companyLogo: parsed.companyLogo
           };
         }
 
         const resolvedPerms = rawPerms.includes('read:dashboard') ? rawPerms : ['read:dashboard', ...rawPerms];
         return {
           roleName: storedRole,
-          permissions: resolvedPerms
+          permissions: resolvedPerms,
+          companyName: parsed.companyName,
+          companyLogo: parsed.companyLogo
         };
       }
     }
