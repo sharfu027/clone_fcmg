@@ -226,9 +226,17 @@ export interface ProductCategory {
   id: string;
   code: string;
   name: string;
-  description: string;
-  productCount: number;
-  status: 'Active' | 'Inactive';
+  description?: string;
+  productCount?: number;
+  status: 'Active' | 'Inactive' | string;
+  companyId?: string;
+  companyName?: string;
+  parentCategoryId?: string | null;
+  parentCategoryName?: string | null;
+  gstTaxRatePercent?: number;
+  hsnCodeDefault?: string;
+  isActive?: boolean;
+  createdAtUtc?: string;
 }
 
 export type Category = ProductCategory;

@@ -40,6 +40,7 @@ import {
 import * as masterDataService from '../services/masterDataService';
 import { useAuth } from '../context/AuthContext';
 import CompanyOrganizationHierarchy from './CompanyOrganizationHierarchy';
+import ProductClassificationHierarchy from './ProductClassificationHierarchy';
 
 const isGuid = (val: any) => typeof val === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
 
@@ -297,6 +298,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [prodMinOrderQty, setProdMinOrderQty] = useState<number>(1);
   const [prodShelfLifeDays, setProdShelfLifeDays] = useState<number>(365);
   const [prodIsBatchTracked, setProdIsBatchTracked] = useState(true);
+  const [productViewType, setProductViewType] = useState<'hierarchy' | 'table'>('hierarchy');
+  const [hierarchySelectedProductId, setHierarchySelectedProductId] = useState<string | null>(null);
 
   // Quick-Add toggles for Product form
   const [showQuickAddCategory, setShowQuickAddCategory] = useState(false);
@@ -592,10 +595,33 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchCategories(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbCategories(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.name, description: x.description || '', productCount: x.productCount || 0,
+            id: x.id,
+            companyId: x.companyId,
+            companyName: x.companyName || dbCompanies.find(c => c.id === x.companyId)?.legalName || '',
+            code: x.code,
+            name: x.name,
+            parentCategoryId: x.parentCategoryId || null,
+            parentCategoryName: x.parentCategoryName || '',
+            gstTaxRatePercent: x.gstTaxRatePercent ?? 5,
+            hsnCodeDefault: x.hsnCodeDefault || '1006.30',
+            description: x.hsnCodeDefault || '',
+            productCount: x.productCount || 0,
+            isActive: x.isActive ?? (x.status === 'Active' || x.status === 1),
             status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          // Ensure companies are loaded for Category parent company dropdown
+          try {
+            const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
+            const compList = Array.isArray(compRes) ? compRes : (compRes && Array.isArray(compRes.items) ? compRes.items : []);
+            if (compList.length > 0) {
+              setDbCompanies(compList);
+              if (compList[0]?.id && !isGuid(catCompanyId)) {
+                setCatCompanyId(compList[0].id);
+              }
+            }
+          } catch (e) {}
         } else if (module === 'brands' || module === 'masters/brands') {
           apiData = await masterDataService.fetchBrands(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
@@ -748,7 +774,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'categories' || module === 'masters/categories') {
       const x = dbCategories.find(c => c.id === id);
       if (x) {
-        setFormCode(x.code); setCatName(x.name); setCatHsnDefault(x.description); setFormStatus(x.status as any);
+        setFormCode(x.code);
+        setCatName(x.name);
+        setCatCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setCatParentId(x.parentCategoryId || '');
+        setCatGstRate(x.gstTaxRatePercent ?? 5);
+        setCatHsnDefault(x.hsnCodeDefault || x.description || '1006.30');
+        setFormStatus((x.status as any) || (x.isActive ? 'Active' : 'Inactive'));
+        setFormErrors({});
       }
     } else if (module === 'brands' || module === 'masters/brands') {
       const x = dbBrands.find(b => b.id === id);
@@ -927,7 +960,19 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.prodMinOrderQty = 'Minimum Order Quantity must be greater than 0.';
       }
     } else if (module === 'categories' || module === 'masters/categories') {
-      if (!catName.trim()) errors.catName = 'Category Name is required. Example: Food & Grains';
+      if (!catCompanyId || !isGuid(catCompanyId)) {
+        errors.catCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!catName.trim()) {
+        errors.catName = 'Category Name is required. Example: Beverages or Snacks';
+      } else if (catName.trim().length > 100) {
+        errors.catName = 'Category Name cannot exceed 100 characters.';
+      }
+      if (catParentId && isGuid(catParentId)) {
+        if (selectedId && catParentId === selectedId) {
+          errors.catParentId = 'A category cannot be assigned as its own parent.';
+        }
+      }
     } else if (module === 'brands' || module === 'masters/brands') {
       if (!brandName.trim()) errors.brandName = 'Brand Name is required. Example: India Gate';
     } else if (module === 'units' || module === 'masters/units') {
@@ -1128,21 +1173,21 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Product Updated', 'Product SKU record updated successfully.');
         }
       } else if (module === 'categories' || module === 'masters/categories') {
-        const validCompId = isGuid(catCompanyId) ? catCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
         const payload = { 
-          companyId: validCompId, 
+          companyId: catCompanyId, 
           code: formCode.toUpperCase().trim(), 
           name: catName.trim(), 
           parentCategoryId: isGuid(catParentId) ? catParentId : undefined, 
-          gstTaxRatePercent: typeof catGstRate === 'number' ? catGstRate : (parseFloat(catGstRate) || 5), 
-          hsnCodeDefault: (catHsnDefault || '1006.30').trim() 
+          gstTaxRatePercent: typeof catGstRate === 'number' ? catGstRate : (parseFloat(String(catGstRate)) || 5), 
+          hsnCodeDefault: (catHsnDefault || '1006.30').trim(),
+          isActive: formStatus === 'Active'
         };
         if (isNew) {
            await masterDataService.createCategory(payload);
-           onTriggerToast('success', 'Category Saved', 'Category record configured.');
+           onTriggerToast('success', 'Category Saved', 'Category record configured successfully.');
         } else {
            await masterDataService.updateCategory(selectedId!, { ...payload, id: selectedId! });
-           onTriggerToast('success', 'Category Updated', 'Category record configured.');
+           onTriggerToast('success', 'Category Updated', 'Category record updated successfully.');
         }
       } else if (module === 'brands' || module === 'masters/brands') {
         const validCompId = isGuid(brandCompanyId) ? brandCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
@@ -1372,7 +1417,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     if (module === 'designations' || module === 'masters/designations') return dbDesignations.map(d => ({ id: d.id, code: d.code, name: d.title, detail1: d.companyName, detail2: `Level ${d.level}`, numericText: `Limit: ₹${d.approvalLimit.toLocaleString()}`, status: d.status }));
     if (module === 'employees' || module === 'masters/employees') return dbEmployees.map(e => ({ id: e.id, code: e.employeeCode, name: `${e.firstName} ${e.lastName}`, detail1: e.email, detail2: e.phone, numericText: `₹${e.salary.toLocaleString()}`, status: e.status }));
     if (module === 'products' || module === 'masters/products') return dbProducts.map(p => ({ id: p.id, code: p.code, name: p.name, detail1: p.category, detail2: p.brand, numericText: `₹${p.price}`, status: p.status }));
-    if (module === 'categories' || module === 'masters/categories') return dbCategories.map(c => ({ id: c.id, code: c.code, name: c.name, detail1: c.description, detail2: '', numericText: `${c.productCount} SKUs`, status: c.status }));
+    if (module === 'categories' || module === 'masters/categories') return dbCategories.map(c => ({
+      id: c.id,
+      code: c.code,
+      name: c.name,
+      detail1: c.parentCategoryName ? `Sub of: ${c.parentCategoryName}` : 'Root Category',
+      detail2: `GST: ${c.gstTaxRatePercent ?? 5}% | HSN: ${c.hsnCodeDefault || '1006.30'}`,
+      numericText: `${c.productCount || 0} SKUs`,
+      status: c.status
+    }));
     if (module === 'brands' || module === 'masters/brands') return dbBrands.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.origin, detail2: '', numericText: `${b.productCount} SKUs`, status: b.status }));
     if (module === 'units' || module === 'masters/units') return dbUnits.map(u => ({ id: u.id, code: u.code, name: u.name, detail1: u.baseUnit, detail2: '', numericText: `Factor: ${u.conversionFactor}`, status: u.status }));
     if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => ({ id: w.id, code: w.code, name: w.name, detail1: w.manager, detail2: w.address, numericText: `${w.capacitySft.toLocaleString()} sq ft`, status: w.status }));
@@ -1500,10 +1553,67 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         </div>
       )}
 
-      {canAccessProduct && (module.includes('products') || module.includes('categories') || module.includes('brands')) && (
+      {/* PRODUCT DUAL-VIEW SWITCHER: Product Classification Hierarchy vs Master Registry Table */}
+      {canAccessProduct && (module === 'products' || module === 'masters/products') && mode === 'list' && (
+        <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-lg border border-slate-200 self-start">
+            <button
+              type="button"
+              onClick={() => setProductViewType('hierarchy')}
+              className={`px-3.5 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                productViewType === 'hierarchy'
+                  ? 'bg-brand-primary text-white shadow-xs'
+                  : 'text-slate-600 hover:text-brand-text-primary hover:bg-white/60'
+              }`}
+            >
+              <Layers size={13} /> Product Classification Hierarchy
+            </button>
+            <button
+              type="button"
+              onClick={() => setProductViewType('table')}
+              className={`px-3.5 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                productViewType === 'table'
+                  ? 'bg-brand-primary text-white shadow-xs'
+                  : 'text-slate-600 hover:text-brand-text-primary hover:bg-white/60'
+              }`}
+            >
+              <Table size={13} /> Master Registry Table
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setFormCode(getNextAutoCode());
+              setProdName('');
+              setProdBarcode('');
+              setProdHsnCode('1006');
+              setProdGstRate(5);
+              setProdMrp(100);
+              setProdBasePrice(80);
+              setProdMinOrderQty(1);
+              setProdShelfLifeDays(365);
+              setProdIsBatchTracked(true);
+              setFormStatus('Active');
+              setFormErrors({});
+              if (dbCompanies[0]?.id) setProdCompanyId(dbCompanies[0].id);
+              if (dbCategories[0]?.id) setProdCategoryId(dbCategories[0].id);
+              if (dbBrands[0]?.id) setProdBrandId(dbBrands[0].id);
+              if (dbUnits[0]?.id) setProdBaseUomId(dbUnits[0].id);
+              setMode('create');
+            }}
+            className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition self-start sm:self-auto"
+          >
+            <Plus size={13} /> Add New SKU
+          </button>
+        </div>
+      )}
+
+      {/* SUB-MENU TABS FOR NON-PRODUCT PAGES (Categories, Brands, Units) */}
+      {canAccessProduct && (module.includes('categories') || module.includes('brands') || module.includes('units')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Product Sub-Menus:</span>
-          <a href="/masters/products" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('products') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+          <a href="/masters/products" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
             <Boxes size={13} /> Products
           </a>
           <a href="/masters/categories" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('categories') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
@@ -1511,6 +1621,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           </a>
           <a href="/masters/brands" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('brands') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
             <ClipboardList size={13} /> Brands
+          </a>
+          <a href="/masters/units" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('units') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <Boxes size={13} /> Units of Measure
           </a>
         </div>
       )}
@@ -1594,6 +1707,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 onViewFullRegistry={() => setCompanyViewType('table')}
                 isLoading={simulatedState === 'loading'}
               />
+            ) : (module === 'products' || module === 'masters/products') && productViewType === 'hierarchy' ? (
+              <ProductClassificationHierarchy
+                products={dbProducts}
+                categories={dbCategories}
+                brands={dbBrands}
+                unitsOfMeasure={dbUnits}
+                selectedProductId={hierarchySelectedProductId || dbProducts[0]?.id || null}
+                onSelectProduct={(productId) => setHierarchySelectedProductId(productId)}
+                onEditProduct={(productId) => {
+                  setSelectedId(productId);
+                  populateForm(productId);
+                  setMode('edit');
+                }}
+                onViewFullRegistry={() => setProductViewType('table')}
+                isLoading={simulatedState === 'loading'}
+              />
             ) : (
               <div className="space-y-4">
                 {/* COMPANY SUB-MENUS: Displayed ONLY in Master Registry Table View */}
@@ -1611,6 +1740,25 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </a>
                     <a href="/masters/departments" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
                       <Building size={13} /> Departments
+                    </a>
+                  </div>
+                )}
+
+                {/* PRODUCT SUB-MENUS: Displayed ONLY in Master Registry Table View */}
+                {(module === 'products' || module === 'masters/products') && (
+                  <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Product Sub-Menus:</span>
+                    <a href="/masters/products" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition bg-brand-primary text-white shadow-xs">
+                      <Boxes size={13} /> Products
+                    </a>
+                    <a href="/masters/categories" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                      <Tags size={13} /> Category
+                    </a>
+                    <a href="/masters/brands" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                      <ClipboardList size={13} /> Brands
+                    </a>
+                    <a href="/masters/units" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                      <Boxes size={13} /> Units of Measure
                     </a>
                   </div>
                 )}
@@ -2532,18 +2680,66 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 <div className="space-y-6 text-xs">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Company</label>
-                      <select value={catCompanyId} onChange={e => setCatCompanyId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white">
-                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName}</option>)}
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select
+                        value={catCompanyId}
+                        onChange={e => { setCatCompanyId(e.target.value); setFormErrors(p => ({ ...p, catCompanyId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.catCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
                       </select>
+                      {formErrors.catCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catCompanyId}</p>}
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Category Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="CAT-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="CAT-001" />
+                      {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="catName" className="font-bold text-brand-text-primary">Category Name <span className="text-red-500">*</span></label>
-                      <input id="catName" type="text" value={catName} onChange={e => setCatName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Food & Grains" />
+                      <input
+                        id="catName"
+                        type="text"
+                        value={catName}
+                        onChange={e => { setCatName(e.target.value); setFormErrors(p => ({ ...p, catName: '' })); }}
+                        className={`w-full p-2 border rounded ${formErrors.catName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="Beverages or Carbonated Drinks"
+                      />
+                      {formErrors.catName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catName}</p>}
+                    </div>
+                  </div>
+
+                  {/* Classification Hierarchy Level: Root vs Subcategory */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-amber-50/30 p-4 rounded-lg border border-amber-200/60">
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="font-bold text-brand-text-primary flex items-center justify-between">
+                        <span>Parent Category (Hierarchy Classification)</span>
+                        <span className="text-[10px] text-brand-text-secondary font-normal">
+                          {catParentId ? 'Child Category (Subcategory)' : 'Top-Level Root Category'}
+                        </span>
+                      </label>
+                      <select
+                        value={catParentId}
+                        onChange={e => { setCatParentId(e.target.value); setFormErrors(p => ({ ...p, catParentId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.catParentId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- None / Top-Level (Root Category) --</option>
+                        {dbCategories
+                          .filter(c => {
+                            if (selectedId && c.id === selectedId) return false;
+                            return true;
+                          })
+                          .map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.code}){c.parentCategoryName ? ` [Sub of ${c.parentCategoryName}]` : ' [Root]'}
+                            </option>
+                          ))}
+                      </select>
+                      {formErrors.catParentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catParentId}</p>}
+                      <p className="text-[11px] text-brand-text-secondary mt-0.5">
+                        Leave as &quot;None / Top-Level&quot; to create a primary Root Category. Select an existing Category to create a Subcategory.
+                      </p>
                     </div>
                   </div>
 
@@ -2555,11 +2751,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         <option value={5}>5%</option>
                         <option value={12}>12%</option>
                         <option value={18}>18%</option>
+                        <option value={28}>28%</option>
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">HSN Code Default</label>
-                      <input type="text" value={catHsnDefault} onChange={e => setCatHsnDefault(e.target.value)} className="w-full p-2 border border-brand-border rounded font-mono" placeholder="1006.30" />
+                      <input type="text" maxLength={10} value={catHsnDefault} onChange={e => setCatHsnDefault(e.target.value)} className="w-full p-2 border border-brand-border rounded font-mono" placeholder="1006.30" />
                     </div>
                   </div>
                 </div>
