@@ -279,6 +279,25 @@ export interface Product {
   taxRate: number;
   stockLevel: number;
   status: 'Active' | 'Inactive';
+  companyId?: string;
+  companyName?: string;
+  categoryId?: string;
+  categoryName?: string;
+  brandId?: string;
+  brandName?: string;
+  baseUomId?: string;
+  baseUomCode?: string;
+  sku?: string;
+  barcode?: string;
+  hsnCode?: string;
+  gstRatePercent?: number;
+  mrp?: number;
+  basePrice?: number;
+  minOrderQty?: number;
+  shelfLifeDays?: number;
+  isBatchTracked?: boolean;
+  isActive?: boolean;
+  createdAtUtc?: string;
 }
 
 export interface ProductDto {

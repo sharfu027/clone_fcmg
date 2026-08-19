@@ -526,34 +526,66 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchProducts(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbProducts(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.name, category: x.categoryName || x.category || 'Default', brand: x.brandName || x.brand || 'Default',
-            unit: x.baseUomCode || x.uomCode || x.unit || 'PCS', price: x.basePrice || x.price || 0, taxRate: x.gstRatePercent || x.gstRate || x.taxRate || 0, stockLevel: x.stockLevel || 0,
-            status: x.isActive === true ? 'Active' : x.isActive === false ? 'Inactive' : (typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active'))
+            id: x.id,
+            companyId: x.companyId || '',
+            companyName: x.companyName || '',
+            categoryId: x.categoryId || '',
+            categoryName: x.categoryName || x.category || '',
+            brandId: x.brandId || '',
+            brandName: x.brandName || x.brand || '',
+            baseUomId: x.baseUomId || '',
+            baseUomCode: x.baseUomCode || x.uomCode || x.unit || 'PCS',
+            code: x.code,
+            name: x.name,
+            sku: x.sku || x.code,
+            barcode: x.barcode || '',
+            hsnCode: x.hsnCode || '1006.30',
+            gstRatePercent: x.gstRatePercent ?? x.taxRate ?? 5,
+            mrp: x.mrp ?? 0,
+            basePrice: x.basePrice ?? x.price ?? 0,
+            minOrderQty: x.minOrderQty ?? 1,
+            shelfLifeDays: x.shelfLifeDays ?? 365,
+            isBatchTracked: x.isBatchTracked ?? true,
+            category: x.categoryName || x.category || 'Default',
+            brand: x.brandName || x.brand || 'Default',
+            unit: x.baseUomCode || x.uomCode || x.unit || 'PCS',
+            price: x.basePrice ?? x.price ?? 0,
+            taxRate: x.gstRatePercent ?? x.taxRate ?? 5,
+            stockLevel: x.stockLevel || 0,
+            isActive: x.isActive ?? true,
+            status: x.isActive === true ? 'Active' : x.isActive === false ? 'Inactive' : (typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Inactive') : (x.status || 'Active')),
+            createdAtUtc: x.createdAtUtc
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
 
-          // Ensure categories, brands, and units are loaded for product form dropdowns
+          // Ensure companies, categories, brands, and units are loaded for product form dropdowns
           try {
-            const [cats, brnds, uoms] = await Promise.all([
-              masterDataService.fetchCategories({}),
-              masterDataService.fetchBrands({}),
-              masterDataService.fetchUnitsOfMeasure({})
+            const [comps, cats, brnds, uoms] = await Promise.all([
+              masterDataService.fetchCompanies({ pageSize: 100 }),
+              masterDataService.fetchCategories({ pageSize: 100 }),
+              masterDataService.fetchBrands({ pageSize: 100 }),
+              masterDataService.fetchUnitsOfMeasure({ pageSize: 100 })
             ]);
+            const compList = Array.isArray(comps) ? comps : (comps && Array.isArray(comps.items) ? comps.items : []);
             const catList = Array.isArray(cats) ? cats : (cats && Array.isArray(cats.items) ? cats.items : []);
             const brandList = Array.isArray(brnds) ? brnds : (brnds && Array.isArray(brnds.items) ? brnds.items : []);
             const uomList = Array.isArray(uoms) ? uoms : (uoms && Array.isArray(uoms.items) ? uoms.items : []);
             
+            if (compList.length > 0) {
+              setDbCompanies(compList);
+              if (compList[0]?.id && !isGuid(prodCompanyId)) setProdCompanyId(compList[0].id);
+            }
             if (catList.length > 0) {
               setDbCategories(catList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, description: x.description || '', productCount: x.productCount || 0, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
-              if (catList[0]?.id) setProdCategoryId(catList[0].id);
+              if (catList[0]?.id && !isGuid(prodCategoryId)) setProdCategoryId(catList[0].id);
             }
             if (brandList.length > 0) {
               setDbBrands(brandList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, origin: x.origin || '', productCount: x.productCount || 0, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
-              if (brandList[0]?.id) setProdBrandId(brandList[0].id);
+              if (brandList[0]?.id && !isGuid(prodBrandId)) setProdBrandId(brandList[0].id);
             }
             if (uomList.length > 0) {
               setDbUnits(uomList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, baseUnit: x.baseUnitCode || x.baseUnit || '', conversionFactor: x.conversionFactor || 1, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
-              if (uomList[0]?.id) setProdBaseUomId(uomList[0].id);
+              if (uomList[0]?.id && !isGuid(prodBaseUomId)) setProdBaseUomId(uomList[0].id);
             }
           } catch (e) {}
         } else if (module === 'categories' || module === 'masters/categories') {
@@ -696,7 +728,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'products' || module === 'masters/products') {
       const x = dbProducts.find(p => p.id === id);
       if (x) {
-        setFormCode(x.code); setProdName(x.name); setProdBasePrice(x.price); setProdGstRate(x.taxRate); setFormStatus(x.status as any);
+        setFormCode(x.code);
+        setProdName(x.name);
+        setProdCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setProdCategoryId(x.categoryId || '');
+        setProdBrandId(x.brandId || '');
+        setProdBaseUomId(x.baseUomId || '');
+        setProdBarcode(x.barcode || '');
+        setProdHsnCode(x.hsnCode || '1006.30');
+        setProdMrp(x.mrp ?? 0);
+        setProdBasePrice(x.basePrice ?? x.price ?? 0);
+        setProdGstRate(x.gstRatePercent ?? x.taxRate ?? 5);
+        setProdMinOrderQty(x.minOrderQty ?? 1);
+        setProdShelfLifeDays(x.shelfLifeDays ?? 365);
+        setProdIsBatchTracked(x.isBatchTracked ?? true);
+        setFormStatus((x.status as any) || (x.isActive ? 'Active' : 'Inactive'));
+        setFormErrors({});
       }
     } else if (module === 'categories' || module === 'masters/categories') {
       const x = dbCategories.find(c => c.id === id);
@@ -850,7 +897,35 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       if (!empFirstName.trim()) errors.empFirstName = 'First Name is required. Example: Rajesh';
       if (!empLastName.trim()) errors.empLastName = 'Last Name is required. Example: Kumar';
     } else if (module === 'products' || module === 'masters/products') {
-      if (!prodName.trim()) errors.prodName = 'Product SKU Name is required. Example: Premium Basmati Rice 5kg';
+      if (!prodCompanyId || !isGuid(prodCompanyId)) {
+        errors.prodCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!prodCategoryId || !isGuid(prodCategoryId)) {
+        errors.prodCategoryId = 'Category is required. Please select a Category.';
+      }
+      if (!prodBrandId || !isGuid(prodBrandId)) {
+        errors.prodBrandId = 'Brand is required. Please select a Brand.';
+      }
+      if (!prodBaseUomId || !isGuid(prodBaseUomId)) {
+        errors.prodBaseUomId = 'Base Unit of Measure is required. Please select a UOM.';
+      }
+      if (!prodName.trim()) {
+        errors.prodName = 'Product SKU Name is required. Example: Premium Basmati Rice 5kg';
+      } else if (prodName.trim().length > 150) {
+        errors.prodName = 'Product SKU Name cannot exceed 150 characters.';
+      }
+      if (formCode.trim().length > 30) {
+        errors.code = 'Product Code cannot exceed 30 characters.';
+      }
+      if (prodMrp !== '' && typeof prodMrp === 'number' && prodMrp < 0) {
+        errors.prodMrp = 'MRP cannot be negative.';
+      }
+      if (prodBasePrice !== '' && typeof prodBasePrice === 'number' && prodBasePrice < 0) {
+        errors.prodBasePrice = 'Base Price cannot be negative.';
+      }
+      if (prodMinOrderQty !== '' && typeof prodMinOrderQty === 'number' && prodMinOrderQty <= 0) {
+        errors.prodMinOrderQty = 'Minimum Order Quantity must be greater than 0.';
+      }
     } else if (module === 'categories' || module === 'masters/categories') {
       if (!catName.trim()) errors.catName = 'Category Name is required. Example: Food & Grains';
     } else if (module === 'brands' || module === 'masters/brands') {
@@ -1025,48 +1100,32 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Employee Updated', 'Employee record configured.');
         }
       } else if (module === 'products' || module === 'masters/products') {
-        const validCompId = isGuid(prodCompanyId) ? prodCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
-        const validCatId = isGuid(prodCategoryId) ? prodCategoryId : (dbCategories.find(c => isGuid(c.id))?.id || 'd4444444-5555-6666-7777-888888888888');
-        const validBrandId = isGuid(prodBrandId) ? prodBrandId : (dbBrands.find(b => isGuid(b.id))?.id || 'e5555555-6666-7777-8888-999999999999');
-        const validUomId = isGuid(prodBaseUomId) ? prodBaseUomId : (dbUnits.find(u => isGuid(u.id))?.id || 'f6666666-7777-8888-9999-000000000000');
-        const payload = { 
-          companyId: validCompId, 
-          categoryId: validCatId, 
-          brandId: validBrandId, 
-          baseUomId: validUomId, 
-          code: formCode.toUpperCase().trim(), 
-          name: prodName.trim(), 
-          sku: formCode.toUpperCase().trim(), 
-          barcode: (prodBarcode || '').trim(), 
-          hsnCode: (prodHsnCode || '1006.30').trim(), 
-          gstRatePercent: typeof prodGstRate === 'number' ? prodGstRate : (parseFloat(prodGstRate) || 5), 
-          mrp: typeof prodMrp === 'number' ? prodMrp : (parseFloat(prodMrp) || 100), 
-          basePrice: typeof prodBasePrice === 'number' ? prodBasePrice : (parseFloat(prodBasePrice) || 80), 
-          minOrderQty: typeof prodMinOrderQty === 'number' ? prodMinOrderQty : (parseFloat(prodMinOrderQty) || 1), 
-          shelfLifeDays: prodShelfLifeDays ? (parseInt(prodShelfLifeDays) || 365) : 365, 
+        // Validation upstream guarantees these are real GUIDs — no dummy fallbacks
+        const payload = {
+          companyId: prodCompanyId,
+          categoryId: prodCategoryId,
+          brandId: prodBrandId,
+          baseUomId: prodBaseUomId,
+          code: formCode.toUpperCase().trim(),
+          name: prodName.trim(),
+          sku: formCode.toUpperCase().trim(),
+          barcode: (prodBarcode || '').trim(),
+          hsnCode: (prodHsnCode || '1006').trim(),
+          gstRatePercent: typeof prodGstRate === 'number' ? prodGstRate : (parseFloat(String(prodGstRate)) || 5),
+          mrp: typeof prodMrp === 'number' ? prodMrp : (parseFloat(String(prodMrp)) || 0),
+          basePrice: typeof prodBasePrice === 'number' ? prodBasePrice : (parseFloat(String(prodBasePrice)) || 0),
+          minOrderQty: typeof prodMinOrderQty === 'number' ? prodMinOrderQty : (parseFloat(String(prodMinOrderQty)) || 1),
+          shelfLifeDays: prodShelfLifeDays ? (typeof prodShelfLifeDays === 'number' ? prodShelfLifeDays : (parseInt(String(prodShelfLifeDays)) || null)) : null,
           isBatchTracked: Boolean(prodIsBatchTracked),
           isActive: formStatus === 'Active'
         };
-        // Auto-register Quick-Add inline Category, Brand, and UOM
-        if (showQuickAddCategory && newCatInput.trim()) {
-          const newCatObj = { id: String(Date.now()), code: `CAT-${Math.floor(100 + Math.random() * 900)}`, name: newCatInput.trim(), description: 'Auto-registered via Product Master', productCount: 1, status: 'Active' as const };
-          setDbCategories(prev => [...prev, newCatObj]);
-        }
-        if (showQuickAddBrand && newBrandInput.trim()) {
-          const newBrandObj = { id: String(Date.now()), code: `BRND-${Math.floor(100 + Math.random() * 900)}`, name: newBrandInput.trim(), origin: 'India', productCount: 1, status: 'Active' as const };
-          setDbBrands(prev => [...prev, newBrandObj]);
-        }
-        if (showQuickAddUom && newUomInput.trim()) {
-          const newUomObj = { id: String(Date.now()), code: `UOM-${newUomInput.trim().toUpperCase().slice(0, 3)}`, name: newUomInput.trim(), baseUnit: 'Unit', conversionFactor: 1, status: 'Active' as const };
-          setDbUnits(prev => [...prev, newUomObj]);
-        }
 
         if (isNew) {
            await masterDataService.createProduct(payload);
-           onTriggerToast('success', 'Product Saved', 'Product record configured with embedded attributes.');
+           onTriggerToast('success', 'Product Saved', 'Product SKU record configured successfully.');
         } else {
            await masterDataService.updateProduct(selectedId!, { ...payload, id: selectedId! });
-           onTriggerToast('success', 'Product Updated', 'Product record configured.');
+           onTriggerToast('success', 'Product Updated', 'Product SKU record updated successfully.');
         }
       } else if (module === 'categories' || module === 'masters/categories') {
         const validCompId = isGuid(catCompanyId) ? catCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
@@ -1790,6 +1849,124 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
                 </div>
+              ) : (module === 'products' || module === 'masters/products') ? (
+                /* PRODUCT-SPECIFIC READ-ONLY VIEW */
+                <div className="space-y-6 text-xs">
+                  {/* Row 1: Identity */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Product Identity */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Boxes size={14} className="text-brand-primary" /> Product Identity
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Product Code</span>
+                          <span className="font-mono text-sm font-bold text-brand-primary">{formCode || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">SKU</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.sku || formCode || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Product Name</span>
+                          <span className="font-semibold text-brand-text-primary text-sm">{prodName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${formStatus === 'Active' ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
+                            {formStatus}
+                          </span>
+                        </div>
+                        {dbProducts.find(p => p.id === selectedId)?.companyName && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Company</span>
+                            <span className="font-medium text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.companyName}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Classification */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Tags size={14} className="text-brand-primary" /> Classification
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Category</span>
+                          <span className="font-medium text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.categoryName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Brand</span>
+                          <span className="font-medium text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.brandName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Base Unit of Measure</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.baseUomCode || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">HSN Code</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.hsnCode || prodHsnCode || 'N/A'}</span>
+                        </div>
+                        {dbProducts.find(p => p.id === selectedId)?.barcode && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Barcode / EAN</span>
+                            <span className="font-mono text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.barcode}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pricing */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <ShieldCheck size={14} className="text-brand-primary" /> Pricing & Taxation
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">MRP</span>
+                          <span className="font-mono text-lg font-bold text-brand-primary">₹{(dbProducts.find(p => p.id === selectedId)?.mrp ?? prodMrp ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Base B2B Price</span>
+                          <span className="font-mono font-bold text-brand-text-primary">₹{(dbProducts.find(p => p.id === selectedId)?.basePrice ?? prodBasePrice ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">GST Rate</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.gstRatePercent ?? prodGstRate ?? 5}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Logistics */}
+                  <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border">
+                    <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2 mb-3">
+                      <MapPin size={14} className="text-brand-primary" /> Logistics & Inventory Controls
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Min. Order Qty</span>
+                        <span className="font-mono font-bold text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.minOrderQty ?? prodMinOrderQty ?? 1}</span>
+                      </div>
+                      <div>
+                        <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Shelf Life</span>
+                        <span className="font-mono font-bold text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.shelfLifeDays ?? prodShelfLifeDays ?? '—'} days</span>
+                      </div>
+                      <div>
+                        <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Batch Tracking</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${(dbProducts.find(p => p.id === selectedId)?.isBatchTracked ?? prodIsBatchTracked) ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
+                          {(dbProducts.find(p => p.id === selectedId)?.isBatchTracked ?? prodIsBatchTracked) ? 'Enabled (FEFO)' : 'Disabled'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Record GUID</span>
+                        <span className="font-mono text-[10px] text-brand-text-secondary break-all">{selectedId}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
                   {/* Column 1: Core Identifier Card */}
@@ -1804,7 +1981,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       </div>
                       <div>
                         <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Legal Entity / Title</span>
-                        <span className="font-semibold text-brand-text-primary text-sm">{branchName || deptName || desigTitle || `${empFirstName} ${empLastName}`.trim() || prodName || catName || brandName || uomName || whName || custLegalName || suppLegalName || 'N/A'}</span>
+                        <span className="font-semibold text-brand-text-primary text-sm">{branchName || deptName || desigTitle || `${empFirstName} ${empLastName}`.trim() || catName || brandName || uomName || whName || custLegalName || suppLegalName || 'N/A'}</span>
                       </div>
                       <div>
                         <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
@@ -2224,7 +2401,21 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 6. PRODUCT FORM */}
               {(module === 'products' || module === 'masters/products') && (
                 <div className="space-y-6 text-xs">
+
+                  {/* Row 1: Company */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select
+                        value={prodCompanyId}
+                        onChange={e => { setProdCompanyId(e.target.value); setFormErrors(p => ({ ...p, prodCompanyId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
+                      </select>
+                      {formErrors.prodCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodCompanyId}</p>}
+                    </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">SKU Code <span className="text-red-500">*</span></label>
                       <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="PROD-001" />
@@ -2235,109 +2426,64 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       <input id="prodName" type="text" value={prodName} onChange={e => { setProdName(e.target.value); setFormErrors(p => ({ ...p, prodName: '' })); }} className={`w-full p-2 border rounded ${formErrors.prodName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Premium Basmati Rice 5kg" />
                       {formErrors.prodName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodName}</p>}
                     </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Barcode / EAN</label>
-                      <input type="text" value={prodBarcode} onChange={e => setProdBarcode(e.target.value)} className="w-full p-2 border border-brand-border rounded font-mono" placeholder="8901234567890" />
-                    </div>
                   </div>
 
-                  {/* Category, Brand, UOM with Inline + Quick Add */}
+                  {/* Row 2: Category, Brand, UOM — Required dropdowns */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/20 p-4 rounded-lg border border-blue-100">
-                    
                     {/* 1. Category */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-brand-text-primary">Category</label>
-                        <button
-                          type="button"
-                          onClick={() => { setShowQuickAddCategory(!showQuickAddCategory); setNewCatInput(''); }}
-                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <Plus size={11} /> {showQuickAddCategory ? 'Select Existing' : 'New Category'}
-                        </button>
-                      </div>
-                      {showQuickAddCategory ? (
-                        <input
-                          type="text"
-                          value={newCatInput}
-                          onChange={e => setNewCatInput(e.target.value)}
-                          placeholder="Type new category name..."
-                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
-                        />
-                      ) : (
-                        <select value={prodCategoryId} onChange={e => setProdCategoryId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
-                          <option value="">-- None / Optional --</option>
-                          {dbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                      )}
+                      <label className="font-bold text-brand-text-primary">Category <span className="text-red-500">*</span></label>
+                      <select
+                        value={prodCategoryId}
+                        onChange={e => { setProdCategoryId(e.target.value); setFormErrors(p => ({ ...p, prodCategoryId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodCategoryId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Category --</option>
+                        {dbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      {formErrors.prodCategoryId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodCategoryId}</p>}
                     </div>
 
                     {/* 2. Brand */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-brand-text-primary">Brand</label>
-                        <button
-                          type="button"
-                          onClick={() => { setShowQuickAddBrand(!showQuickAddBrand); setNewBrandInput(''); }}
-                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <Plus size={11} /> {showQuickAddBrand ? 'Select Existing' : 'New Brand'}
-                        </button>
-                      </div>
-                      {showQuickAddBrand ? (
-                        <input
-                          type="text"
-                          value={newBrandInput}
-                          onChange={e => setNewBrandInput(e.target.value)}
-                          placeholder="Type new brand name..."
-                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
-                        />
-                      ) : (
-                        <select value={prodBrandId} onChange={e => setProdBrandId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
-                          <option value="">-- None / Optional --</option>
-                          {dbBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                      )}
+                      <label className="font-bold text-brand-text-primary">Brand <span className="text-red-500">*</span></label>
+                      <select
+                        value={prodBrandId}
+                        onChange={e => { setProdBrandId(e.target.value); setFormErrors(p => ({ ...p, prodBrandId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodBrandId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Brand --</option>
+                        {dbBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                      {formErrors.prodBrandId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodBrandId}</p>}
                     </div>
 
                     {/* 3. Unit of Measure */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-brand-text-primary">Base Unit of Measure</label>
-                        <button
-                          type="button"
-                          onClick={() => { setShowQuickAddUom(!showQuickAddUom); setNewUomInput(''); }}
-                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <Plus size={11} /> {showQuickAddUom ? 'Select Existing' : 'New UOM'}
-                        </button>
-                      </div>
-                      {showQuickAddUom ? (
-                        <input
-                          type="text"
-                          value={newUomInput}
-                          onChange={e => setNewUomInput(e.target.value)}
-                          placeholder="Type new UOM (e.g. Liter)..."
-                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
-                        />
-                      ) : (
-                        <select value={prodBaseUomId} onChange={e => setProdBaseUomId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
-                          <option value="">-- None / Optional --</option>
-                          {dbUnits.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
-                        </select>
-                      )}
+                      <label className="font-bold text-brand-text-primary">Base Unit of Measure <span className="text-red-500">*</span></label>
+                      <select
+                        value={prodBaseUomId}
+                        onChange={e => { setProdBaseUomId(e.target.value); setFormErrors(p => ({ ...p, prodBaseUomId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodBaseUomId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select UOM --</option>
+                        {dbUnits.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
+                      </select>
+                      {formErrors.prodBaseUomId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodBaseUomId}</p>}
                     </div>
-
                   </div>
 
+                  {/* Row 3: Pricing & Tax */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-brand-bg-secondary/30 rounded border border-brand-border">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">MRP (₹)</label>
-                      <input type="number" value={prodMrp} onChange={e => setProdMrp(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono font-bold" />
+                      <label className="font-bold text-brand-text-primary">MRP (₹) <span className="text-red-500">*</span></label>
+                      <input type="number" min={0} step="0.01" value={prodMrp} onChange={e => { setProdMrp(Number(e.target.value)); setFormErrors(p => ({ ...p, prodMrp: '' })); }} className={`w-full p-2 border rounded bg-white font-mono font-bold ${formErrors.prodMrp ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} />
+                      {formErrors.prodMrp && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodMrp}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Base B2B Price (₹)</label>
-                      <input type="number" value={prodBasePrice} onChange={e => setProdBasePrice(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono font-bold text-brand-primary" />
+                      <label className="font-bold text-brand-text-primary">Base B2B Price (₹) <span className="text-red-500">*</span></label>
+                      <input type="number" min={0} step="0.01" value={prodBasePrice} onChange={e => { setProdBasePrice(Number(e.target.value)); setFormErrors(p => ({ ...p, prodBasePrice: '' })); }} className={`w-full p-2 border rounded bg-white font-mono font-bold text-brand-primary ${formErrors.prodBasePrice ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} />
+                      {formErrors.prodBasePrice && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodBasePrice}</p>}
                     </div>
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">GST Rate %</label>
@@ -2346,11 +2492,36 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         <option value={5}>5%</option>
                         <option value={12}>12%</option>
                         <option value={18}>18%</option>
+                        <option value={28}>28%</option>
                       </select>
                     </div>
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">HSN Code</label>
-                      <input type="text" value={prodHsnCode} onChange={e => setProdHsnCode(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-mono" />
+                      <input type="text" maxLength={10} value={prodHsnCode} onChange={e => setProdHsnCode(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-mono" placeholder="1006" />
+                    </div>
+                  </div>
+
+                  {/* Row 4: Logistics / Optional */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Min. Order Qty</label>
+                      <input type="number" min={0.0001} step="0.0001" value={prodMinOrderQty} onChange={e => { setProdMinOrderQty(Number(e.target.value)); setFormErrors(p => ({ ...p, prodMinOrderQty: '' })); }} className={`w-full p-2 border rounded bg-white font-mono ${formErrors.prodMinOrderQty ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} />
+                      {formErrors.prodMinOrderQty && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodMinOrderQty}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Shelf Life (days)</label>
+                      <input type="number" min={1} step={1} value={prodShelfLifeDays} onChange={e => setProdShelfLifeDays(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono" placeholder="365" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Barcode / EAN</label>
+                      <input type="text" value={prodBarcode} onChange={e => setProdBarcode(e.target.value)} className="w-full p-2 border border-brand-border rounded font-mono" placeholder="8901234567890" />
+                    </div>
+                    <div className="space-y-1 flex flex-col justify-end">
+                      <label className="font-bold text-brand-text-primary">Batch Tracking</label>
+                      <label className="flex items-center gap-2 p-2 border border-brand-border rounded bg-white cursor-pointer">
+                        <input type="checkbox" checked={prodIsBatchTracked} onChange={e => setProdIsBatchTracked(e.target.checked)} className="w-4 h-4 accent-brand-primary" />
+                        <span className="font-medium text-brand-text-primary">{prodIsBatchTracked ? 'Enabled (FEFO)' : 'Disabled'}</span>
+                      </label>
                     </div>
                   </div>
                 </div>
