@@ -17,8 +17,11 @@ export interface CompanyDto {
   tradeName?: string;
   taxRegistrationNumber: string;
   panNumber: string;
+  cinNumber?: string;
+  logoUrl?: string;
   email: string;
   phone: string;
+  website?: string;
   currencyCode: string;
   addressLine1: string;
   addressLine2?: string;
@@ -26,10 +29,15 @@ export interface CompanyDto {
   state: string;
   postalCode: string;
   country: string;
+  status?: string | number;
   isActive: boolean;
   timeZoneId?: string;
   financialYearStartMonth?: number;
   createdAtUtc: string;
+  createdBy?: string;
+  lastModifiedAtUtc?: string;
+  lastModifiedBy?: string;
+  rowVersion?: number;
 }
 
 export interface Branch {
