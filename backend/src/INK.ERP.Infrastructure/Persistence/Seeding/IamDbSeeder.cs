@@ -91,11 +91,67 @@ public static class IamDbSeeder
                 ALTER TABLE procurement.purchase_requisition_status_histories 
                 ADD COLUMN IF NOT EXISTS ""DeletedBy"" character varying(100) NULL;
 
+                CREATE SCHEMA IF NOT EXISTS warehouse;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW();
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""CreatedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""LastModifiedAtUtc"" timestamp with time zone NULL;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""ModifiedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""LastModifiedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""DeletedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
+
+                ALTER TABLE procurement.purchase_requisition_items 
+                ADD COLUMN IF NOT EXISTS ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text;
+
+                ALTER TABLE procurement.purchase_requisition_status_histories 
+                ADD COLUMN IF NOT EXISTS ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW();
+
+                ALTER TABLE procurement.purchase_requisition_status_histories 
+                ADD COLUMN IF NOT EXISTS ""CreatedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_status_histories 
+                ADD COLUMN IF NOT EXISTS ""LastModifiedAtUtc"" timestamp with time zone NULL;
+
+                ALTER TABLE procurement.purchase_requisition_status_histories 
+                ADD COLUMN IF NOT EXISTS ""ModifiedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_status_histories 
+                ADD COLUMN IF NOT EXISTS ""LastModifiedBy"" character varying(100) NULL;
+
+                ALTER TABLE procurement.purchase_requisition_status_histories 
+                ADD COLUMN IF NOT EXISTS ""DeletedBy"" character varying(100) NULL;
+
                 ALTER TABLE procurement.purchase_requisition_status_histories 
                 ADD COLUMN IF NOT EXISTS ""DeletedAtUtc"" timestamp with time zone NULL;
 
                 ALTER TABLE procurement.purchase_requisition_status_histories 
                 ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
+
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""Status"" character varying(30) NOT NULL DEFAULT 'Active';
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""PalletCapacity"" integer NULL;
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""CartonCapacity"" integer NULL;
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""ContactNumber"" character varying(30) NULL;
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""Email"" character varying(100) NULL;
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""Latitude"" double precision NULL;
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""Longitude"" double precision NULL;
+                ALTER TABLE warehouse.warehouses ADD COLUMN IF NOT EXISTS ""Remarks"" character varying(500) NULL;
 
                 ALTER TABLE procurement.purchase_requisition_status_histories 
                 ADD COLUMN IF NOT EXISTS ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text;
