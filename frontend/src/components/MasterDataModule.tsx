@@ -24,7 +24,9 @@ import {
   Globe,
   Table,
   Layers,
-  GitFork
+  GitFork,
+  Building2,
+  Mail
 } from 'lucide-react';
 
 import { 
@@ -331,20 +333,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [suppPaymentTermsDays, setSuppPaymentTermsDays] = useState<number>(30);
 
   // 11. Customer
-  const [custCompanyId, setCustCompanyId] = useState('1');
+  const [custCompanyId, setCustCompanyId] = useState('');
   const [custLegalName, setCustLegalName] = useState('');
+  const [custTradeName, setCustTradeName] = useState('');
   const [custType, setCustType] = useState('Retailer');
-  const [custContactPerson, setCustContactPerson] = useState('');
   const [custEmail, setCustEmail] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [custGstin, setCustGstin] = useState('');
   const [custPan, setCustPan] = useState('');
-  const [custCreditLimit, setCustCreditLimit] = useState<number>(500000);
-  const [custCreditDays, setCustCreditDays] = useState<number>(15);
+  const [custAddrLine1, setCustAddrLine1] = useState('');
+  const [custAddrLine2, setCustAddrLine2] = useState('');
+  const [custCity, setCustCity] = useState('');
+  const [custState, setCustState] = useState('');
+  const [custPostalCode, setCustPostalCode] = useState('');
+  const [custCountry, setCustCountry] = useState('India');
+  const [custCreditLimit, setCustCreditLimit] = useState<number>(50000);
+  const [custCreditDays, setCustCreditDays] = useState<number>(30);
   const [custSalesRouteId, setCustSalesRouteId] = useState('');
 
   // 12. Employee
-  const [empCompanyId, setEmpCompanyId] = useState('1');
+  const [empCompanyId, setEmpCompanyId] = useState('');
   const [empBranchId, setEmpBranchId] = useState('');
   const [empDepartmentId, setEmpDepartmentId] = useState('');
   const [empDesignationId, setEmpDesignationId] = useState('');
@@ -352,8 +360,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [empLastName, setEmpLastName] = useState('');
   const [empEmail, setEmpEmail] = useState('');
   const [empPhone, setEmpPhone] = useState('');
-  const [empJoiningDate, setEmpJoiningDate] = useState('2026-01-01');
-  const [empSalary, setEmpSalary] = useState<number>(45000);
+  const [empJoiningDate, setEmpJoiningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [empSalary, setEmpSalary] = useState<number | string>('');
 
   useEffect(() => {
     setMode('list');
@@ -520,11 +528,56 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchEmployees(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbEmployees(items.map((x: any) => ({
-            id: x.id, employeeCode: x.code || x.employeeCode, firstName: x.firstName, lastName: x.lastName, email: x.email, phone: x.phone,
-            joiningDate: x.joiningDate, salary: x.salary, companyId: x.companyId, branchId: x.branchId, departmentId: x.departmentId, designationId: x.designationId,
-            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            id: x.id,
+            companyId: x.companyId,
+            companyName: x.companyName || dbCompanies.find(c => c.id === x.companyId)?.legalName || '',
+            branchId: x.branchId,
+            branchName: x.branchName || dbBranches.find(b => b.id === x.branchId)?.name || '',
+            departmentId: x.departmentId,
+            departmentName: x.departmentName || dbDepartments.find(d => d.id === x.departmentId)?.name || '',
+            designationId: x.designationId,
+            designationTitle: x.designationTitle || dbDesignations.find(d => d.id === x.designationId)?.title || '',
+            employeeCode: x.employeeCode || x.code,
+            code: x.employeeCode || x.code,
+            firstName: x.firstName || '',
+            lastName: x.lastName || '',
+            fullName: x.fullName || `${x.firstName || ''} ${x.lastName || ''}`.trim(),
+            name: x.fullName || `${x.firstName || ''} ${x.lastName || ''}`.trim(),
+            email: x.email || '',
+            phone: x.phone || '',
+            joiningDate: x.joiningDate,
+            salary: x.salary ?? undefined,
+            isActive: x.isActive ?? (x.status === 'Active' || x.status === 1),
+            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active'),
+            createdAtUtc: x.createdAtUtc
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          try {
+            const [compRes, brRes, dpRes, desRes] = await Promise.all([
+              masterDataService.fetchCompanies({ pageSize: 100 }),
+              masterDataService.fetchBranches({ pageSize: 100 }),
+              masterDataService.fetchDepartments({ pageSize: 100 }),
+              masterDataService.fetchDesignations({ pageSize: 100 })
+            ]);
+            const extractList = (res: any): any[] => {
+              if (!res) return [];
+              if (Array.isArray(res)) return res;
+              if (Array.isArray(res.items)) return res.items;
+              if (Array.isArray(res.data)) return res.data;
+              if (Array.isArray(res.value)) return res.value;
+              return [];
+            };
+            const compList = extractList(compRes);
+            const brList = extractList(brRes);
+            const dpList = extractList(dpRes);
+            const desList = extractList(desRes);
+
+            if (compList.length > 0) setDbCompanies(compList);
+            if (brList.length > 0) setDbBranches(brList);
+            if (dpList.length > 0) setDbDepartments(dpList);
+            if (desList.length > 0) setDbDesignations(desList);
+          } catch (e) {}
         } else if (module === 'products' || module === 'masters/products') {
           apiData = await masterDataService.fetchProducts(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
@@ -674,10 +727,45 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchCustomers(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbCustomers(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.legalName || x.name, contact: x.phone || x.contact || '', email: x.email || '', balance: x.creditLimit || x.balance || 0,
-            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            id: x.id,
+            companyId: x.companyId,
+            companyName: x.companyName || dbCompanies.find(c => c.id === x.companyId)?.legalName || '',
+            code: x.code,
+            name: x.legalName || x.name,
+            legalName: x.legalName || x.name,
+            tradeName: x.tradeName || '',
+            customerType: x.customerType || 'Retailer',
+            gstin: x.gstin || '',
+            pan: x.pan || '',
+            email: x.email || '',
+            phone: x.phone || x.contact || '',
+            contact: x.phone || x.contact || '',
+            addressLine1: x.addressLine1 || '',
+            addressLine2: x.addressLine2 || '',
+            city: x.city || '',
+            state: x.state || '',
+            postalCode: x.postalCode || '',
+            country: x.country || 'India',
+            creditLimit: x.creditLimit ?? 50000,
+            balance: x.creditLimit ?? 50000,
+            creditDays: x.creditDays ?? 30,
+            routeId: x.routeId,
+            isActive: x.isActive ?? (x.status === 'Active' || x.status === 1),
+            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active'),
+            createdAtUtc: x.createdAtUtc
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          try {
+            const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
+            const compList = Array.isArray(compRes) ? compRes : (compRes && Array.isArray(compRes.items) ? compRes.items : []);
+            if (compList.length > 0) {
+              setDbCompanies(compList);
+              if (compList[0]?.id && !isGuid(custCompanyId)) {
+                setCustCompanyId(compList[0].id);
+              }
+            }
+          } catch (e) {}
         } else if (module === 'suppliers' || module === 'masters/suppliers') {
           apiData = await masterDataService.fetchSuppliers(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
@@ -747,9 +835,19 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'employees' || module === 'masters/employees') {
       const x = dbEmployees.find(e => e.id === id);
       if (x) {
-        setFormCode(x.employeeCode); setEmpFirstName(x.firstName); setEmpLastName(x.lastName); setEmpEmail(x.email); setEmpPhone(x.phone);
-        setEmpCompanyId(x.companyId); setEmpBranchId(x.branchId); setEmpDepartmentId(x.departmentId); setEmpDesignationId(x.designationId);
-        setEmpJoiningDate(x.joiningDate); setEmpSalary(x.salary); setFormStatus(x.status as any);
+        setFormCode(x.employeeCode || x.code || '');
+        setEmpCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setEmpBranchId(x.branchId || '');
+        setEmpDepartmentId(x.departmentId || '');
+        setEmpDesignationId(x.designationId || '');
+        setEmpFirstName(x.firstName || '');
+        setEmpLastName(x.lastName || '');
+        setEmpEmail(x.email || '');
+        setEmpPhone(x.phone || '');
+        setEmpJoiningDate(x.joiningDate ? x.joiningDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+        setEmpSalary(x.salary !== undefined && x.salary !== null ? x.salary : '');
+        setFormStatus((x.status as any) || (x.isActive ? 'Active' : 'Inactive'));
+        setFormErrors({});
       }
     } else if (module === 'products' || module === 'masters/products') {
       const x = dbProducts.find(p => p.id === id);
@@ -823,7 +921,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'customers' || module === 'masters/customers') {
       const x = dbCustomers.find(c => c.id === id);
       if (x) {
-        setFormCode(x.code); setCustLegalName(x.name); setCustPhone(x.contact); setCustEmail(x.email); setCustCreditLimit(x.balance); setFormStatus(x.status as any);
+        setFormCode(x.code);
+        setCustCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setCustLegalName(x.legalName || x.name || '');
+        setCustTradeName(x.tradeName || '');
+        setCustType(x.customerType || 'Retailer');
+        setCustGstin(x.gstin || '');
+        setCustPan(x.pan || '');
+        setCustEmail(x.email || '');
+        setCustPhone(x.phone || x.contact || '');
+        setCustAddrLine1(x.addressLine1 || '');
+        setCustAddrLine2(x.addressLine2 || '');
+        setCustCity(x.city || '');
+        setCustState(x.state || '');
+        setCustPostalCode(x.postalCode || '');
+        setCustCountry(x.country || 'India');
+        setCustCreditLimit(x.creditLimit ?? x.balance ?? 50000);
+        setCustCreditDays(x.creditDays ?? 30);
+        setCustSalesRouteId(x.routeId || '');
+        setFormStatus((x.status as any) || (x.isActive ? 'Active' : 'Inactive'));
+        setFormErrors({});
       }
     } else if (module === 'suppliers' || module === 'masters/suppliers') {
       const x = dbSuppliers.find(s => s.id === id);
@@ -927,8 +1044,54 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'designations' || module === 'masters/designations') {
       if (!desigTitle.trim()) errors.desigTitle = 'Designation Title is required. Example: Regional Sales Manager';
     } else if (module === 'employees' || module === 'masters/employees') {
-      if (!empFirstName.trim()) errors.empFirstName = 'First Name is required. Example: Rajesh';
-      if (!empLastName.trim()) errors.empLastName = 'Last Name is required. Example: Kumar';
+      if (!empCompanyId || !isGuid(empCompanyId)) {
+        errors.empCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!empBranchId || !isGuid(empBranchId)) {
+        errors.empBranchId = 'Branch is required. Please select a Branch.';
+      }
+      if (!empDepartmentId || !isGuid(empDepartmentId)) {
+        errors.empDepartmentId = 'Department is required. Please select a Department.';
+      }
+      if (!empDesignationId || !isGuid(empDesignationId)) {
+        errors.empDesignationId = 'Designation is required. Please select a Designation.';
+      }
+      if (!formCode.trim()) {
+        errors.code = 'Employee Code is required.';
+      } else if (formCode.trim().length > 20) {
+        errors.code = 'Employee Code cannot exceed 20 characters.';
+      }
+      if (!empFirstName.trim()) {
+        errors.empFirstName = 'First Name is required. Example: Rajesh';
+      } else if (empFirstName.trim().length > 50) {
+        errors.empFirstName = 'First Name cannot exceed 50 characters.';
+      }
+      if (!empLastName.trim()) {
+        errors.empLastName = 'Last Name is required. Example: Kumar';
+      } else if (empLastName.trim().length > 50) {
+        errors.empLastName = 'Last Name cannot exceed 50 characters.';
+      }
+      if (!empEmail.trim()) {
+        errors.empEmail = 'Email address is required.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(empEmail.trim())) {
+        errors.empEmail = 'Email address is not in a valid format.';
+      } else if (empEmail.trim().length > 100) {
+        errors.empEmail = 'Email cannot exceed 100 characters.';
+      }
+      if (!empPhone.trim()) {
+        errors.empPhone = 'Phone number is required.';
+      } else if (empPhone.trim().length > 20) {
+        errors.empPhone = 'Phone number cannot exceed 20 characters.';
+      }
+      if (!empJoiningDate) {
+        errors.empJoiningDate = 'Joining Date is required.';
+      }
+      if (empSalary !== '' && empSalary !== null && empSalary !== undefined) {
+        const numSal = Number(empSalary);
+        if (isNaN(numSal) || numSal < 0) {
+          errors.empSalary = 'Monthly Salary cannot be negative.';
+        }
+      }
     } else if (module === 'products' || module === 'masters/products') {
       if (!prodCompanyId || !isGuid(prodCompanyId)) {
         errors.prodCompanyId = 'Company is required. Please select a valid Company.';
@@ -1006,7 +1169,74 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.whLongitude = 'Longitude must be between -180 and 180 degrees.';
       }
     } else if (module === 'customers' || module === 'masters/customers') {
-      if (!custLegalName.trim()) errors.custLegalName = 'Customer Name is required. Example: Apex Retail Distributors';
+      if (!custCompanyId || !isGuid(custCompanyId)) {
+        errors.custCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!formCode.trim()) {
+        errors.code = 'Customer Code is required.';
+      } else if (formCode.trim().length > 20) {
+        errors.code = 'Customer Code cannot exceed 20 characters.';
+      }
+      if (!custLegalName.trim()) {
+        errors.custLegalName = 'Legal Business Name is required. Example: Apex Retail Distributors';
+      } else if (custLegalName.trim().length > 150) {
+        errors.custLegalName = 'Legal Business Name cannot exceed 150 characters.';
+      }
+      if (custTradeName && custTradeName.trim().length > 150) {
+        errors.custTradeName = 'Trade Name cannot exceed 150 characters.';
+      }
+      if (!custEmail.trim()) {
+        errors.custEmail = 'Email address is required.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(custEmail.trim())) {
+        errors.custEmail = 'Email address is not in a valid format.';
+      } else if (custEmail.trim().length > 100) {
+        errors.custEmail = 'Email cannot exceed 100 characters.';
+      }
+      if (!custPhone.trim()) {
+        errors.custPhone = 'Phone number is required.';
+      } else if (custPhone.trim().length > 20) {
+        errors.custPhone = 'Phone number cannot exceed 20 characters.';
+      }
+      if (custGstin && custGstin.trim().length > 30) {
+        errors.custGstin = 'GSTIN cannot exceed 30 characters.';
+      }
+      if (custPan && custPan.trim().length > 20) {
+        errors.custPan = 'PAN cannot exceed 20 characters.';
+      }
+      if (!custAddrLine1.trim()) {
+        errors.custAddrLine1 = 'Address Line 1 is required.';
+      } else if (custAddrLine1.trim().length > 150) {
+        errors.custAddrLine1 = 'Address Line 1 cannot exceed 150 characters.';
+      }
+      if (custAddrLine2 && custAddrLine2.trim().length > 150) {
+        errors.custAddrLine2 = 'Address Line 2 cannot exceed 150 characters.';
+      }
+      if (!custCity.trim()) {
+        errors.custCity = 'City is required.';
+      } else if (custCity.trim().length > 50) {
+        errors.custCity = 'City cannot exceed 50 characters.';
+      }
+      if (!custState.trim()) {
+        errors.custState = 'State is required.';
+      } else if (custState.trim().length > 50) {
+        errors.custState = 'State cannot exceed 50 characters.';
+      }
+      if (!custPostalCode.trim()) {
+        errors.custPostalCode = 'Postal / PIN Code is required.';
+      } else if (custPostalCode.trim().length > 15) {
+        errors.custPostalCode = 'Postal Code cannot exceed 15 characters.';
+      }
+      if (!custCountry.trim()) {
+        errors.custCountry = 'Country is required.';
+      } else if (custCountry.trim().length > 50) {
+        errors.custCountry = 'Country cannot exceed 50 characters.';
+      }
+      if (custCreditLimit !== '' && typeof custCreditLimit === 'number' && custCreditLimit < 0) {
+        errors.custCreditLimit = 'Credit Limit cannot be negative.';
+      }
+      if (custCreditDays !== '' && typeof custCreditDays === 'number' && custCreditDays < 0) {
+        errors.custCreditDays = 'Credit Days cannot be negative.';
+      }
     } else if (module === 'suppliers' || module === 'masters/suppliers') {
       if (!suppLegalName.trim()) errors.suppLegalName = 'Supplier Legal Name is required. Example: Hindustan Unilever Ltd';
     }
@@ -1120,29 +1350,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Designation Updated', 'Designation record configured.');
         }
       } else if (module === 'employees' || module === 'masters/employees') {
-        const validCompId = isGuid(empCompanyId) ? empCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
-        const validBranchId = isGuid(empBranchId) ? empBranchId : (dbBranches.find(b => isGuid(b.id))?.id || 'a59e6217-3baa-426c-aff5-ba8fa06e48ac');
-        const validDeptId = isGuid(empDepartmentId) ? empDepartmentId : (dbDepartments.find(d => isGuid(d.id))?.id || '32a43edb-c396-4852-9463-f9274f589313');
-        const validDesigId = isGuid(empDesignationId) ? empDesignationId : (dbDesignations.find(d => isGuid(d.id))?.id || '32a43edb-c396-4852-9463-f9274f589313');
         const payload = { 
-          companyId: validCompId, 
-          branchId: validBranchId, 
-          departmentId: validDeptId, 
-          designationId: validDesigId, 
+          companyId: empCompanyId, 
+          branchId: empBranchId, 
+          departmentId: empDepartmentId, 
+          designationId: empDesignationId, 
           employeeCode: formCode.toUpperCase().trim(), 
           firstName: empFirstName.trim(), 
           lastName: empLastName.trim(), 
-          email: (empEmail || 'emp@company.com').trim(), 
-          phone: (empPhone || '+91 98100 12345').trim(), 
-          joiningDate: empJoiningDate || new Date().toISOString(), 
-          salary: typeof empSalary === 'number' ? empSalary : (parseFloat(empSalary) || 45000) 
+          email: empEmail.toLowerCase().trim(), 
+          phone: empPhone.trim(), 
+          joiningDate: new Date(empJoiningDate).toISOString(), 
+          salary: (empSalary !== '' && empSalary !== null && empSalary !== undefined) ? Number(empSalary) : undefined,
+          isActive: formStatus === 'Active'
         };
         if (isNew) {
            await masterDataService.createEmployee(payload);
-           onTriggerToast('success', 'Employee Saved', 'Employee record configured.');
+           onTriggerToast('success', 'Employee Saved', 'Employee staff record created successfully.');
         } else {
            await masterDataService.updateEmployee(selectedId!, { ...payload, id: selectedId! });
-           onTriggerToast('success', 'Employee Updated', 'Employee record configured.');
+           onTriggerToast('success', 'Employee Updated', 'Employee staff record updated successfully.');
         }
       } else if (module === 'products' || module === 'masters/products') {
         // Validation upstream guarantees these are real GUIDs — no dummy fallbacks
@@ -1260,33 +1487,33 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Warehouse Updated', 'Warehouse configured.');
         }
       } else if (module === 'customers' || module === 'masters/customers') {
-        const validCompId = isGuid(custCompanyId) ? custCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
         const payload = { 
-          companyId: validCompId,
+          companyId: custCompanyId,
           code: formCode.toUpperCase().trim(), 
           legalName: custLegalName.trim(), 
-          tradeName: (custLegalName || 'Trade Store').trim(),
+          tradeName: custTradeName.trim() ? custTradeName.trim() : undefined,
           customerType: custType || 'Retailer',
-          gstin: (custGstin || '07AAAAA0000A1Z5').toUpperCase().trim(),
-          pan: (custPan || 'AAAAA0000A').toUpperCase().trim(),
-          phone: (custPhone || '+91 98100 12345').trim(), 
-          email: (custEmail || 'cust@retail.com').trim(), 
-          creditLimit: typeof custCreditLimit === 'number' ? custCreditLimit : (parseFloat(custCreditLimit) || 50000), 
-          creditDays: typeof custCreditDays === 'number' ? custCreditDays : (parseInt(custCreditDays) || 30),
+          gstin: custGstin.trim() ? custGstin.toUpperCase().trim() : undefined,
+          pan: custPan.trim() ? custPan.toUpperCase().trim() : undefined,
+          phone: custPhone.trim(), 
+          email: custEmail.trim(), 
+          creditLimit: typeof custCreditLimit === 'number' ? custCreditLimit : (parseFloat(String(custCreditLimit)) || 0), 
+          creditDays: typeof custCreditDays === 'number' ? custCreditDays : (parseInt(String(custCreditDays), 10) || 0),
           routeId: isGuid(custSalesRouteId) ? custSalesRouteId : undefined,
           isActive: formStatus === 'Active', 
-          addressLine1: (addrLine1 || 'Customer Address').trim(), 
-          city: (addrCity || 'Delhi').trim(), 
-          state: (addrState || 'Delhi').trim(), 
-          postalCode: (addrPostalCode || '110001').trim(), 
-          country: (addrCountry || 'India').trim() 
+          addressLine1: custAddrLine1.trim(), 
+          addressLine2: custAddrLine2.trim() ? custAddrLine2.trim() : undefined, 
+          city: custCity.trim(), 
+          state: custState.trim(), 
+          postalCode: custPostalCode.trim(), 
+          country: custCountry.trim() || 'India'
         };
         if (isNew) {
            await masterDataService.createCustomer(payload);
-           onTriggerToast('success', 'Customer Saved', 'Customer configured.');
+           onTriggerToast('success', 'Customer Saved', 'Customer master account configured successfully.');
         } else {
            await masterDataService.updateCustomer(selectedId!, { ...payload, id: selectedId! });
-           onTriggerToast('success', 'Customer Updated', 'Customer configured.');
+           onTriggerToast('success', 'Customer Updated', 'Customer master account updated successfully.');
         }
       } else if (module === 'suppliers' || module === 'masters/suppliers') {
         const validCompId = isGuid(suppCompanyId) ? suppCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
@@ -1415,7 +1642,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     if (module === 'branches' || module === 'masters/branches') return dbBranches.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.companyName, detail2: b.city, numericText: b.isHeadquarters ? 'Headquarters' : 'Depot', status: b.status }));
     if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => ({ id: d.id, code: d.code, name: d.name, detail1: d.branchName, detail2: d.description, numericText: 'Dept', status: d.status }));
     if (module === 'designations' || module === 'masters/designations') return dbDesignations.map(d => ({ id: d.id, code: d.code, name: d.title, detail1: d.companyName, detail2: `Level ${d.level}`, numericText: `Limit: ₹${d.approvalLimit.toLocaleString()}`, status: d.status }));
-    if (module === 'employees' || module === 'masters/employees') return dbEmployees.map(e => ({ id: e.id, code: e.employeeCode, name: `${e.firstName} ${e.lastName}`, detail1: e.email, detail2: e.phone, numericText: `₹${e.salary.toLocaleString()}`, status: e.status }));
+    if (module === 'employees' || module === 'masters/employees') return dbEmployees.map(e => ({
+      id: e.id,
+      code: e.employeeCode || e.code,
+      name: e.fullName || `${e.firstName} ${e.lastName}`.trim(),
+      detail1: e.email,
+      detail2: e.phone || 'N/A',
+      numericText: e.salary !== undefined && e.salary !== null && e.salary !== '' ? `₹${Number(e.salary).toLocaleString('en-IN')}` : '—',
+      status: e.status
+    }));
     if (module === 'products' || module === 'masters/products') return dbProducts.map(p => ({ id: p.id, code: p.code, name: p.name, detail1: p.category, detail2: p.brand, numericText: `₹${p.price}`, status: p.status }));
     if (module === 'categories' || module === 'masters/categories') return dbCategories.map(c => ({
       id: c.id,
@@ -1429,7 +1664,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     if (module === 'brands' || module === 'masters/brands') return dbBrands.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.origin, detail2: '', numericText: `${b.productCount} SKUs`, status: b.status }));
     if (module === 'units' || module === 'masters/units') return dbUnits.map(u => ({ id: u.id, code: u.code, name: u.name, detail1: u.baseUnit, detail2: '', numericText: `Factor: ${u.conversionFactor}`, status: u.status }));
     if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => ({ id: w.id, code: w.code, name: w.name, detail1: w.manager, detail2: w.address, numericText: `${w.capacitySft.toLocaleString()} sq ft`, status: w.status }));
-    if (module === 'customers' || module === 'masters/customers') return dbCustomers.map(c => ({ id: c.id, code: c.code, name: c.name, detail1: c.contact, detail2: c.email, numericText: `Limit: ₹${c.balance.toLocaleString()}`, status: c.status }));
+    if (module === 'customers' || module === 'masters/customers') return dbCustomers.map(c => ({
+      id: c.id,
+      code: c.code,
+      name: c.legalName || c.name,
+      detail1: c.customerType || 'Retailer',
+      detail2: `${c.phone || c.contact || 'N/A'} | ${c.email || 'N/A'}`,
+      numericText: `Limit: ₹${(c.creditLimit ?? c.balance ?? 0).toLocaleString('en-IN')}`,
+      status: c.status
+    }));
     if (module === 'suppliers' || module === 'masters/suppliers') return dbSuppliers.map(s => ({ id: s.id, code: s.code, name: s.name, detail1: s.contact, detail2: s.email, numericText: `Limit: ₹${s.balance.toLocaleString()}`, status: s.status }));
     return dbCompanies.map(c => ({ id: c.id, code: c.code, name: c.legalName, detail1: c.taxRegistrationNumber || c.gstin || 'N/A', detail2: c.city || 'HQ', numericText: c.currencyCode || c.currency || 'INR', status: typeof c.status === 'number' ? (c.status === 1 ? 'Active' : c.status === 2 ? 'Archived' : 'Draft') : (c.status || 'Active') }));
   };
@@ -2115,6 +2358,217 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
                 </div>
+              ) : (module === 'customers' || module === 'masters/customers') ? (
+                /* CUSTOMER-SPECIFIC READ-ONLY VIEW */
+                <div className="space-y-6 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Card 1: Identity & Classification */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Users2 size={14} className="text-brand-primary" /> Identity & Classification
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Customer Code</span>
+                          <span className="font-mono text-sm font-bold text-brand-primary">{formCode || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Legal Business Name</span>
+                          <span className="font-semibold text-brand-text-primary text-sm">{custLegalName || 'N/A'}</span>
+                        </div>
+                        {custTradeName && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Trade / Store Name</span>
+                            <span className="font-medium text-brand-text-primary">{custTradeName}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Channel / Customer Type</span>
+                          <span className="font-semibold text-brand-text-primary">{custType || 'Retailer'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${formStatus === 'Active' ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
+                            {formStatus}
+                          </span>
+                        </div>
+                        {dbCustomers.find(c => c.id === selectedId)?.companyName && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Parent Company</span>
+                            <span className="font-medium text-brand-text-primary">{dbCustomers.find(c => c.id === selectedId)?.companyName}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card 2: Tax & Legal */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <ShieldCheck size={14} className="text-brand-primary" /> Tax & Legal Controls
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">GSTIN (Tax ID)</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{custGstin || 'Not Registered'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">PAN Number</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{custPan || 'Not Registered'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Base Currency</span>
+                          <span className="font-mono font-bold text-brand-primary">INR (₹)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Financial & Credit Controls */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <CreditCard size={14} className="text-brand-primary" /> Financial & Credit Terms
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Approved Credit Limit</span>
+                          <span className="font-mono text-base font-bold text-brand-primary">₹{(custCreditLimit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Payment Term (Days)</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{custCreditDays ?? 30} Days</span>
+                        </div>
+                        {custSalesRouteId && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Assigned Route GUID</span>
+                            <span className="font-mono text-[10px] text-brand-text-secondary break-all">{custSalesRouteId}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card 4: Contact & Delivery Address */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <MapPin size={14} className="text-brand-primary" /> Contact & Delivery Location
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Email Address</span>
+                          <span className="font-medium text-brand-text-primary break-all">{custEmail || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Phone Number</span>
+                          <span className="font-mono font-medium text-brand-text-primary">{custPhone || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Billing & Shipping Address</span>
+                          <span className="font-medium text-brand-text-primary block leading-relaxed">
+                            {custAddrLine1 ? (
+                              <>
+                                {custAddrLine1}
+                                {custAddrLine2 && <>, {custAddrLine2}</>}
+                                <br />
+                                {custCity}, {custState} {custPostalCode}
+                                <br />
+                                {custCountry || 'India'}
+                              </>
+                            ) : (
+                              'N/A'
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (module === 'employees' || module === 'masters/employees') ? (
+                /* EMPLOYEE-SPECIFIC READ-ONLY VIEW */
+                <div className="space-y-6 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Card 1: Identity */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <User size={14} className="text-brand-primary" /> Identity & Profile
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Employee Code</span>
+                          <span className="font-mono text-sm font-bold text-brand-primary">{formCode || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Full Name</span>
+                          <span className="font-semibold text-brand-text-primary text-sm">{`${empFirstName} ${empLastName}`.trim() || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${formStatus === 'Active' ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
+                            {formStatus}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Organization */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Building2 size={14} className="text-brand-primary" /> Organization Assignment
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Parent Company</span>
+                          <span className="font-semibold text-brand-text-primary">{dbCompanies.find(c => c.id === empCompanyId)?.legalName || dbEmployees.find(e => e.id === selectedId)?.companyName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Branch Location</span>
+                          <span className="font-medium text-brand-text-primary">{dbBranches.find(b => b.id === empBranchId)?.name || dbEmployees.find(e => e.id === selectedId)?.branchName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Department</span>
+                          <span className="font-medium text-brand-text-primary">{dbDepartments.find(d => d.id === empDepartmentId)?.name || dbEmployees.find(e => e.id === selectedId)?.departmentName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Designation</span>
+                          <span className="font-medium text-brand-text-primary">{dbDesignations.find(d => d.id === empDesignationId)?.title || dbEmployees.find(e => e.id === selectedId)?.designationTitle || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Employment & Compensation */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Briefcase size={14} className="text-brand-primary" /> Employment & Compensation
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Joining Date</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{empJoiningDate || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Monthly Salary</span>
+                          <span className="font-mono text-base font-bold text-brand-primary">
+                            {empSalary !== '' && empSalary !== null && empSalary !== undefined ? `₹${Number(empSalary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Not Disclosed'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Contact & Communication */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Mail size={14} className="text-brand-primary" /> Communication & Contact
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Official Email</span>
+                          <span className="font-medium text-brand-text-primary break-all">{empEmail || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Phone Number</span>
+                          <span className="font-mono font-medium text-brand-text-primary">{empPhone || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
                   {/* Column 1: Core Identifier Card */}
@@ -2430,118 +2884,166 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 5. EMPLOYEE FORM */}
               {(module === 'employees' || module === 'masters/employees') && (
                 <div className="space-y-6 text-xs">
+                  {/* Row 1: Company, Code, First & Last Name */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select
+                        value={empCompanyId}
+                        onChange={e => {
+                          const newCompId = e.target.value;
+                          setEmpCompanyId(newCompId);
+                          setFormErrors(p => ({ ...p, empCompanyId: '' }));
+                          // Clear branch & department if incompatible
+                          if (empBranchId && !dbBranches.some(b => b.id === empBranchId && b.companyId === newCompId)) {
+                            setEmpBranchId('');
+                            setEmpDepartmentId('');
+                          }
+                        }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
+                      </select>
+                      {formErrors.empCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empCompanyId}</p>}
+                    </div>
+                    <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Employee Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 cursor-not-allowed" placeholder="EMP-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="EMP-001" />
+                      {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="empFirstName" className="font-bold text-brand-text-primary">First Name <span className="text-red-500">*</span></label>
-                      <input id="empFirstName" type="text" value={empFirstName} onChange={e => setEmpFirstName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Rajesh" />
+                      <input
+                        id="empFirstName"
+                        type="text"
+                        value={empFirstName}
+                        onChange={e => { setEmpFirstName(e.target.value); setFormErrors(p => ({ ...p, empFirstName: '' })); }}
+                        className={`w-full p-2 border rounded font-medium ${formErrors.empFirstName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="Rajesh"
+                      />
+                      {formErrors.empFirstName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empFirstName}</p>}
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="empLastName" className="font-bold text-brand-text-primary">Last Name <span className="text-red-500">*</span></label>
-                      <input id="empLastName" type="text" value={empLastName} onChange={e => setEmpLastName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Kumar" />
-                    </div>
-                    <div className="space-y-1">
-                      <label htmlFor="empEmail" className="font-bold text-brand-text-primary">Official Email <span className="text-red-500">*</span></label>
-                      <input id="empEmail" type="email" value={empEmail} onChange={e => setEmpEmail(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="rajesh@ink-fmcg.com" />
+                      <input
+                        id="empLastName"
+                        type="text"
+                        value={empLastName}
+                        onChange={e => { setEmpLastName(e.target.value); setFormErrors(p => ({ ...p, empLastName: '' })); }}
+                        className={`w-full p-2 border rounded font-medium ${formErrors.empLastName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="Kumar"
+                      />
+                      {formErrors.empLastName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empLastName}</p>}
                     </div>
                   </div>
 
-                  {/* Branch, Department, Designation with Inline + Quick Add */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-blue-50/20 p-4 rounded-lg border border-blue-100">
-                    
-                    {/* 1. Branch Location */}
+                  {/* Row 2: Organization Assignment */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/60 p-4 rounded-lg border border-slate-200">
+                    {/* Branch Location */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-brand-text-primary">Branch Location</label>
-                        <button
-                          type="button"
-                          onClick={() => { setShowQuickAddBranch(!showQuickAddBranch); setNewBranchInput(''); }}
-                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <Plus size={11} /> {showQuickAddBranch ? 'Select Existing' : 'New Branch'}
-                        </button>
-                      </div>
-                      {showQuickAddBranch ? (
-                        <input
-                          type="text"
-                          value={newBranchInput}
-                          onChange={e => setNewBranchInput(e.target.value)}
-                          placeholder="Type new branch location..."
-                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
-                        />
-                      ) : (
-                        <select value={empBranchId} onChange={e => setEmpBranchId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
-                          <option value="">-- None / Optional --</option>
-                          {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                      )}
+                      <label className="font-bold text-brand-text-primary">Branch Location <span className="text-red-500">*</span></label>
+                      <select
+                        value={empBranchId}
+                        onChange={e => {
+                          const newBranchId = e.target.value;
+                          setEmpBranchId(newBranchId);
+                          setFormErrors(p => ({ ...p, empBranchId: '' }));
+                          // Clear department if incompatible
+                          if (empDepartmentId && !dbDepartments.some(d => d.id === empDepartmentId && d.branchId === newBranchId)) {
+                            setEmpDepartmentId('');
+                          }
+                        }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empBranchId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Branch --</option>
+                        {dbBranches
+                          .filter(b => !empCompanyId || b.companyId === empCompanyId)
+                          .map(b => <option key={b.id} value={b.id}>{b.name} ({b.code})</option>)}
+                      </select>
+                      {formErrors.empBranchId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empBranchId}</p>}
                     </div>
 
-                    {/* 2. Department */}
+                    {/* Department */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-brand-text-primary">Department</label>
-                        <button
-                          type="button"
-                          onClick={() => { setShowQuickAddDept(!showQuickAddDept); setNewDeptInput(''); }}
-                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <Plus size={11} /> {showQuickAddDept ? 'Select Existing' : 'New Dept'}
-                        </button>
-                      </div>
-                      {showQuickAddDept ? (
-                        <input
-                          type="text"
-                          value={newDeptInput}
-                          onChange={e => setNewDeptInput(e.target.value)}
-                          placeholder="Type new department name..."
-                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
-                        />
-                      ) : (
-                        <select value={empDepartmentId} onChange={e => setEmpDepartmentId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
-                          <option value="">-- None / Optional --</option>
-                          {dbDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
-                      )}
+                      <label className="font-bold text-brand-text-primary">Department <span className="text-red-500">*</span></label>
+                      <select
+                        value={empDepartmentId}
+                        onChange={e => { setEmpDepartmentId(e.target.value); setFormErrors(p => ({ ...p, empDepartmentId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empDepartmentId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Department --</option>
+                        {dbDepartments
+                          .filter(d => !empBranchId || d.branchId === empBranchId)
+                          .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                      {formErrors.empDepartmentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDepartmentId}</p>}
                     </div>
 
-                    {/* 3. Designation */}
+                    {/* Designation */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-brand-text-primary">Designation</label>
-                        <button
-                          type="button"
-                          onClick={() => { setShowQuickAddDesig(!showQuickAddDesig); setNewDesigInput(''); }}
-                          className="text-[10px] text-brand-primary font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
-                        >
-                          <Plus size={11} /> {showQuickAddDesig ? 'Select Existing' : 'New Title'}
-                        </button>
-                      </div>
-                      {showQuickAddDesig ? (
-                        <input
-                          type="text"
-                          value={newDesigInput}
-                          onChange={e => setNewDesigInput(e.target.value)}
-                          placeholder="Type designation title..."
-                          className="w-full p-2 border border-brand-primary rounded bg-white font-semibold text-brand-primary"
-                        />
-                      ) : (
-                        <select value={empDesignationId} onChange={e => setEmpDesignationId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
-                          <option value="">-- None / Optional --</option>
-                          {dbDesignations.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
-                        </select>
-                      )}
+                      <label className="font-bold text-brand-text-primary">Designation Title <span className="text-red-500">*</span></label>
+                      <select
+                        value={empDesignationId}
+                        onChange={e => { setEmpDesignationId(e.target.value); setFormErrors(p => ({ ...p, empDesignationId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empDesignationId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Designation --</option>
+                        {dbDesignations.map(d => <option key={d.id} value={d.id}>{d.title} (Level {d.level || 1})</option>)}
+                      </select>
+                      {formErrors.empDesignationId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDesignationId}</p>}
                     </div>
+                  </div>
 
-                    {/* 4. Joining Date */}
+                  {/* Row 3: Contact, Joining Date & Salary */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-brand-bg-secondary/30 rounded-lg border border-brand-border">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Joining Date</label>
-                      <input type="date" value={empJoiningDate} onChange={e => setEmpJoiningDate(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-mono" />
+                      <label htmlFor="empEmail" className="font-bold text-brand-text-primary">Official Email <span className="text-red-500">*</span></label>
+                      <input
+                        id="empEmail"
+                        type="email"
+                        value={empEmail}
+                        onChange={e => { setEmpEmail(e.target.value); setFormErrors(p => ({ ...p, empEmail: '' })); }}
+                        className={`w-full p-2 border rounded bg-white ${formErrors.empEmail ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="rajesh.kumar@ink-fmcg.com"
+                      />
+                      {formErrors.empEmail && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empEmail}</p>}
                     </div>
-
+                    <div className="space-y-1">
+                      <label htmlFor="empPhone" className="font-bold text-brand-text-primary">Contact Phone <span className="text-red-500">*</span></label>
+                      <input
+                        id="empPhone"
+                        type="text"
+                        value={empPhone}
+                        onChange={e => { setEmpPhone(e.target.value); setFormErrors(p => ({ ...p, empPhone: '' })); }}
+                        className={`w-full p-2 border rounded bg-white ${formErrors.empPhone ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="+91 98110 12345"
+                      />
+                      {formErrors.empPhone && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empPhone}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Joining Date <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        value={empJoiningDate}
+                        onChange={e => { setEmpJoiningDate(e.target.value); setFormErrors(p => ({ ...p, empJoiningDate: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-mono ${formErrors.empJoiningDate ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      />
+                      {formErrors.empJoiningDate && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empJoiningDate}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Monthly Salary (₹)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="1000"
+                        value={empSalary}
+                        onChange={e => { setEmpSalary(e.target.value === '' ? '' : Number(e.target.value)); setFormErrors(p => ({ ...p, empSalary: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-mono font-bold text-brand-primary ${formErrors.empSalary ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="45000"
+                      />
+                      {formErrors.empSalary && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empSalary}</p>}
+                    </div>
                   </div>
                 </div>
               )}
@@ -3008,44 +3510,219 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 11. CUSTOMER FORM */}
               {(module === 'customers' || module === 'masters/customers') && (
                 <div className="space-y-6 text-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Row 1: Identity & Channel */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select
+                        value={custCompanyId}
+                        onChange={e => { setCustCompanyId(e.target.value); setFormErrors(p => ({ ...p, custCompanyId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.custCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
+                      </select>
+                      {formErrors.custCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custCompanyId}</p>}
+                    </div>
                     <div className="space-y-1">
                       <label htmlFor="code" className="font-bold text-brand-text-primary">Customer Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="CST-001" />
+                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="CST-001" />
+                      {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Customer / Business Name <span className="text-red-500">*</span></label>
-                      <input id="custLegalName" type="text" value={custLegalName} onChange={e => setCustLegalName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Apex Retail Distributors" />
+                      <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>
+                      <input
+                        id="custLegalName"
+                        type="text"
+                        value={custLegalName}
+                        onChange={e => { setCustLegalName(e.target.value); setFormErrors(p => ({ ...p, custLegalName: '' })); }}
+                        className={`w-full p-2 border rounded font-medium ${formErrors.custLegalName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="Apex Retail Distributors Pvt Ltd"
+                      />
+                      {formErrors.custLegalName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custLegalName}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Channel Type</label>
-                      <select value={custType} onChange={e => setCustType(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
-                        <option value="Retailer">Kirana / Retailer Store</option>
-                        <option value="Wholesaler">Wholesaler Dealer</option>
-                        <option value="Key Account">Key Account / Supermarket</option>
-                      </select>
+                      <label className="font-bold text-brand-text-primary">Trade / Store Name</label>
+                      <input
+                        type="text"
+                        value={custTradeName}
+                        onChange={e => { setCustTradeName(e.target.value); setFormErrors(p => ({ ...p, custTradeName: '' })); }}
+                        className="w-full p-2 border border-brand-border rounded"
+                        placeholder="Apex Superstore"
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Row 2: Channel, Tax & Contact */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Email Address</label>
-                      <input type="email" value={custEmail} onChange={e => setCustEmail(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="billing@apex.com" />
+                      <label className="font-bold text-brand-text-primary">Channel / Customer Type <span className="text-red-500">*</span></label>
+                      <select value={custType} onChange={e => setCustType(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
+                        <option value="Retailer">Kirana / Retailer Store</option>
+                        <option value="Wholesaler">Wholesaler Dealer</option>
+                        <option value="Modern Trade">Modern Trade / Supermarket</option>
+                        <option value="Institution">Institutional / B2B</option>
+                      </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Phone Number</label>
-                      <input type="text" value={custPhone} onChange={e => setCustPhone(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="+91 98110 24512" />
+                      <label className="font-bold text-brand-text-primary">GSTIN (Tax ID)</label>
+                      <input
+                        type="text"
+                        maxLength={15}
+                        value={custGstin}
+                        onChange={e => { setCustGstin(e.target.value.toUpperCase()); setFormErrors(p => ({ ...p, custGstin: '' })); }}
+                        className={`w-full p-2 border rounded uppercase font-mono font-bold ${formErrors.custGstin ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="07AAAAA0000A1Z5"
+                      />
+                      {formErrors.custGstin && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custGstin}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Credit Limit (₹)</label>
-                      <input type="number" value={custCreditLimit} onChange={e => setCustCreditLimit(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded font-mono font-bold text-brand-primary" />
+                      <label className="font-bold text-brand-text-primary">PAN Number</label>
+                      <input
+                        type="text"
+                        maxLength={10}
+                        value={custPan}
+                        onChange={e => { setCustPan(e.target.value.toUpperCase()); setFormErrors(p => ({ ...p, custPan: '' })); }}
+                        className={`w-full p-2 border rounded uppercase font-mono font-bold ${formErrors.custPan ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="AAAAA0000A"
+                      />
+                      {formErrors.custPan && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custPan}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Contact Email <span className="text-red-500">*</span></label>
+                      <input
+                        type="email"
+                        value={custEmail}
+                        onChange={e => { setCustEmail(e.target.value); setFormErrors(p => ({ ...p, custEmail: '' })); }}
+                        className={`w-full p-2 border rounded ${formErrors.custEmail ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="billing@apex.com"
+                      />
+                      {formErrors.custEmail && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custEmail}</p>}
+                    </div>
+                  </div>
+
+                  {/* Row 3: Phone & Credit Parameters */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-brand-bg-secondary/30 rounded border border-brand-border">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Contact Phone <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={custPhone}
+                        onChange={e => { setCustPhone(e.target.value); setFormErrors(p => ({ ...p, custPhone: '' })); }}
+                        className={`w-full p-2 border rounded bg-white ${formErrors.custPhone ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="+91 98110 24512"
+                      />
+                      {formErrors.custPhone && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custPhone}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Approved Credit Limit (₹)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step="1000"
+                        value={custCreditLimit}
+                        onChange={e => { setCustCreditLimit(Number(e.target.value)); setFormErrors(p => ({ ...p, custCreditLimit: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-mono font-bold text-brand-primary ${formErrors.custCreditLimit ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="500000"
+                      />
+                      {formErrors.custCreditLimit && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custCreditLimit}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Payment Term Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={custCreditDays}
+                        onChange={e => { setCustCreditDays(Number(e.target.value)); setFormErrors(p => ({ ...p, custCreditDays: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-mono font-bold ${formErrors.custCreditDays ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="30"
+                      />
+                      {formErrors.custCreditDays && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custCreditDays}</p>}
+                    </div>
+                  </div>
+
+                  {/* Row 4: Dedicated Customer Address */}
+                  <div className="space-y-3 bg-slate-50/50 p-4 rounded-lg border border-slate-200">
+                    <h4 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider">
+                      Business & Delivery Address Specifications
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Address Line 1 <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={custAddrLine1}
+                          onChange={e => { setCustAddrLine1(e.target.value); setFormErrors(p => ({ ...p, custAddrLine1: '' })); }}
+                          className={`w-full p-2 border rounded bg-white ${formErrors.custAddrLine1 ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                          placeholder="Shop No. 12, Main Market Road"
+                        />
+                        {formErrors.custAddrLine1 && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custAddrLine1}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Address Line 2</label>
+                        <input
+                          type="text"
+                          value={custAddrLine2}
+                          onChange={e => setCustAddrLine2(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white"
+                          placeholder="Near Central Metro Station"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">City <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={custCity}
+                          onChange={e => { setCustCity(e.target.value); setFormErrors(p => ({ ...p, custCity: '' })); }}
+                          className={`w-full p-2 border rounded bg-white ${formErrors.custCity ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                          placeholder="New Delhi"
+                        />
+                        {formErrors.custCity && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custCity}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">State <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={custState}
+                          onChange={e => { setCustState(e.target.value); setFormErrors(p => ({ ...p, custState: '' })); }}
+                          className={`w-full p-2 border rounded bg-white ${formErrors.custState ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                          placeholder="Delhi"
+                        />
+                        {formErrors.custState && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custState}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">PIN / Postal Code <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          maxLength={15}
+                          value={custPostalCode}
+                          onChange={e => { setCustPostalCode(e.target.value); setFormErrors(p => ({ ...p, custPostalCode: '' })); }}
+                          className={`w-full p-2 border rounded bg-white font-mono ${formErrors.custPostalCode ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                          placeholder="110001"
+                        />
+                        {formErrors.custPostalCode && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custPostalCode}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Country <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={custCountry}
+                          onChange={e => { setCustCountry(e.target.value); setFormErrors(p => ({ ...p, custCountry: '' })); }}
+                          className={`w-full p-2 border rounded bg-white ${formErrors.custCountry ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                          placeholder="India"
+                        />
+                        {formErrors.custCountry && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custCountry}</p>}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* 13. BUSINESS PARTNER MASTER FORM */}
-              {(module === 'partners' || module === 'masters/partners' || module === 'customers' || module === 'masters/customers' || module === 'suppliers' || module === 'masters/suppliers') && (
+              {/* 13. BUSINESS PARTNER / SUPPLIER MASTER FORM */}
+              {(module === 'partners' || module === 'masters/partners' || module === 'suppliers' || module === 'masters/suppliers') && (
                 <div className="space-y-6 text-xs">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">

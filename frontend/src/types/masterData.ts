@@ -152,13 +152,30 @@ export interface Customer {
   id: string;
   code: string;
   name: string;
-  contact: string;
+  contact?: string;
   phone?: string;
   email: string;
   balance?: number;
   creditLimit?: number;
+  creditDays?: number;
   region?: string;
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Inactive' | string;
+  companyId?: string;
+  companyName?: string;
+  legalName?: string;
+  tradeName?: string;
+  customerType?: string;
+  gstin?: string;
+  pan?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  routeId?: string;
+  isActive?: boolean;
+  createdAtUtc?: string;
 }
 
 export interface CustomerDto {
