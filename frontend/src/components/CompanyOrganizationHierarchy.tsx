@@ -53,9 +53,12 @@ export default function CompanyOrganizationHierarchy({
   isLoading = false
 }: CompanyOrganizationHierarchyProps) {
   const { user } = useAuth();
+  const userPerms = user?.permissions || [];
   const isSuper = user?.role === 'Super Administrator' ||
-                  user?.permissions?.includes('manage:all') ||
+                  userPerms.includes('manage:all') ||
                   (user?.email && user.email.toLowerCase().includes('superadmin'));
+  const hasMasterParent = userPerms.includes('masters:manage');
+  const canAccessBranch = isSuper || (hasMasterParent && userPerms.includes('masters:branch'));
 
   const [treeSearch, setTreeSearch] = useState('');
   const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
@@ -678,26 +681,30 @@ export default function CompanyOrganizationHierarchy({
                   <h3 className="text-[10px] font-bold text-brand-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                     <GitFork size={12} className="text-brand-primary rotate-90" /> Registered Operating Branches ({activeCompanyBranches.length})
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => onAddNewBranch(activeCompany.id)}
-                    className="text-[11px] font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus size={11} /> Add Branch to Entity
-                  </button>
+                  {canAccessBranch && (
+                    <button
+                      type="button"
+                      onClick={() => onAddNewBranch(activeCompany.id)}
+                      className="text-[11px] font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus size={11} /> Add Branch to Entity
+                    </button>
+                  )}
                 </div>
 
                 <div className="border border-brand-border rounded-lg overflow-hidden">
                   {activeCompanyBranches.length === 0 ? (
                     <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 space-y-2">
                       <p>No operational branches currently linked to {activeCompany.legalName}.</p>
-                      <button
-                        type="button"
-                        onClick={() => onAddNewBranch(activeCompany.id)}
-                        className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded hover:bg-blue-700 cursor-pointer shadow-2xs inline-flex items-center gap-1"
-                      >
-                        <Plus size={12} /> Create First Branch
-                      </button>
+                      {canAccessBranch && (
+                        <button
+                          type="button"
+                          onClick={() => onAddNewBranch(activeCompany.id)}
+                          className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded hover:bg-blue-700 cursor-pointer shadow-2xs inline-flex items-center gap-1"
+                        >
+                          <Plus size={12} /> Create First Branch
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <table className="w-full text-left text-xs border-collapse">

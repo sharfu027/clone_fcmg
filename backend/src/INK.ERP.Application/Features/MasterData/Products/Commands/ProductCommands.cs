@@ -12,7 +12,7 @@ namespace INK.ERP.Application.Features.MasterData.Products.Commands;
 public record CreateProductCommand(
     Guid CompanyId,
     Guid CategoryId,
-    Guid BrandId,
+    Guid? BrandId,
     Guid BaseUomId,
     string Code,
     string Name,
@@ -70,16 +70,22 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Target Company was not found or is inactive."));
         }
 
+        // Category may be a Root Category OR a Subcategory — Subcategory is OPTIONAL.
         var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
         if (category == null || !category.IsActive || category.CompanyId != targetCompanyId)
         {
             return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
         }
 
-        var brand = await _brandRepository.GetByIdAsync(request.BrandId, cancellationToken);
-        if (brand == null || !brand.IsActive || brand.CompanyId != targetCompanyId)
+        // Brand is OPTIONAL. When provided, must belong to the authorized company.
+        Brand? brand = null;
+        if (request.BrandId.HasValue)
         {
-            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidBrand", "The selected brand does not exist or does not belong to the authorized company."));
+            brand = await _brandRepository.GetByIdAsync(request.BrandId.Value, cancellationToken);
+            if (brand == null || !brand.IsActive || brand.CompanyId != targetCompanyId)
+            {
+                return Result<ProductDto>.Failure(Error.Validation("Product.InvalidBrand", "The selected brand does not exist or does not belong to the authorized company."));
+            }
         }
 
         var uom = await _uomRepository.GetByIdAsync(request.BaseUomId, cancellationToken);
@@ -102,7 +108,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         {
             CompanyId = company.Id,
             CategoryId = category.Id,
-            BrandId = brand.Id,
+            BrandId = request.BrandId,
             BaseUomId = uom.Id,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
@@ -133,14 +139,20 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             return Result<ProductDto>.Failure(Error.Failure("Product.SaveError", $"Failed to save product: {detailMsg}"));
         }
 
+        var parentCategory = category.ParentCategoryId.HasValue
+            ? await _categoryRepository.GetByIdAsync(category.ParentCategoryId.Value, cancellationToken)
+            : null;
+
         var dto = new ProductDto(
             product.Id,
             product.CompanyId,
             company.LegalName,
             product.CategoryId,
             category.Name,
+            category.ParentCategoryId,
+            parentCategory?.Name,
             product.BrandId,
-            brand.Name,
+            brand?.Name,
             product.BaseUomId,
             uom.Code,
             product.Code,
@@ -165,7 +177,7 @@ public record UpdateProductCommand(
     Guid Id,
     Guid CompanyId,
     Guid CategoryId,
-    Guid BrandId,
+    Guid? BrandId,
     Guid BaseUomId,
     string Code,
     string Name,
@@ -228,16 +240,22 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company was not found."));
         }
 
+        // Category may be a Root Category OR a Subcategory — Subcategory is OPTIONAL.
         var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
         if (category == null || !category.IsActive || category.CompanyId != product.CompanyId)
         {
             return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
         }
 
-        var brand = await _brandRepository.GetByIdAsync(request.BrandId, cancellationToken);
-        if (brand == null || !brand.IsActive || brand.CompanyId != product.CompanyId)
+        // Brand is OPTIONAL. When provided, must belong to the authorized company.
+        Brand? brand = null;
+        if (request.BrandId.HasValue)
         {
-            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidBrand", "The selected brand does not exist or does not belong to the authorized company."));
+            brand = await _brandRepository.GetByIdAsync(request.BrandId.Value, cancellationToken);
+            if (brand == null || !brand.IsActive || brand.CompanyId != product.CompanyId)
+            {
+                return Result<ProductDto>.Failure(Error.Validation("Product.InvalidBrand", "The selected brand does not exist or does not belong to the authorized company."));
+            }
         }
 
         var uom = await _uomRepository.GetByIdAsync(request.BaseUomId, cancellationToken);
@@ -275,14 +293,20 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         await _productRepository.UpdateAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var parentCategory = category.ParentCategoryId.HasValue
+            ? await _categoryRepository.GetByIdAsync(category.ParentCategoryId.Value, cancellationToken)
+            : null;
+
         var dto = new ProductDto(
             product.Id,
             product.CompanyId,
             company.LegalName,
             product.CategoryId,
             category.Name,
+            category.ParentCategoryId,
+            parentCategory?.Name,
             product.BrandId,
-            brand.Name,
+            brand?.Name,
             product.BaseUomId,
             uom.Code,
             product.Code,

@@ -20,7 +20,7 @@ public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery,
 
     public async Task<Result<CategoryDto>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken);
+        var category = await _categoryRepository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (category == null)
         {
             return Result<CategoryDto>.Failure(Error.NotFound("Category.NotFound", $"Category with ID '{request.Id}' was not found."));
@@ -74,7 +74,7 @@ public class GetCategoriesPagedQueryHandler : IRequestHandler<GetCategoriesPaged
             return Result.Success<IReadOnlyList<CategoryDto>>(new List<CategoryDto>());
         }
 
-        var categories = await _categoryRepository.GetAllAsync(cancellationToken);
+        var categories = await _categoryRepository.GetAllWithDetailsAsync(cancellationToken);
         var query = categories.AsQueryable();
 
         var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;

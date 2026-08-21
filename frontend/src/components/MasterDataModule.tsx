@@ -114,77 +114,74 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const hasMasterParent = userPerms.includes('masters:manage');
 
   const canAccessCompany = isSuper || (hasMasterParent && userPerms.includes('masters:company'));
+  const canAccessBranch = isSuper || (hasMasterParent && userPerms.includes('masters:branch'));
+  const canAccessWarehouse = isSuper || (hasMasterParent && userPerms.includes('masters:warehouse'));
+  const canAccessDepartment = isSuper || (hasMasterParent && userPerms.includes('masters:department'));
+
   const canAccessProduct = isSuper || (hasMasterParent && userPerms.includes('masters:product'));
+  const canAccessCategory = isSuper || (hasMasterParent && userPerms.includes('masters:category'));
+  const canAccessBrand = isSuper || (hasMasterParent && userPerms.includes('masters:brand'));
+  const canAccessUnit = isSuper || (hasMasterParent && userPerms.includes('masters:unit'));
+
   const canAccessEmployee = isSuper || (hasMasterParent && userPerms.includes('masters:employee'));
+  const canAccessDesignation = isSuper || (hasMasterParent && userPerms.includes('masters:designation'));
   const canAccessCustomer = isSuper || (hasMasterParent && userPerms.includes('masters:customer'));
   const canAccessSupplier = isSuper || (hasMasterParent && userPerms.includes('masters:supplier'));
 
   const isCurrentModuleAllowed = () => {
     if (isSuper) return true;
-    if (module.includes('companies') || module.includes('branches') || module.includes('warehouses') || module.includes('departments')) {
+    if (module === 'companies' || module === 'masters/companies') {
       return canAccessCompany;
     }
-    if (module.includes('products') || module.includes('categories') || module.includes('brands')) {
+    if (module === 'branches' || module === 'masters/branches') {
+      return canAccessBranch;
+    }
+    if (module === 'warehouses' || module === 'masters/warehouses') {
+      return canAccessWarehouse;
+    }
+    if (module === 'departments' || module === 'masters/departments') {
+      return canAccessDepartment;
+    }
+    if (module === 'products' || module === 'masters/products') {
       return canAccessProduct;
     }
-    if (module.includes('employees') || module.includes('designations')) {
+    if (module === 'categories' || module === 'masters/categories') {
+      return canAccessCategory;
+    }
+    if (module === 'brands' || module === 'masters/brands') {
+      return canAccessBrand;
+    }
+    if (module === 'units' || module === 'masters/units') {
+      return canAccessUnit;
+    }
+    if (module === 'employees' || module === 'masters/employees') {
       return canAccessEmployee;
     }
-    if (module.includes('customers')) {
+    if (module === 'designations' || module === 'masters/designations') {
+      return canAccessDesignation;
+    }
+    if (module === 'customers' || module === 'masters/customers') {
       return canAccessCustomer;
     }
-    if (module.includes('suppliers')) {
+    if (module === 'suppliers' || module === 'masters/suppliers') {
       return canAccessSupplier;
     }
     return true;
   };
 
-  // Master Repositories (Production Architecture: Companies live data)
+  // Master Repositories (Production Architecture: live data loaded from API)
   const [dbCompanies, setDbCompanies] = useState<any[]>([]);
-
   const [dbBranches, setDbBranches] = useState<any[]>([]);
-
-  const [dbDepartments, setDbDepartments] = useState([
-    { id: '1', branchId: '1', branchName: 'Delhi Main Branch', code: 'DEP-SCM', name: 'Supply Chain & Logistics', description: 'Manages warehouse stocking and distribution routes.', status: 'Active' },
-    { id: '2', branchId: '1', branchName: 'Delhi Main Branch', code: 'DEP-SLS', name: 'Field Sales & Distribution', description: 'Oversees trade marketing and key accounts.', status: 'Active' }
-  ]);
-
-  const [dbDesignations, setDbDesignations] = useState([
-    { id: '1', companyId: '1', companyName: 'INK FMCG India Pvt Ltd', code: 'DSG-DIR', title: 'Managing Director', level: 1, approvalLimit: 5000000, status: 'Active' },
-    { id: '2', companyId: '1', companyName: 'INK FMCG India Pvt Ltd', code: 'DSG-RSM', title: 'Regional Sales Manager', level: 3, approvalLimit: 500000, status: 'Active' }
-  ]);
-
-  const [dbEmployees, setDbEmployees] = useState([
-    { id: '1', companyId: '1', branchId: '1', departmentId: '2', designationId: '2', employeeCode: 'EMP-1001', firstName: 'Rajesh', lastName: 'Kumar', email: 'rajesh.k@ink-fmcg.com', phone: '+91 98100 12345', joiningDate: '2022-04-15', salary: 120000, status: 'Active' }
-  ]);
-
-  const [dbProducts, setDbProducts] = useState<Product[]>([
-    { id: '1', code: 'PROD-001', name: 'Premium Basmati Rice 5kg', category: 'Food & Grains', brand: 'India Gate', unit: 'Bag', price: 650, taxRate: 5, stockLevel: 1420, status: 'Active' }
-  ]);
-
-  const [dbCategories, setDbCategories] = useState<Category[]>([
-    { id: '1', code: 'CAT-001', name: 'Food & Grains', description: 'Essential raw rice, wheat flour, and pulses.', productCount: 42, status: 'Active' }
-  ]);
-
-  const [dbBrands, setDbBrands] = useState<Brand[]>([
-    { id: '1', code: 'BRND-001', name: 'India Gate', origin: 'India', productCount: 12, status: 'Active' }
-  ]);
-
-  const [dbUnits, setDbUnits] = useState<Unit[]>([
-    { id: '1', code: 'UOM-KG', name: 'Kilograms', baseUnit: 'Gram', conversionFactor: 1000, status: 'Active' }
-  ]);
-
-  const [dbWarehouses, setDbWarehouses] = useState<Warehouse[]>([
-    { id: '1', code: 'WH-DEL-HQ', name: 'Delhi Central Depot', address: 'Plot 45, Okhla Industrial Area Phase III, Delhi', capacitySft: 150000, manager: 'Aman Deep', status: 'Active' }
-  ]);
-
-  const [dbCustomers, setDbCustomers] = useState<Customer[]>([
-    { id: '1', code: 'CUST-201', name: 'Apex Retail Distributors', contact: '+91 98110 24512', email: 'billing@apexretail.com', balance: 425000, region: 'North', status: 'Active' }
-  ]);
-
-  const [dbSuppliers, setDbSuppliers] = useState<Supplier[]>([
-    { id: '1', code: 'SUPP-301', name: 'Hindustan Unilever Limited', contact: '+91 22441 55620', email: 'b2b.support@hul.com', balance: 3450000, category: 'National Brand Packaged', status: 'Active' }
-  ]);
+  const [dbDepartments, setDbDepartments] = useState<any[]>([]);
+  const [dbDesignations, setDbDesignations] = useState<any[]>([]);
+  const [dbEmployees, setDbEmployees] = useState<any[]>([]);
+  const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
+  const [dbBrands, setDbBrands] = useState<Brand[]>([]);
+  const [dbUnits, setDbUnits] = useState<Unit[]>([]);
+  const [dbWarehouses, setDbWarehouses] = useState<Warehouse[]>([]);
+  const [dbCustomers, setDbCustomers] = useState<Customer[]>([]);
+  const [dbSuppliers, setDbSuppliers] = useState<Supplier[]>([]);
 
   // Navigation State
   const [simulatedState, setSimulatedState] = useState<'normal' | 'loading' | 'empty' | 'error' | 'denied'>('normal');
@@ -288,7 +285,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
   // 9. Product
   const [prodCompanyId, setProdCompanyId] = useState('1');
-  const [prodCategoryId, setProdCategoryId] = useState('1');
+  const [prodParentCategoryId, setProdParentCategoryId] = useState('');
+  const [prodCategoryId, setProdCategoryId] = useState('');
+  const [isLegacyRootCategoryProduct, setIsLegacyRootCategoryProduct] = useState(false);
   const [prodBrandId, setProdBrandId] = useState('1');
   const [prodBaseUomId, setProdBaseUomId] = useState('1');
   const [prodName, setProdName] = useState('');
@@ -400,20 +399,18 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           try {
             const comps = await masterDataService.fetchCompanies({});
             const items = Array.isArray(comps) ? comps : (comps && Array.isArray(comps.items) ? comps.items : []);
-            if (items.length > 0) {
-              const mapped = items.map((c: any) => ({
-                id: c.id, code: c.code, legalName: c.legalName, tradeName: c.tradeName || c.legalName,
-                gstin: c.taxRegistrationNumber || '', pan: c.panNumber || '', email: c.email, phone: c.phone,
-                currency: c.currencyCode || 'INR', status: typeof c.status === 'number' ? (c.status === 1 ? 'Active' : c.status === 2 ? 'Archived' : 'Draft') : (c.status || 'Active'),
-                addressLine1: c.addressLine1 || '', city: c.city || '', state: c.state || '', postalCode: c.postalCode || '', country: c.country || 'India', rowVersion: c.rowVersion
-              }));
-              setDbCompanies(mapped);
-              if (mapped[0]?.id) {
-                setBranchCompanyId(mapped[0].id);
-                setDesigCompanyId(mapped[0].id);
-                setEmpCompanyId(mapped[0].id);
-                setWhCompanyId(mapped[0].id);
-              }
+            const mapped = items.map((c: any) => ({
+              id: c.id, code: c.code, legalName: c.legalName, tradeName: c.tradeName || c.legalName,
+              gstin: c.taxRegistrationNumber || '', pan: c.panNumber || '', email: c.email, phone: c.phone,
+              currency: c.currencyCode || 'INR', status: typeof c.status === 'number' ? (c.status === 1 ? 'Active' : c.status === 2 ? 'Archived' : 'Draft') : (c.status || 'Active'),
+              addressLine1: c.addressLine1 || '', city: c.city || '', state: c.state || '', postalCode: c.postalCode || '', country: c.country || 'India', rowVersion: c.rowVersion
+            }));
+            setDbCompanies(mapped);
+            if (mapped[0]?.id) {
+              setBranchCompanyId(mapped[0].id);
+              setDesigCompanyId(mapped[0].id);
+              setEmpCompanyId(mapped[0].id);
+              setWhCompanyId(mapped[0].id);
             }
           } catch (e) {}
         }
@@ -422,17 +419,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         try {
           const brRes = await masterDataService.fetchBranches({});
           const brItems = Array.isArray(brRes) ? brRes : (brRes && Array.isArray(brRes.items) ? brRes.items : []);
-          if (brItems.length > 0) {
-            const mappedBranches = brItems.map((x: any) => ({
-              id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
-              gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
-              addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
-              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
-            }));
-            setDbBranches(mappedBranches);
-            if (mappedBranches[0]?.id && (!whBranchId || !mappedBranches.some((b: any) => b.id === whBranchId))) {
-              setWhBranchId(mappedBranches[0].id);
-            }
+          const mappedBranches = brItems.map((x: any) => ({
+            id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+            gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
+            addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
+            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+          }));
+          setDbBranches(mappedBranches);
+          if (mappedBranches[0]?.id && (!whBranchId || !mappedBranches.some((b: any) => b.id === whBranchId))) {
+            setWhBranchId(mappedBranches[0].id);
           }
         } catch (e) {}
 
@@ -440,14 +435,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         try {
           const empRes = await masterDataService.fetchEmployees({});
           const empItems = Array.isArray(empRes) ? empRes : (empRes && Array.isArray(empRes.items) ? empRes.items : []);
-          if (empItems.length > 0) {
-            const mappedEmployees = empItems.map((x: any) => ({
-              id: x.id, employeeCode: x.code || x.employeeCode, firstName: x.firstName, lastName: x.lastName, email: x.email, phone: x.phone,
-              joiningDate: x.joiningDate, salary: x.salary, companyId: x.companyId, branchId: x.branchId, departmentId: x.departmentId, designationId: x.designationId,
-              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
-            }));
-            setDbEmployees(mappedEmployees);
-          }
+          const mappedEmployees = empItems.map((x: any) => ({
+            id: x.id, employeeCode: x.code || x.employeeCode, firstName: x.firstName, lastName: x.lastName, email: x.email, phone: x.phone,
+            joiningDate: x.joiningDate, salary: x.salary, companyId: x.companyId, branchId: x.branchId, departmentId: x.departmentId, designationId: x.designationId,
+            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+          }));
+          setDbEmployees(mappedEmployees);
         } catch (e) {}
         
                 if (module === 'companies' || module === 'masters/companies') {
@@ -483,28 +476,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             const whList = extractList(whRes);
             const dpList = extractList(dpRes);
 
-            if (brList.length > 0) {
-              setDbBranches(brList.map((x: any) => ({
-                id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
-                gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
-                addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
-                status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
-              })));
-            }
-            if (whList.length > 0) {
-              setDbWarehouses(whList.map((x: any) => ({
-                id: x.id, companyId: x.companyId, branchId: x.branchId, branchName: x.branchName || 'Main Branch',
-                code: x.code, name: x.name, warehouseType: x.warehouseType || 'Central Warehouse',
-                city: x.city || '', state: x.state || '',
-                status: x.status || (x.isActive ? 'Active' : 'Inactive')
-              })));
-            }
-            if (dpList.length > 0) {
-              setDbDepartments(dpList.map((x: any) => ({
-                id: x.id, code: x.code, name: x.name, description: x.description || '', branchId: x.branchId, branchName: x.branchName || 'Main Branch',
-                status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
-              })));
-            }
+            setDbBranches(brList.map((x: any) => ({
+              id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+              gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
+              addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
+              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            })));
+            setDbWarehouses(whList.map((x: any) => ({
+              id: x.id, companyId: x.companyId, branchId: x.branchId, branchName: x.branchName || 'Main Branch',
+              code: x.code, name: x.name, warehouseType: x.warehouseType || 'Central Warehouse',
+              city: x.city || '', state: x.state || '',
+              status: x.status || (x.isActive ? 'Active' : 'Inactive')
+            })));
+            setDbDepartments(dpList.map((x: any) => ({
+              id: x.id, code: x.code, name: x.name, description: x.description || '', branchId: x.branchId, branchName: x.branchName || 'Main Branch',
+              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
+            })));
           } catch (e) {}
 
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
@@ -583,10 +570,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             const dpList = extractList(dpRes);
             const desList = extractList(desRes);
 
-            if (compList.length > 0) setDbCompanies(compList);
-            if (brList.length > 0) setDbBranches(brList);
-            if (dpList.length > 0) setDbDepartments(dpList);
-            if (desList.length > 0) setDbDesignations(desList);
+            setDbCompanies(compList);
+            setDbBranches(brList);
+            setDbDepartments(dpList);
+            setDbDesignations(desList);
           } catch (e) {}
         } else if (module === 'products' || module === 'masters/products') {
           apiData = await masterDataService.fetchProducts(queryParams);
@@ -597,6 +584,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             companyName: x.companyName || '',
             categoryId: x.categoryId || '',
             categoryName: x.categoryName || x.category || '',
+            parentCategoryId: x.parentCategoryId || null,
+            parentCategoryName: x.parentCategoryName || '',
             brandId: x.brandId || '',
             brandName: x.brandName || x.brand || '',
             baseUomId: x.baseUomId || '',
@@ -612,8 +601,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             minOrderQty: x.minOrderQty ?? 1,
             shelfLifeDays: x.shelfLifeDays ?? 365,
             isBatchTracked: x.isBatchTracked ?? true,
-            category: x.categoryName || x.category || 'Default',
-            brand: x.brandName || x.brand || 'Default',
+            category: x.categoryName || x.category || '',
+            brand: x.brandName || x.brand || '',
             unit: x.baseUomCode || x.uomCode || x.unit || 'PCS',
             price: x.basePrice ?? x.price ?? 0,
             taxRate: x.gstRatePercent ?? x.taxRate ?? 5,
@@ -637,22 +626,25 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             const brandList = Array.isArray(brnds) ? brnds : (brnds && Array.isArray(brnds.items) ? brnds.items : []);
             const uomList = Array.isArray(uoms) ? uoms : (uoms && Array.isArray(uoms.items) ? uoms.items : []);
             
-            if (compList.length > 0) {
-              setDbCompanies(compList);
-              if (compList[0]?.id && !isGuid(prodCompanyId)) setProdCompanyId(compList[0].id);
-            }
-            if (catList.length > 0) {
-              setDbCategories(catList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, description: x.description || '', productCount: x.productCount || 0, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
-              if (catList[0]?.id && !isGuid(prodCategoryId)) setProdCategoryId(catList[0].id);
-            }
-            if (brandList.length > 0) {
-              setDbBrands(brandList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, origin: x.origin || '', productCount: x.productCount || 0, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
-              if (brandList[0]?.id && !isGuid(prodBrandId)) setProdBrandId(brandList[0].id);
-            }
-            if (uomList.length > 0) {
-              setDbUnits(uomList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, baseUnit: x.baseUnitCode || x.baseUnit || '', conversionFactor: x.conversionFactor || 1, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
-              if (uomList[0]?.id && !isGuid(prodBaseUomId)) setProdBaseUomId(uomList[0].id);
-            }
+            setDbCompanies(compList);
+            if (compList[0]?.id && !isGuid(prodCompanyId)) setProdCompanyId(compList[0].id);
+
+            setDbCategories(catList.map((x: any) => ({ 
+              id: x.id, 
+              code: x.code, 
+              name: x.name, 
+              parentCategoryId: x.parentCategoryId || null, 
+              parentCategoryName: x.parentCategoryName || '', 
+              companyId: x.companyId || '', 
+              description: x.description || '', 
+              productCount: x.productCount || 0, 
+              status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') 
+            })));
+
+            setDbBrands(brandList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, origin: x.origin || '', productCount: x.productCount || 0, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
+
+            setDbUnits(uomList.map((x: any) => ({ id: x.id, code: x.code, name: x.name, baseUnit: x.baseUnitCode || x.baseUnit || '', conversionFactor: x.conversionFactor || 1, status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : 'Draft') : (x.status || 'Active') })));
+            if (uomList[0]?.id && !isGuid(prodBaseUomId)) setProdBaseUomId(uomList[0].id);
           } catch (e) {}
         } else if (module === 'categories' || module === 'masters/categories') {
           apiData = await masterDataService.fetchCategories(queryParams);
@@ -678,11 +670,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           try {
             const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
             const compList = Array.isArray(compRes) ? compRes : (compRes && Array.isArray(compRes.items) ? compRes.items : []);
-            if (compList.length > 0) {
-              setDbCompanies(compList);
-              if (compList[0]?.id && !isGuid(catCompanyId)) {
-                setCatCompanyId(compList[0].id);
-              }
+            setDbCompanies(compList);
+            if (compList[0]?.id && !isGuid(catCompanyId)) {
+              setCatCompanyId(compList[0].id);
             }
           } catch (e) {}
         } else if (module === 'brands' || module === 'masters/brands') {
@@ -769,11 +759,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           try {
             const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
             const compList = Array.isArray(compRes) ? compRes : (compRes && Array.isArray(compRes.items) ? compRes.items : []);
-            if (compList.length > 0) {
-              setDbCompanies(compList);
-              if (compList[0]?.id && !isGuid(custCompanyId)) {
-                setCustCompanyId(compList[0].id);
-              }
+            setDbCompanies(compList);
+            if (compList[0]?.id && !isGuid(custCompanyId)) {
+              setCustCompanyId(compList[0].id);
             }
           } catch (e) {}
         } else if (module === 'suppliers' || module === 'masters/suppliers') {
@@ -865,7 +853,11 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         setFormCode(x.code);
         setProdName(x.name);
         setProdCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+
+        // Product Category (any depth in Category Tree)
         setProdCategoryId(x.categoryId || '');
+        setProdParentCategoryId(x.parentCategoryId || '');
+
         setProdBrandId(x.brandId || '');
         setProdBaseUomId(x.baseUomId || '');
         setProdBarcode(x.barcode || '');
@@ -1107,10 +1099,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.prodCompanyId = 'Company is required. Please select a valid Company.';
       }
       if (!prodCategoryId || !isGuid(prodCategoryId)) {
-        errors.prodCategoryId = 'Category is required. Please select a Category.';
-      }
-      if (!prodBrandId || !isGuid(prodBrandId)) {
-        errors.prodBrandId = 'Brand is required. Please select a Brand.';
+        errors.prodCategoryId = 'Product Category is required. Please select a Category.';
       }
       if (!prodBaseUomId || !isGuid(prodBaseUomId)) {
         errors.prodBaseUomId = 'Base Unit of Measure is required. Please select a UOM.';
@@ -1387,11 +1376,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Employee Updated', 'Employee staff record updated successfully.');
         }
       } else if (module === 'products' || module === 'masters/products') {
-        // Validation upstream guarantees these are real GUIDs — no dummy fallbacks
         const payload = {
           companyId: prodCompanyId,
           categoryId: prodCategoryId,
-          brandId: prodBrandId,
+          brandId: isGuid(prodBrandId) ? prodBrandId : null,
           baseUomId: prodBaseUomId,
           code: formCode.toUpperCase().trim(),
           name: prodName.trim(),
@@ -1802,21 +1790,29 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       )}
 
       {/* SUB-MENU TABS FOR NON-COMPANY PAGES (Branches, Warehouses, Departments) */}
-      {canAccessCompany && (module.includes('branches') || module.includes('warehouses') || module.includes('departments')) && (
+      {(canAccessCompany || canAccessBranch || canAccessWarehouse || canAccessDepartment) && (module.includes('branches') || module.includes('warehouses') || module.includes('departments')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Company Sub-Menus:</span>
-          <a href="/masters/companies" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-            <Building size={13} /> Company
-          </a>
-          <a href="/masters/branches" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('branches') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <Building size={13} /> Branches
-          </a>
-          <a href="/masters/warehouses" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('warehouses') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <Building size={13} /> Warehouse
-          </a>
-          <a href="/masters/departments" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('departments') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <Building size={13} /> Departments
-          </a>
+          {canAccessCompany && (
+            <a href="/masters/companies" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${(module === 'companies' || module === 'masters/companies') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Building size={13} /> Company
+            </a>
+          )}
+          {canAccessBranch && (
+            <a href="/masters/branches" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('branches') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Building size={13} /> Branches
+            </a>
+          )}
+          {canAccessWarehouse && (
+            <a href="/masters/warehouses" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('warehouses') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Building size={13} /> Warehouse / Stockist
+            </a>
+          )}
+          {canAccessDepartment && (
+            <a href="/masters/departments" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('departments') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Building size={13} /> Departments
+            </a>
+          )}
         </div>
       )}
 
@@ -1877,33 +1873,45 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       )}
 
       {/* SUB-MENU TABS FOR NON-PRODUCT PAGES (Categories, Brands, Units) */}
-      {canAccessProduct && (module.includes('categories') || module.includes('brands') || module.includes('units')) && (
+      {(canAccessProduct || canAccessCategory || canAccessBrand || canAccessUnit) && (module.includes('categories') || module.includes('brands') || module.includes('units')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Product Sub-Menus:</span>
-          <a href="/masters/products" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-            <Boxes size={13} /> Products
-          </a>
-          <a href="/masters/categories" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('categories') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <Tags size={13} /> Category
-          </a>
-          <a href="/masters/brands" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('brands') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <ClipboardList size={13} /> Brands
-          </a>
-          <a href="/masters/units" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('units') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <Boxes size={13} /> Units of Measure
-          </a>
+          {canAccessProduct && (
+            <a href="/masters/products" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${(module === 'products' || module === 'masters/products') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Boxes size={13} /> Products
+            </a>
+          )}
+          {canAccessCategory && (
+            <a href="/masters/categories" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('categories') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Tags size={13} /> Category
+            </a>
+          )}
+          {canAccessBrand && (
+            <a href="/masters/brands" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('brands') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <ClipboardList size={13} /> Brands
+            </a>
+          )}
+          {canAccessUnit && (
+            <a href="/masters/units" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('units') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Boxes size={13} /> Units of Measure
+            </a>
+          )}
         </div>
       )}
 
-      {canAccessEmployee && (module.includes('employees') || module.includes('designations')) && (
+      {(canAccessEmployee || canAccessDesignation) && (module.includes('employees') || module.includes('designations')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Employee Sub-Menus:</span>
-          <a href="/masters/employees" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employees') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <User size={13} /> Employees Roster
-          </a>
-          <a href="/masters/designations" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('designations') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
-            <Briefcase size={13} /> Designation
-          </a>
+          {canAccessEmployee && (
+            <a href="/masters/employees" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employees') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <User size={13} /> Employees Roster
+            </a>
+          )}
+          {canAccessDesignation && (
+            <a href="/masters/designations" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('designations') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <Briefcase size={13} /> Designation
+            </a>
+          )}
         </div>
       )}
 
@@ -1989,6 +1997,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   setMode('edit');
                 }}
                 onViewFullRegistry={() => setProductViewType('table')}
+                onCreateCategory={canAccessCategory ? () => {
+                  window.location.href = '/masters/categories';
+                } : undefined}
                 isLoading={simulatedState === 'loading'}
               />
             ) : (
@@ -1997,18 +2008,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 {(module === 'companies' || module === 'masters/companies') && (
                   <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Company Sub-Menus:</span>
-                    <a href="/masters/companies" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition bg-brand-primary text-white shadow-xs">
-                      <Building size={13} /> Company
-                    </a>
-                    <a href="/masters/branches" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-                      <Building size={13} /> Branches
-                    </a>
-                    <a href="/masters/warehouses" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-                      <Building size={13} /> Warehouse
-                    </a>
-                    <a href="/masters/departments" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-                      <Building size={13} /> Departments
-                    </a>
+                    {canAccessCompany && (
+                      <a href="/masters/companies" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition bg-brand-primary text-white shadow-xs">
+                        <Building size={13} /> Company
+                      </a>
+                    )}
+                    {canAccessBranch && (
+                      <a href="/masters/branches" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                        <Building size={13} /> Branches
+                      </a>
+                    )}
+                    {canAccessWarehouse && (
+                      <a href="/masters/warehouses" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                        <Building size={13} /> Warehouse / Stockist
+                      </a>
+                    )}
+                    {canAccessDepartment && (
+                      <a href="/masters/departments" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                        <Building size={13} /> Departments
+                      </a>
+                    )}
                   </div>
                 )}
 
@@ -2016,18 +2035,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 {(module === 'products' || module === 'masters/products') && (
                   <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Product Sub-Menus:</span>
-                    <a href="/masters/products" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition bg-brand-primary text-white shadow-xs">
-                      <Boxes size={13} /> Products
-                    </a>
-                    <a href="/masters/categories" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-                      <Tags size={13} /> Category
-                    </a>
-                    <a href="/masters/brands" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-                      <ClipboardList size={13} /> Brands
-                    </a>
-                    <a href="/masters/units" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
-                      <Boxes size={13} /> Units of Measure
-                    </a>
+                    {canAccessProduct && (
+                      <a href="/masters/products" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition bg-brand-primary text-white shadow-xs">
+                        <Boxes size={13} /> Products
+                      </a>
+                    )}
+                    {canAccessCategory && (
+                      <a href="/masters/categories" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                        <Tags size={13} /> Category
+                      </a>
+                    )}
+                    {canAccessBrand && (
+                      <a href="/masters/brands" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                        <ClipboardList size={13} /> Brands
+                      </a>
+                    )}
+                    {canAccessUnit && (
+                      <a href="/masters/units" className="px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition text-slate-700 hover:bg-slate-100">
+                        <Boxes size={13} /> Units of Measure
+                      </a>
+                    )}
                   </div>
                 )}
 
@@ -3138,37 +3165,62 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
 
-                  {/* Row 2: Category, Brand, UOM — Required dropdowns */}
+                  {/* Row 2: Category (Tree), Brand, Base UOM */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/20 p-4 rounded-lg border border-blue-100">
-                    {/* 1. Category */}
+                    {/* 1. Product Category (Hierarchical Tree Select) */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Category <span className="text-red-500">*</span></label>
+                      <label className="font-bold text-brand-text-primary">Product Category <span className="text-red-500">*</span></label>
                       <select
                         value={prodCategoryId}
-                        onChange={e => { setProdCategoryId(e.target.value); setFormErrors(p => ({ ...p, prodCategoryId: '' })); }}
+                        onChange={e => { 
+                          setProdCategoryId(e.target.value); 
+                          setFormErrors(p => ({ ...p, prodCategoryId: '' })); 
+                        }}
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodCategoryId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
-                        <option value="">-- Select Category --</option>
-                        {dbCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        <option value="">-- Select Product Category --</option>
+                        {(() => {
+                          const companyCats = dbCategories.filter(c => !prodCompanyId || !c.companyId || c.companyId === prodCompanyId);
+                          const roots = companyCats.filter(c => !c.parentCategoryId || !companyCats.some(p => p.id === c.parentCategoryId));
+                          const options: { id: string; name: string; code: string; depth: number }[] = [];
+                          
+                          const traverse = (cat: Category, depth: number) => {
+                            options.push({ id: cat.id, name: cat.name, code: cat.code, depth });
+                            const children = companyCats.filter(c => c.parentCategoryId === cat.id && c.id !== cat.id);
+                            children.forEach(child => traverse(child, depth + 1));
+                          };
+
+                          roots.forEach(r => traverse(r, 0));
+                          return options.map(opt => (
+                            <option key={opt.id} value={opt.id}>
+                              {'\u00A0\u00A0'.repeat(opt.depth)}{opt.depth > 0 ? '└─ ' : ''}{opt.name} ({opt.code})
+                            </option>
+                          ));
+                        })()}
                       </select>
                       {formErrors.prodCategoryId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodCategoryId}</p>}
                     </div>
 
                     {/* 2. Brand */}
+                    {/* 2. Brand (Optional) */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Brand <span className="text-red-500">*</span></label>
+                      <label className="font-bold text-brand-text-primary">
+                        Brand <span className="text-[10px] font-normal text-slate-400 normal-case">(optional)</span>
+                      </label>
                       <select
                         value={prodBrandId}
                         onChange={e => { setProdBrandId(e.target.value); setFormErrors(p => ({ ...p, prodBrandId: '' })); }}
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodBrandId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
-                        <option value="">-- Select Brand --</option>
-                        {dbBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        <option value="">-- No Brand / Unbranded --</option>
+                        {dbBrands
+                          .filter(b => !prodCompanyId || !b.companyId || b.companyId === prodCompanyId)
+                          .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
                       {formErrors.prodBrandId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodBrandId}</p>}
                     </div>
 
-                    {/* 3. Unit of Measure */}
+                    {/* 3. Base Unit of Measure */}
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Base Unit of Measure <span className="text-red-500">*</span></label>
                       <select
@@ -3177,7 +3229,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodBaseUomId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
                         <option value="">-- Select UOM --</option>
-                        {dbUnits.map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
+                        {dbUnits
+                          .filter(u => !prodCompanyId || !u.companyId || u.companyId === prodCompanyId)
+                          .map(u => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}
                       </select>
                       {formErrors.prodBaseUomId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodBaseUomId}</p>}
                     </div>
@@ -3276,9 +3330,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-amber-50/30 p-4 rounded-lg border border-amber-200/60">
                     <div className="space-y-1 md:col-span-2">
                       <label className="font-bold text-brand-text-primary flex items-center justify-between">
-                        <span>Parent Category (Hierarchy Classification)</span>
+                        <span>Parent Category (Optional)</span>
                         <span className="text-[10px] text-brand-text-secondary font-normal">
-                          {catParentId ? 'Child Category (Subcategory)' : 'Top-Level Root Category'}
+                          {catParentId ? 'Child Category' : 'Top-Level Root Category'}
                         </span>
                       </label>
                       <select
@@ -3287,20 +3341,45 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.catParentId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
                         <option value="">-- None / Top-Level (Root Category) --</option>
-                        {dbCategories
-                          .filter(c => {
-                            if (selectedId && c.id === selectedId) return false;
-                            return true;
-                          })
-                          .map(c => (
-                            <option key={c.id} value={c.id}>
-                              {c.name} ({c.code}){c.parentCategoryName ? ` [Sub of ${c.parentCategoryName}]` : ' [Root]'}
+                        {(() => {
+                          // Helper to get all descendant IDs to prevent cycle assignment
+                          const getDescendantIds = (catId: string, allCats: Category[]): Set<string> => {
+                            const descendants = new Set<string>();
+                            const stack = [catId];
+                            while (stack.length > 0) {
+                              const curr = stack.pop()!;
+                              allCats.forEach(c => {
+                                if (c.parentCategoryId === curr && !descendants.has(c.id)) {
+                                  descendants.add(c.id);
+                                  stack.push(c.id);
+                                }
+                              });
+                            }
+                            return descendants;
+                          };
+
+                          const excludedIds = selectedId ? new Set([selectedId, ...getDescendantIds(selectedId, dbCategories)]) : new Set<string>();
+                          const companyCats = dbCategories.filter(c => (!catCompanyId || !c.companyId || c.companyId === catCompanyId) && !excludedIds.has(c.id));
+                          const roots = companyCats.filter(c => !c.parentCategoryId || !companyCats.some(p => p.id === c.parentCategoryId));
+                          const options: { id: string; name: string; code: string; depth: number }[] = [];
+                          
+                          const traverse = (cat: Category, depth: number) => {
+                            options.push({ id: cat.id, name: cat.name, code: cat.code, depth });
+                            const children = companyCats.filter(c => c.parentCategoryId === cat.id && c.id !== cat.id);
+                            children.forEach(child => traverse(child, depth + 1));
+                          };
+
+                          roots.forEach(r => traverse(r, 0));
+                          return options.map(opt => (
+                            <option key={opt.id} value={opt.id}>
+                              {'\u00A0\u00A0'.repeat(opt.depth)}{opt.depth > 0 ? '└─ ' : ''}{opt.name} ({opt.code})
                             </option>
-                          ))}
+                          ));
+                        })()}
                       </select>
                       {formErrors.catParentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catParentId}</p>}
                       <p className="text-[11px] text-brand-text-secondary mt-0.5">
-                        Leave as &quot;None / Top-Level&quot; to create a primary Root Category. Select an existing Category to create a Subcategory.
+                        Leave as &quot;None / Top-Level&quot; to create a primary Root Category. Select any existing Category to nest under it at arbitrary depth.
                       </p>
                     </div>
                   </div>

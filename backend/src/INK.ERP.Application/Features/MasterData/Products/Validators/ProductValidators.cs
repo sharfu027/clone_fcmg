@@ -13,9 +13,6 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
         RuleFor(x => x.CategoryId)
             .NotEmpty().WithMessage("Category ID is required.");
 
-        RuleFor(x => x.BrandId)
-            .NotEmpty().WithMessage("Brand ID is required.");
-
         RuleFor(x => x.BaseUomId)
             .NotEmpty().WithMessage("Base UOM ID is required.");
 
@@ -51,9 +48,6 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
 
         RuleFor(x => x.CategoryId)
             .NotEmpty().WithMessage("Category ID is required.");
-
-        RuleFor(x => x.BrandId)
-            .NotEmpty().WithMessage("Brand ID is required.");
 
         RuleFor(x => x.BaseUomId)
             .NotEmpty().WithMessage("Base UOM ID is required.");

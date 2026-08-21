@@ -20,7 +20,7 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, R
 
     public async Task<Result<ProductDto>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        var product = await _productRepository.GetByIdAsync(request.Id, cancellationToken);
+        var product = await _productRepository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (product == null)
         {
             return Result<ProductDto>.Failure(Error.NotFound("Product.NotFound", $"Product with ID '{request.Id}' was not found."));
@@ -37,6 +37,8 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, R
             product.Company?.LegalName,
             product.CategoryId,
             product.Category?.Name,
+            product.Category?.ParentCategoryId,
+            product.Category?.ParentCategory?.Name,
             product.BrandId,
             product.Brand?.Name,
             product.BaseUomId,
@@ -87,7 +89,7 @@ public class GetProductsPagedQueryHandler : IRequestHandler<GetProductsPagedQuer
             return Result.Success<IReadOnlyList<ProductDto>>(new List<ProductDto>());
         }
 
-        var products = await _productRepository.GetAllAsync(cancellationToken);
+        var products = await _productRepository.GetAllWithDetailsAsync(cancellationToken);
         var query = products.AsQueryable();
 
         var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
@@ -130,6 +132,8 @@ public class GetProductsPagedQueryHandler : IRequestHandler<GetProductsPagedQuer
                 product.Company != null ? product.Company.LegalName : null,
                 product.CategoryId,
                 product.Category != null ? product.Category.Name : null,
+                product.Category != null ? product.Category.ParentCategoryId : null,
+                product.Category != null && product.Category.ParentCategory != null ? product.Category.ParentCategory.Name : null,
                 product.BrandId,
                 product.Brand != null ? product.Brand.Name : null,
                 product.BaseUomId,

@@ -91,7 +91,9 @@ export default function EnterpriseLayout({
 
     // Root Super Admin bypass
     const isRootSuper = activeRole === 'Super Admin' ||
+                        activeRole === 'Super Administrator' ||
                         user?.role === 'Super Admin' ||
+                        user?.role === 'Super Administrator' ||
                         user?.permissions?.includes('manage:all') ||
                         (user?.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;
@@ -108,7 +110,9 @@ export default function EnterpriseLayout({
     if (!user || !user.permissions || user.permissions.length === 0) return false;
 
     const isRootSuper = activeRole === 'Super Admin' ||
+                        activeRole === 'Super Administrator' ||
                         user?.role === 'Super Admin' ||
+                        user?.role === 'Super Administrator' ||
                         user?.permissions?.includes('manage:all') ||
                         (user?.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;

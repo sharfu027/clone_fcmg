@@ -75,6 +75,7 @@ export default function SidebarNavigation({
 
     // Root Super Admin bypass
     const isRootSuper = user.role === 'Super Admin' ||
+                        user.role === 'Super Administrator' ||
                         user.permissions.includes('manage:all') ||
                         (user.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;
@@ -91,6 +92,7 @@ export default function SidebarNavigation({
     if (!user || !user.permissions || user.permissions.length === 0) return false;
 
     const isRootSuper = user.role === 'Super Admin' ||
+                        user.role === 'Super Administrator' ||
                         user.permissions.includes('manage:all') ||
                         (user.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;

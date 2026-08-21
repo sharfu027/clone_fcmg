@@ -11,6 +11,23 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
     {
     }
 
+    public async Task<Category?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(c => c.Company)
+            .Include(c => c.ParentCategory)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Category>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(c => c.Company)
+            .Include(c => c.ParentCategory)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> IsCodeUniqueAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
         var normalizedCode = code.ToUpperInvariant().Trim();

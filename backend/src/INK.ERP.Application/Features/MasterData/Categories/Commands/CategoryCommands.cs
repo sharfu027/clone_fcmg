@@ -65,6 +65,7 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
             {
                 return Result<CategoryDto>.Failure(Error.NotFound("Category.ParentNotFound", $"Parent Category with ID '{request.ParentCategoryId.Value}' does not exist or does not belong to the authorized company."));
             }
+
             parentCategoryName = parent.Name;
         }
 
@@ -166,6 +167,21 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
             {
                 return Result<CategoryDto>.Failure(Error.NotFound("Category.ParentNotFound", $"Parent Category with ID '{request.ParentCategoryId.Value}' does not exist or does not belong to the authorized company."));
             }
+
+            // Circular reference check: ensure request.Id is not an ancestor of request.ParentCategoryId
+            var allCategories = await _categoryRepository.GetAllAsync(cancellationToken);
+            var currentParent = allCategories.FirstOrDefault(c => c.Id == request.ParentCategoryId.Value);
+            var visited = new HashSet<Guid> { request.Id };
+            while (currentParent != null && currentParent.ParentCategoryId.HasValue)
+            {
+                if (visited.Contains(currentParent.ParentCategoryId.Value))
+                {
+                    return Result<CategoryDto>.Failure(Error.Validation("Category.CircularReference", "Cannot set parent category as it would create a circular dependency loop in the hierarchy."));
+                }
+                visited.Add(currentParent.Id);
+                currentParent = allCategories.FirstOrDefault(c => c.Id == currentParent.ParentCategoryId.Value);
+            }
+
             parentCategoryName = parent.Name;
         }
 

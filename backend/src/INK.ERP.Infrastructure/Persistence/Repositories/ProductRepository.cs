@@ -17,8 +17,21 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .Include(p => p.BaseUom)
             .Include(p => p.Company)
             .Include(p => p.Category)
+                .ThenInclude(c => c!.ParentCategory)
             .Include(p => p.Brand)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Product>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.BaseUom)
+            .Include(p => p.Company)
+            .Include(p => p.Category)
+                .ThenInclude(c => c!.ParentCategory)
+            .Include(p => p.Brand)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> IsCodeUniqueAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken cancellationToken = default)
