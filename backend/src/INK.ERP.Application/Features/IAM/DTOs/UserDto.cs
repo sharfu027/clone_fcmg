@@ -21,4 +21,7 @@ public sealed record UserDto(
     string? ProfileImageUrl,
     DateTime CreatedAtUtc,
     DateTime? LastModifiedAtUtc,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    Guid? AssignedCompanyId = null,
+    string? AssignedCompanyName = null,
+    string? AssignedCompanyCode = null);

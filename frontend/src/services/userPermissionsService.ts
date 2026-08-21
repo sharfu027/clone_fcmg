@@ -1,5 +1,5 @@
 import { UserRole } from '../types';
-import { getPermissionsForRole, ROLE_PERMISSIONS_MAP } from '../constants/roles';
+import { getPermissionsForRole, ROLE_PERMISSIONS_MAP, normalizePermissionDependencies } from '../constants/roles';
 
 export const saveUserRoleAndPermissions = (
   userId: string,
@@ -11,14 +11,15 @@ export const saveUserRoleAndPermissions = (
   adminCode?: string
 ): void => {
   try {
-    const data = { roleName, permissions, companyName, companyLogo, adminCode, updatedAt: new Date().toISOString() };
+    const cleanPermissions = normalizePermissionDependencies(permissions);
+    const data = { roleName, permissions: cleanPermissions, companyName, companyLogo, adminCode, updatedAt: new Date().toISOString() };
     const cleanEmail = email ? email.toLowerCase().trim() : '';
     const rawUsername = cleanEmail ? cleanEmail.split('@')[0] : '';
     const username = rawUsername.replace(/\s+/g, '');
 
     if (userId) {
       localStorage.setItem(`ink_user_access_${userId}`, JSON.stringify(data));
-      localStorage.setItem(`ink_user_permissions_${userId}`, JSON.stringify(permissions));
+      localStorage.setItem(`ink_user_permissions_${userId}`, JSON.stringify(cleanPermissions));
     }
     if (cleanEmail) {
       localStorage.setItem(`ink_user_access_${cleanEmail}`, JSON.stringify(data));
@@ -81,44 +82,21 @@ export const saveUserRoleAndPermissions = (
 export const getUserAccessSettings = (
   userId?: string,
   email?: string,
-  defaultRole: string = 'Sales Representative'
+  defaultRole: string = ''
 ): { roleName: string; permissions: string[]; companyName?: string; companyLogo?: string; adminCode?: string } => {
   try {
     let raw = null;
     const cleanEmail = email ? email.toLowerCase().trim() : '';
-    const rawUsername = cleanEmail ? cleanEmail.split('@')[0] : '';
-    const username = rawUsername.replace(/\s+/g, '');
 
     if (userId) raw = localStorage.getItem(`ink_user_access_${userId}`);
     if (!raw && cleanEmail) raw = localStorage.getItem(`ink_user_access_${cleanEmail}`);
-    if (!raw && rawUsername) raw = localStorage.getItem(`ink_user_access_${rawUsername}`);
-    if (!raw && username) raw = localStorage.getItem(`ink_user_access_${username}`);
-    if (!raw && userId) raw = localStorage.getItem(`ink_user_permissions_${userId}`);
-    if (!raw && cleanEmail) raw = localStorage.getItem(`ink_user_permissions_${cleanEmail}`);
-    if (!raw && rawUsername) raw = localStorage.getItem(`ink_user_permissions_${rawUsername}`);
-    if (!raw && username) raw = localStorage.getItem(`ink_user_permissions_${username}`);
 
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed) {
-        const storedRole = parsed.roleName || defaultRole;
-        const rawPerms = Array.isArray(parsed) ? parsed : (parsed.permissions || []);
-        
-        const isRootSuperAdmin = cleanEmail.includes('superadmin') || (rawUsername && rawUsername.includes('superadmin')) || (username && username.includes('superadmin'));
-        if (isRootSuperAdmin) {
-          return {
-            roleName: 'Super Admin',
-            permissions: ROLE_PERMISSIONS_MAP['Super Admin'],
-            companyName: parsed.companyName,
-            companyLogo: parsed.companyLogo,
-            adminCode: 'SA-001'
-          };
-        }
-
-        const resolvedPerms = rawPerms.includes('read:dashboard') ? rawPerms : ['read:dashboard', ...rawPerms];
         return {
-          roleName: storedRole,
-          permissions: resolvedPerms,
+          roleName: parsed.roleName || defaultRole,
+          permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
           companyName: parsed.companyName,
           companyLogo: parsed.companyLogo,
           adminCode: parsed.adminCode
@@ -129,18 +107,9 @@ export const getUserAccessSettings = (
     console.error('Error reading user access settings:', e);
   }
 
-  // Super Admin root fallback
-  if (email && email.toLowerCase().includes('superadmin')) {
-    return {
-      roleName: 'Super Admin',
-      permissions: ROLE_PERMISSIONS_MAP['Super Admin']
-    };
-  }
-
-  // Sub-Admin role fallback: Only grant dashboard access by default until Super-Admin explicitly configures module clearances
   return {
     roleName: defaultRole,
-    permissions: ['read:dashboard']
+    permissions: []
   };
 };
 

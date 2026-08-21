@@ -37,8 +37,8 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
             return Result.Failure<UserDto>(IamErrors.User.NotFound(request.UserId));
         }
 
-        var isSuperAdmin = _currentUserService.Roles.Contains("Super Admin");
-        var isSubAdmin = _currentUserService.Roles.Contains("Admin");
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+        var isSubAdmin = _currentUserService.Roles.Contains("Administrator");
         var currentUserIdGuid = Guid.TryParse(_currentUserService.UserId, out var parsedId) ? parsedId : Guid.Empty;
 
         var targetUserRoles = await userRoleRepo.FindAsync(ur => ur.UserId == user.Id && !ur.IsDeleted, cancellationToken);
@@ -50,10 +50,21 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
         // Sub-Admins CANNOT view Super Admins or OTHER Admins (unless it's their own account)
         if (isSubAdmin && !isSuperAdmin && user.Id != currentUserIdGuid)
         {
-            if (targetRoleNames.Contains("Super Admin") || targetRoleNames.Contains("Admin"))
+            if (targetRoleNames.Contains("Super Administrator") || targetRoleNames.Contains("Administrator"))
             {
                 return Result.Failure<UserDto>(IamErrors.User.NotFound(request.UserId));
             }
+        }
+
+        var assignmentRepo = _unitOfWork.Repository<AdminCompanyAssignment>();
+        var companyRepo = _unitOfWork.Repository<INK.ERP.Domain.Entities.MasterData.Company>();
+
+        var assignmentList = await assignmentRepo.FindAsync(a => a.AdminUserId == user.Id && a.IsActive, cancellationToken);
+        var activeAssignment = assignmentList.FirstOrDefault();
+        INK.ERP.Domain.Entities.MasterData.Company? company = null;
+        if (activeAssignment != null)
+        {
+            company = await companyRepo.GetByIdAsync(activeAssignment.CompanyId, cancellationToken);
         }
 
         var dto = new UserDto(
@@ -77,7 +88,10 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
             user.ProfileImageUrl,
             user.CreatedAtUtc,
             user.LastModifiedAtUtc,
-            targetRoleNames);
+            targetRoleNames,
+            company?.Id,
+            company?.LegalName,
+            company?.Code);
 
         return Result.Success(dto);
     }
@@ -103,15 +117,15 @@ public sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result
         var userRoleRepo = _unitOfWork.Repository<UserRole>();
         var roleRepo = _unitOfWork.Repository<ApplicationRole>();
 
-        var isSuperAdmin = _currentUserService.Roles.Contains("Super Admin");
-        var isSubAdmin = _currentUserService.Roles.Contains("Admin");
+        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
+        var isSubAdmin = _currentUserService.Roles.Contains("Administrator");
         var currentUserIdGuid = Guid.TryParse(_currentUserService.UserId, out var parsedId) ? parsedId : Guid.Empty;
 
         var restrictedUserIds = new HashSet<Guid>();
 
         if (isSubAdmin && !isSuperAdmin)
         {
-            var adminRoles = await roleRepo.FindAsync(r => (r.Name == "Super Admin" || r.Name == "Admin") && !r.IsDeleted, cancellationToken);
+            var adminRoles = await roleRepo.FindAsync(r => (r.Name == "Super Administrator" || r.Name == "Administrator") && !r.IsDeleted, cancellationToken);
             var adminRoleIds = adminRoles.Select(r => r.Id).ToList();
 
             var adminUserRoles = await userRoleRepo.FindAsync(ur => adminRoleIds.Contains(ur.RoleId) && !ur.IsDeleted, cancellationToken);
@@ -135,29 +149,50 @@ public sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result
             .GroupBy(ur => ur.UserId)
             .ToDictionary(g => g.Key, g => g.Select(ur => roleMap.GetValueOrDefault(ur.RoleId, string.Empty)).Where(n => !string.IsNullOrEmpty(n)).ToList());
 
-        var resultDtos = users.Select(user => new UserDto(
-            user.Id,
-            user.UserName ?? string.Empty,
-            user.Email ?? string.Empty,
-            user.PhoneNumber,
-            user.FirstName,
-            user.LastName,
-            user.DisplayName,
-            user.EmployeeId,
-            user.IsActive,
-            user.IsLocked,
-            user.IsDeleted,
-            user.LastLoginUtc,
-            user.TwoFactorEnabled,
-            user.EmailConfirmed,
-            user.RequirePasswordChange,
-            user.PreferredLanguage,
-            user.TimeZone,
-            user.ProfileImageUrl,
-            user.CreatedAtUtc,
-            user.LastModifiedAtUtc,
-            userRolesMap.GetValueOrDefault(user.Id, new List<string>())
-        )).ToList();
+        var assignmentRepo = _unitOfWork.Repository<AdminCompanyAssignment>();
+        var companyRepo = _unitOfWork.Repository<INK.ERP.Domain.Entities.MasterData.Company>();
+
+        var assignments = await assignmentRepo.FindAsync(a => userIds.Contains(a.AdminUserId) && a.IsActive, cancellationToken);
+        var companyIds = assignments.Select(a => a.CompanyId).Distinct().ToList();
+        var companies = await companyRepo.FindAsync(c => companyIds.Contains(c.Id) && !c.IsDeleted, cancellationToken);
+        var companyMap = companies.ToDictionary(c => c.Id, c => c);
+        var userAssignmentMap = assignments.ToDictionary(a => a.AdminUserId, a => a);
+
+        var resultDtos = users.Select(user => {
+            userAssignmentMap.TryGetValue(user.Id, out var assign);
+            INK.ERP.Domain.Entities.MasterData.Company? comp = null;
+            if (assign != null && companyMap.TryGetValue(assign.CompanyId, out var c))
+            {
+                comp = c;
+            }
+
+            return new UserDto(
+                user.Id,
+                user.UserName ?? string.Empty,
+                user.Email ?? string.Empty,
+                user.PhoneNumber,
+                user.FirstName,
+                user.LastName,
+                user.DisplayName,
+                user.EmployeeId,
+                user.IsActive,
+                user.IsLocked,
+                user.IsDeleted,
+                user.LastLoginUtc,
+                user.TwoFactorEnabled,
+                user.EmailConfirmed,
+                user.RequirePasswordChange,
+                user.PreferredLanguage,
+                user.TimeZone,
+                user.ProfileImageUrl,
+                user.CreatedAtUtc,
+                user.LastModifiedAtUtc,
+                userRolesMap.GetValueOrDefault(user.Id, new List<string>()),
+                comp?.Id,
+                comp?.LegalName,
+                comp?.Code
+            );
+        }).ToList();
 
         var pagedResult = PagedResult<UserDto>.Create(resultDtos, totalCount, request.Filter.PageNumber, request.Filter.PageSize);
         return Result.Success(pagedResult);

@@ -428,10 +428,30 @@ public sealed class UpdateRolePermissionsCommandHandler : IRequestHandler<Update
         var rolePermRepo = _unitOfWork.Repository<RolePermission>();
         var existingPerms = await rolePermRepo.FindAsync(rp => rp.RoleId == request.RoleId, cancellationToken);
 
+        var permRepo = _unitOfWork.Repository<Permission>();
+        var allPerms = await permRepo.GetAllAsync(cancellationToken);
+        var targetPerms = allPerms.Where(p => request.PermissionIds.Contains(p.Id)).ToList();
+        
+        bool hasBranchPerm = targetPerms.Any(p => 
+            p.Code.Equals("masters:branch", StringComparison.OrdinalIgnoreCase) || 
+            p.Code.Equals("manage:all", StringComparison.OrdinalIgnoreCase));
+
+        var effectivePermissionIds = request.PermissionIds;
+        if (!hasBranchPerm)
+        {
+            var invalidPermIds = targetPerms
+                .Where(p => p.Code.Equals("masters:department", StringComparison.OrdinalIgnoreCase) || 
+                            p.Code.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.Id)
+                .ToHashSet();
+
+            effectivePermissionIds = effectivePermissionIds.Where(id => !invalidPermIds.Contains(id)).ToList();
+        }
+
         // Soft delete removed perms
         foreach (var existing in existingPerms)
         {
-            if (!request.PermissionIds.Contains(existing.PermissionId))
+            if (!effectivePermissionIds.Contains(existing.PermissionId))
             {
                 existing.IsDeleted = true;
                 existing.DeletedAtUtc = _dateTime.UtcNow;
@@ -447,7 +467,7 @@ public sealed class UpdateRolePermissionsCommandHandler : IRequestHandler<Update
 
         // Add new perms
         var existingPermIds = existingPerms.Select(p => p.PermissionId).ToHashSet();
-        foreach (var pId in request.PermissionIds)
+        foreach (var pId in effectivePermissionIds)
         {
             if (!existingPermIds.Contains(pId))
             {

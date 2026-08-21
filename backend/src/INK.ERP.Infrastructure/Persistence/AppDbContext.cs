@@ -35,6 +35,25 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.Property(e => e.OccurredOnUtc).IsRequired();
         });
 
+        // Admin Company Assignment Configuration (Multi-Tenant Scoping)
+        builder.Entity<AdminCompanyAssignment>(entity =>
+        {
+            entity.ToTable("admin_company_assignments", "iam");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.AdminUserId, e.IsActive })
+                .IsUnique()
+                .HasFilter("\"IsActive\" = true");
+            entity.HasIndex(e => new { e.CompanyId, e.IsActive });
+            entity.HasOne(e => e.AdminUser)
+                .WithMany()
+                .HasForeignKey(e => e.AdminUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Company)
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<INK.ERP.Domain.Entities.Warehouse>(entity => { entity.ToTable("warehouses", "warehouse"); });
         builder.Entity<INK.ERP.Domain.Entities.SalesOrder>(entity => { entity.ToTable("sales_orders", "sales"); });
 
@@ -147,6 +166,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<UserRole> IAMUserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<AdminCompanyAssignment> AdminCompanyAssignments => Set<AdminCompanyAssignment>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<LoginHistory> LoginHistories => Set<LoginHistory>();

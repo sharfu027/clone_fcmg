@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Suppliers.DTOs;
@@ -9,11 +12,11 @@ namespace INK.ERP.Application.Features.MasterData.Suppliers.Commands;
 
 public record CreateSupplierCommand(
     Guid CompanyId,
-    string Code,
+    string? Code,
     string LegalName,
     string? TradeName,
-    string Gstin,
-    string Pan,
+    string? Gstin,
+    string? Pan,
     string Email,
     string Phone,
     string AddressLine1,
@@ -23,60 +26,64 @@ public record CreateSupplierCommand(
     string PostalCode,
     string Country,
     int PaymentTermsDays,
-    decimal? CreditLimit) : IRequest<Result<SupplierDto>>;
+    decimal CreditLimit) : IRequest<Result<SupplierDto>>;
 
 public class CreateSupplierCommandHandler : IRequestHandler<CreateSupplierCommand, Result<SupplierDto>>
 {
     private readonly ISupplierRepository _supplierRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateSupplierCommandHandler(ISupplierRepository supplierRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public CreateSupplierCommandHandler(
+        ISupplierRepository supplierRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _supplierRepository = supplierRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<SupplierDto>> Handle(CreateSupplierCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            return Result<SupplierDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<SupplierDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
         }
 
-        string finalCode = request.Code;
-        if (string.IsNullOrWhiteSpace(finalCode) || string.Equals(finalCode, "AUTO", StringComparison.OrdinalIgnoreCase))
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
         {
-            finalCode = await _supplierRepository.GenerateNextCodeAsync(request.CompanyId, cancellationToken);
-        }
-        else
-        {
-            finalCode = finalCode.ToUpperInvariant().Trim();
-            if (!await _supplierRepository.IsCodeUniqueAsync(request.CompanyId, finalCode, null, cancellationToken))
-            {
-                finalCode = await _supplierRepository.GenerateNextCodeAsync(request.CompanyId, cancellationToken);
-            }
+            return Result<SupplierDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
         }
 
-        if (!await _supplierRepository.IsGstinUniqueAsync(request.CompanyId, request.Gstin, null, cancellationToken))
+        var code = string.IsNullOrWhiteSpace(request.Code)
+            ? await _supplierRepository.GenerateNextCodeAsync(targetCompanyId, cancellationToken)
+            : request.Code.ToUpperInvariant().Trim();
+
+        if (!await _supplierRepository.IsCodeUniqueAsync(targetCompanyId, code, null, cancellationToken))
         {
-            return Result<SupplierDto>.Failure(Error.Conflict("Supplier.DuplicateGstin", $"Supplier GSTIN '{request.Gstin}' already exists under company '{company.LegalName}'."));
+            return Result<SupplierDto>.Failure(Error.Conflict("Supplier.DuplicateCode", $"Supplier code '{code}' already exists under company '{company.LegalName}'."));
         }
 
         var supplier = new Supplier
         {
-            CompanyId = request.CompanyId,
-            Code = finalCode,
+            CompanyId = targetCompanyId,
+            Code = code,
             LegalName = request.LegalName.Trim(),
             TradeName = request.TradeName?.Trim(),
-            Gstin = request.Gstin.ToUpperInvariant().Trim(),
-            Pan = request.Pan.ToUpperInvariant().Trim(),
+            Gstin = request.Gstin?.ToUpperInvariant().Trim() ?? string.Empty,
+            Pan = request.Pan?.ToUpperInvariant().Trim() ?? string.Empty,
             Email = request.Email.Trim(),
             Phone = request.Phone.Trim(),
             Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country),
-            PaymentTermsDays = request.PaymentTermsDays <= 0 ? 30 : request.PaymentTermsDays,
+            PaymentTermsDays = request.PaymentTermsDays,
             CreditLimit = request.CreditLimit,
             IsActive = true
         };
@@ -116,8 +123,8 @@ public record UpdateSupplierCommand(
     string Code,
     string LegalName,
     string? TradeName,
-    string Gstin,
-    string Pan,
+    string? Gstin,
+    string? Pan,
     string Email,
     string Phone,
     string AddressLine1,
@@ -127,7 +134,7 @@ public record UpdateSupplierCommand(
     string PostalCode,
     string Country,
     int PaymentTermsDays,
-    decimal? CreditLimit,
+    decimal CreditLimit,
     bool IsActive) : IRequest<Result<SupplierDto>>;
 
 public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierCommand, Result<SupplierDto>>
@@ -135,12 +142,18 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
     private readonly ISupplierRepository _supplierRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateSupplierCommandHandler(ISupplierRepository supplierRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public UpdateSupplierCommandHandler(
+        ISupplierRepository supplierRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _supplierRepository = supplierRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<SupplierDto>> Handle(UpdateSupplierCommand request, CancellationToken cancellationToken)
@@ -151,32 +164,32 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
             return Result<SupplierDto>.Failure(Error.NotFound("Supplier.NotFound", $"Supplier with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(supplier.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<SupplierDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<SupplierDto>.Failure(accessResult.Error);
         }
 
-        if (!await _supplierRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(supplier.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<SupplierDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{supplier.CompanyId}' was not found."));
+        }
+
+        if (!await _supplierRepository.IsCodeUniqueAsync(supplier.CompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<SupplierDto>.Failure(Error.Conflict("Supplier.DuplicateCode", $"Supplier code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
-        if (!await _supplierRepository.IsGstinUniqueAsync(request.CompanyId, request.Gstin, request.Id, cancellationToken))
-        {
-            return Result<SupplierDto>.Failure(Error.Conflict("Supplier.DuplicateGstin", $"Supplier GSTIN '{request.Gstin}' already exists under company '{company.LegalName}'."));
-        }
-
-        supplier.CompanyId = request.CompanyId;
         supplier.Code = request.Code.ToUpperInvariant().Trim();
         supplier.LegalName = request.LegalName.Trim();
         supplier.TradeName = request.TradeName?.Trim();
-        supplier.Gstin = request.Gstin.ToUpperInvariant().Trim();
-        supplier.Pan = request.Pan.ToUpperInvariant().Trim();
+        supplier.Gstin = request.Gstin?.ToUpperInvariant().Trim() ?? string.Empty;
+        supplier.Pan = request.Pan?.ToUpperInvariant().Trim() ?? string.Empty;
         supplier.Email = request.Email.Trim();
         supplier.Phone = request.Phone.Trim();
         supplier.Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country);
-        supplier.PaymentTermsDays = request.PaymentTermsDays <= 0 ? 30 : request.PaymentTermsDays;
+        supplier.PaymentTermsDays = request.PaymentTermsDays;
         supplier.CreditLimit = request.CreditLimit;
         supplier.IsActive = request.IsActive;
 
@@ -215,11 +228,16 @@ public class DeleteSupplierCommandHandler : IRequestHandler<DeleteSupplierComman
 {
     private readonly ISupplierRepository _supplierRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteSupplierCommandHandler(ISupplierRepository supplierRepository, IUnitOfWork unitOfWork)
+    public DeleteSupplierCommandHandler(
+        ISupplierRepository supplierRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _supplierRepository = supplierRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteSupplierCommand request, CancellationToken cancellationToken)
@@ -228,6 +246,12 @@ public class DeleteSupplierCommandHandler : IRequestHandler<DeleteSupplierComman
         if (supplier == null)
         {
             return Result<Unit>.Failure(Error.NotFound("Supplier.NotFound", $"Supplier with ID '{request.Id}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(supplier.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
         }
 
         await _supplierRepository.DeleteAsync(supplier, cancellationToken);

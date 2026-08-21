@@ -10,16 +10,23 @@ public record GetProductByIdQuery(Guid Id) : IRequest<Result<ProductDto>>;
 public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, Result<ProductDto>>
 {
     private readonly IProductRepository _productRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetProductByIdQueryHandler(IProductRepository productRepository)
+    public GetProductByIdQueryHandler(IProductRepository productRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _productRepository = productRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<ProductDto>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         var product = await _productRepository.GetByIdAsync(request.Id, cancellationToken);
         if (product == null)
+        {
+            return Result<ProductDto>.Failure(Error.NotFound("Product.NotFound", $"Product with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(product.CompanyId, cancellationToken))
         {
             return Result<ProductDto>.Failure(Error.NotFound("Product.NotFound", $"Product with ID '{request.Id}' was not found."));
         }
@@ -64,20 +71,29 @@ public record GetProductsPagedQuery(
 public class GetProductsPagedQueryHandler : IRequestHandler<GetProductsPagedQuery, Result<IReadOnlyList<ProductDto>>>
 {
     private readonly IProductRepository _productRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetProductsPagedQueryHandler(IProductRepository productRepository)
+    public GetProductsPagedQueryHandler(IProductRepository productRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _productRepository = productRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<ProductDto>>> Handle(GetProductsPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<ProductDto>>(new List<ProductDto>());
+        }
+
         var products = await _productRepository.GetAllAsync(cancellationToken);
         var query = products.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(p => p.CompanyId == request.CompanyId.Value);
+            query = query.Where(p => p.CompanyId == effectiveCompanyId.Value);
         }
 
         if (request.CategoryId.HasValue)

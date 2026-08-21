@@ -19,6 +19,7 @@ import {
   Layers,
   AlertCircle
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export interface CompanyOrganizationHierarchyProps {
   companies: any[];
@@ -51,6 +52,11 @@ export default function CompanyOrganizationHierarchy({
   onViewFullRegistry,
   isLoading = false
 }: CompanyOrganizationHierarchyProps) {
+  const { user } = useAuth();
+  const isSuper = user?.role === 'Super Administrator' ||
+                  user?.permissions?.includes('manage:all') ||
+                  (user?.email && user.email.toLowerCase().includes('superadmin'));
+
   const [treeSearch, setTreeSearch] = useState('');
   const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
   const [expandedBranchIds, setExpandedBranchIds] = useState<Set<string>>(new Set());
@@ -185,12 +191,31 @@ export default function CompanyOrganizationHierarchy({
         };
       }).filter(b => b.isVisible);
 
+      // Find direct warehouses belonging to this company with no branch or unmatched branch
+      const branchIdsSet = new Set(companyBranches.map(b => normalizeId(b.id)));
+      const directWarehouses = warehouses.filter(w => {
+        const wCompanyId = normalizeId(w.companyId);
+        const wBranchId = normalizeId(w.branchId);
+        return wCompanyId === compId && (!wBranchId || !branchIdsSet.has(wBranchId));
+      });
+
+      const matchingDirectWarehouses = directWarehouses.filter(w => {
+        if (!q) return true;
+        const whName = (w.name || '').toLowerCase();
+        const whCode = (w.code || '').toLowerCase();
+        const whType = (w.warehouseType || '').toLowerCase();
+        const whCity = (w.city || '').toLowerCase();
+        return whName.includes(q) || whCode.includes(q) || whType.includes(q) || whCity.includes(q);
+      });
+
       const companyHasMatchingBranches = branchNodes.length > 0;
-      const isCompanyVisible = companySelfMatches || companyHasMatchingBranches;
+      const companyHasMatchingDirectWarehouses = matchingDirectWarehouses.length > 0;
+      const isCompanyVisible = companySelfMatches || companyHasMatchingBranches || companyHasMatchingDirectWarehouses;
 
       return {
         company,
         branches: branchNodes,
+        directWarehouses: (q && !companySelfMatches) ? matchingDirectWarehouses : directWarehouses,
         isVisible: isCompanyVisible
       };
     }).filter(c => c.isVisible);
@@ -277,11 +302,12 @@ export default function CompanyOrganizationHierarchy({
               <p className="text-[11px]">No companies match "{treeSearch}"</p>
             </div>
           ) : (
-            filteredTreeData.map(({ company, branches: companyBranches }) => {
+            filteredTreeData.map(({ company, branches: companyBranches, directWarehouses = [] }) => {
               const compKey = normalizeId(company.id);
               const isSelected = activeCompany && normalizeId(activeCompany.id) === compKey;
               const isExpanded = expandedCompanyIds.has(compKey) || Boolean(treeSearch);
               const branchCount = companyBranches.length;
+              const directWhCount = directWarehouses.length;
 
               return (
                 <div
@@ -335,21 +361,51 @@ export default function CompanyOrganizationHierarchy({
                       </div>
                     </div>
 
-                    {/* Branch Count Badge */}
-                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                      {branchCount} {branchCount === 1 ? 'Branch' : 'Branches'}
-                    </span>
+                    {/* Facility / Branch Count Badges */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {directWhCount > 0 && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {directWhCount} {directWhCount === 1 ? 'Warehouse' : 'Warehouses'}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        {branchCount} {branchCount === 1 ? 'Branch' : 'Branches'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* BRANCHES SUB-TREE */}
+                  {/* BRANCHES & DIRECT WAREHOUSES SUB-TREE */}
                   {isExpanded && (
                     <div className="border-t border-slate-100 bg-slate-50/50 p-2.5 pl-6 space-y-2 text-xs">
-                      {companyBranches.length === 0 ? (
+                      {companyBranches.length === 0 && directWarehouses.length === 0 ? (
                         <div className="py-2 px-3 text-[11px] text-slate-400 italic">
-                          No branches registered under this entity.
+                          No branches or facilities registered under this entity.
                         </div>
                       ) : (
-                        companyBranches.map(({ branch, warehouses: bWarehouses, departments: bDepartments, hasChildren }) => {
+                        <>
+                          {/* Direct Standalone Warehouses / Stockists */}
+                          {directWarehouses.map(wh => (
+                            <div key={wh.id} className="bg-white border border-slate-200/80 rounded-md p-2 flex items-center justify-between gap-2 shadow-2xs">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-5 h-5 rounded bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                                  <WarehouseIcon size={12} />
+                                </div>
+                                <span className="font-bold text-slate-800 text-xs truncate">
+                                  {wh.name}
+                                </span>
+                                {wh.code && (
+                                  <span className="font-mono text-[10px] font-semibold text-slate-600 px-1 rounded bg-slate-100 border border-slate-200">
+                                    {wh.code}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                {wh.warehouseType || 'Warehouse / Stockist'}
+                              </span>
+                            </div>
+                          ))}
+
+                          {companyBranches.map(({ branch, warehouses: bWarehouses, departments: bDepartments, hasChildren }) => {
                           const brKey = normalizeId(branch.id);
                           const isBranchExpanded = expandedBranchIds.has(brKey) || Boolean(treeSearch);
 
@@ -461,7 +517,8 @@ export default function CompanyOrganizationHierarchy({
                               )}
                             </div>
                           );
-                        })
+                        })}
+                        </>
                       )}
                     </div>
                   )}
@@ -474,7 +531,7 @@ export default function CompanyOrganizationHierarchy({
         {/* Tree Footer Stats */}
         <div className="p-3 border-t border-brand-border bg-brand-bg-secondary/20 text-[10px] text-brand-text-secondary flex items-center justify-between font-mono">
           <span>{companies.length} Active Entities</span>
-          <span>{branches.length} Branches • {warehouses.length} Warehouses • {departments.length} Depts</span>
+          <span>{branches.length} Branches • {warehouses.length} Warehouses / Stockists • {departments.length} Depts</span>
         </div>
 
       </div>
@@ -517,13 +574,15 @@ export default function CompanyOrganizationHierarchy({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onEditCompany(activeCompany.id)}
-                  className="px-3 py-1.5 border border-brand-border hover:bg-brand-bg-secondary text-brand-text-primary rounded text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                >
-                  <Edit2 size={12} /> Edit Company
-                </button>
+                {isSuper && (
+                  <button
+                    type="button"
+                    onClick={() => onEditCompany(activeCompany.id)}
+                    className="px-3 py-1.5 border border-brand-border hover:bg-brand-bg-secondary text-brand-text-primary rounded text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <Edit2 size={12} /> Edit Company
+                  </button>
+                )}
 
                 <button
                   type="button"

@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.UnitsOfMeasure.DTOs;
@@ -19,30 +22,44 @@ public class CreateUnitOfMeasureCommandHandler : IRequestHandler<CreateUnitOfMea
     private readonly IUnitOfMeasureRepository _uomRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateUnitOfMeasureCommandHandler(IUnitOfMeasureRepository uomRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public CreateUnitOfMeasureCommandHandler(
+        IUnitOfMeasureRepository uomRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _uomRepository = uomRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<UnitOfMeasureDto>> Handle(CreateUnitOfMeasureCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            return Result<UnitOfMeasureDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<UnitOfMeasureDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
         }
 
-        if (!await _uomRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, null, cancellationToken))
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<UnitOfMeasureDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
+        }
+
+        if (!await _uomRepository.IsCodeUniqueAsync(targetCompanyId, request.Code, null, cancellationToken))
         {
             return Result<UnitOfMeasureDto>.Failure(Error.Conflict("UnitOfMeasure.DuplicateCode", $"UOM code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
         var uom = new UnitOfMeasure
         {
-            CompanyId = request.CompanyId,
+            CompanyId = targetCompanyId,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
             BaseUnitCode = request.BaseUnitCode.ToUpperInvariant().Trim(),
@@ -85,12 +102,18 @@ public class UpdateUnitOfMeasureCommandHandler : IRequestHandler<UpdateUnitOfMea
     private readonly IUnitOfMeasureRepository _uomRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateUnitOfMeasureCommandHandler(IUnitOfMeasureRepository uomRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public UpdateUnitOfMeasureCommandHandler(
+        IUnitOfMeasureRepository uomRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _uomRepository = uomRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<UnitOfMeasureDto>> Handle(UpdateUnitOfMeasureCommand request, CancellationToken cancellationToken)
@@ -101,18 +124,23 @@ public class UpdateUnitOfMeasureCommandHandler : IRequestHandler<UpdateUnitOfMea
             return Result<UnitOfMeasureDto>.Failure(Error.NotFound("UnitOfMeasure.NotFound", $"Unit of Measure with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(uom.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<UnitOfMeasureDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<UnitOfMeasureDto>.Failure(accessResult.Error);
         }
 
-        if (!await _uomRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(uom.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<UnitOfMeasureDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{uom.CompanyId}' was not found."));
+        }
+
+        if (!await _uomRepository.IsCodeUniqueAsync(uom.CompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<UnitOfMeasureDto>.Failure(Error.Conflict("UnitOfMeasure.DuplicateCode", $"UOM code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
-        uom.CompanyId = request.CompanyId;
         uom.Code = request.Code.ToUpperInvariant().Trim();
         uom.Name = request.Name.Trim();
         uom.BaseUnitCode = request.BaseUnitCode.ToUpperInvariant().Trim();
@@ -145,11 +173,16 @@ public class DeleteUnitOfMeasureCommandHandler : IRequestHandler<DeleteUnitOfMea
 {
     private readonly IUnitOfMeasureRepository _uomRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteUnitOfMeasureCommandHandler(IUnitOfMeasureRepository uomRepository, IUnitOfWork unitOfWork)
+    public DeleteUnitOfMeasureCommandHandler(
+        IUnitOfMeasureRepository uomRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _uomRepository = uomRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteUnitOfMeasureCommand request, CancellationToken cancellationToken)
@@ -158,6 +191,12 @@ public class DeleteUnitOfMeasureCommandHandler : IRequestHandler<DeleteUnitOfMea
         if (uom == null)
         {
             return Result<Unit>.Failure(Error.NotFound("UnitOfMeasure.NotFound", $"Unit of Measure with ID '{request.Id}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(uom.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
         }
 
         await _uomRepository.DeleteAsync(uom, cancellationToken);

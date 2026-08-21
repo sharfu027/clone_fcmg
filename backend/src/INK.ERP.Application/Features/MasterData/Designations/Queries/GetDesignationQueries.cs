@@ -10,16 +10,23 @@ public record GetDesignationByIdQuery(Guid Id) : IRequest<Result<DesignationDto>
 public class GetDesignationByIdQueryHandler : IRequestHandler<GetDesignationByIdQuery, Result<DesignationDto>>
 {
     private readonly IDesignationRepository _designationRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetDesignationByIdQueryHandler(IDesignationRepository designationRepository)
+    public GetDesignationByIdQueryHandler(IDesignationRepository designationRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _designationRepository = designationRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<DesignationDto>> Handle(GetDesignationByIdQuery request, CancellationToken cancellationToken)
     {
         var designation = await _designationRepository.GetByIdAsync(request.Id, cancellationToken);
         if (designation == null)
+        {
+            return Result<DesignationDto>.Failure(Error.NotFound("Designation.NotFound", $"Designation with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(designation.CompanyId, cancellationToken))
         {
             return Result<DesignationDto>.Failure(Error.NotFound("Designation.NotFound", $"Designation with ID '{request.Id}' was not found."));
         }
@@ -49,20 +56,29 @@ public record GetDesignationsPagedQuery(
 public class GetDesignationsPagedQueryHandler : IRequestHandler<GetDesignationsPagedQuery, Result<IReadOnlyList<DesignationDto>>>
 {
     private readonly IDesignationRepository _designationRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetDesignationsPagedQueryHandler(IDesignationRepository designationRepository)
+    public GetDesignationsPagedQueryHandler(IDesignationRepository designationRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _designationRepository = designationRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<DesignationDto>>> Handle(GetDesignationsPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<DesignationDto>>(new List<DesignationDto>());
+        }
+
         var designations = await _designationRepository.GetAllAsync(cancellationToken);
         var query = designations.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(d => d.CompanyId == request.CompanyId.Value);
+            query = query.Where(d => d.CompanyId == effectiveCompanyId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -79,8 +95,7 @@ public class GetDesignationsPagedQueryHandler : IRequestHandler<GetDesignationsP
         }
 
         var list = query
-            .OrderBy(d => d.Level)
-            .ThenBy(d => d.Code)
+            .OrderBy(d => d.Code)
             .Select(designation => new DesignationDto(
                 designation.Id,
                 designation.CompanyId,

@@ -10,16 +10,23 @@ public record GetUnitOfMeasureByIdQuery(Guid Id) : IRequest<Result<UnitOfMeasure
 public class GetUnitOfMeasureByIdQueryHandler : IRequestHandler<GetUnitOfMeasureByIdQuery, Result<UnitOfMeasureDto>>
 {
     private readonly IUnitOfMeasureRepository _uomRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetUnitOfMeasureByIdQueryHandler(IUnitOfMeasureRepository uomRepository)
+    public GetUnitOfMeasureByIdQueryHandler(IUnitOfMeasureRepository uomRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _uomRepository = uomRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<UnitOfMeasureDto>> Handle(GetUnitOfMeasureByIdQuery request, CancellationToken cancellationToken)
     {
         var uom = await _uomRepository.GetByIdAsync(request.Id, cancellationToken);
         if (uom == null)
+        {
+            return Result<UnitOfMeasureDto>.Failure(Error.NotFound("UnitOfMeasure.NotFound", $"Unit of Measure with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(uom.CompanyId, cancellationToken))
         {
             return Result<UnitOfMeasureDto>.Failure(Error.NotFound("UnitOfMeasure.NotFound", $"Unit of Measure with ID '{request.Id}' was not found."));
         }
@@ -50,20 +57,29 @@ public record GetUnitsOfMeasurePagedQuery(
 public class GetUnitsOfMeasurePagedQueryHandler : IRequestHandler<GetUnitsOfMeasurePagedQuery, Result<IReadOnlyList<UnitOfMeasureDto>>>
 {
     private readonly IUnitOfMeasureRepository _uomRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetUnitsOfMeasurePagedQueryHandler(IUnitOfMeasureRepository uomRepository)
+    public GetUnitsOfMeasurePagedQueryHandler(IUnitOfMeasureRepository uomRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _uomRepository = uomRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<UnitOfMeasureDto>>> Handle(GetUnitsOfMeasurePagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<UnitOfMeasureDto>>(new List<UnitOfMeasureDto>());
+        }
+
         var uoms = await _uomRepository.GetAllAsync(cancellationToken);
         var query = uoms.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(u => u.CompanyId == request.CompanyId.Value);
+            query = query.Where(u => u.CompanyId == effectiveCompanyId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))

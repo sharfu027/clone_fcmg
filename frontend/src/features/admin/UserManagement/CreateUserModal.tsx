@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Shield, Lock, Mail, Phone, User, Building, MapPin, CheckCircle, Sliders, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
+import { apiClient } from '../../../api/apiClient';
 import { RoleDefinition } from '../../../types/admin';
-import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS } from '../../../constants/roles';
+import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS, normalizePermissionDependencies } from '../../../constants/roles';
 import { saveUserRoleAndPermissions } from '../../../services/userPermissionsService';
 
 const isGuid = (val: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
@@ -38,6 +39,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onTriggerToast,
   existingUsers = [],
 }) => {
+  const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -47,6 +49,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     displayName: '',
     password: '',
     employeeId: '',
+    companyId: '',
     companyName: 'INK FMCG India Pvt Ltd',
     companyLogo: '',
     selectedRoleCode: 'ADMIN',
@@ -139,6 +142,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           setAvailableRoles(roles);
         }
       }).catch(() => {});
+      apiClient.get<any[]>('/api/v1/masters/company/lookup').then((res) => {
+        if (Array.isArray(res)) {
+          setAvailableCompanies(res);
+          if (res.length > 0 && !formData.companyId) {
+            setFormData((prev) => ({ ...prev, companyId: res[0].id, companyName: res[0].legalName || res[0].name }));
+          }
+        }
+      }).catch(() => {});
     }
   }, [isOpen]);
 
@@ -172,7 +183,22 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         } else {
           next = Array.from(new Set([...next, ...subCodes]));
         }
-      } else if (MASTER_DATA_SUBMODULES.some(s => s.code === code)) {
+      } else if (code === 'masters:branch') {
+        if (isCurrentlySelected) {
+          // If Branch is disabled, Departments and Warehouse/Stockist MUST automatically be disabled
+          next = next.filter(p => p !== 'masters:branch' && p !== 'masters:department' && p !== 'masters:warehouse');
+        } else {
+          // If Branch is enabled, Departments and Warehouse/Stockist MUST automatically be enabled
+          next = Array.from(new Set([...next, 'masters:branch', 'masters:department', 'masters:warehouse']));
+        }
+      } else if (code === 'masters:department' || code === 'masters:warehouse') {
+        // Child permissions cannot be independently toggled:
+        // Reverse inheritance is not allowed (cannot enable branch by clicking department/warehouse alone)
+        // Nor can child permissions be independently unselected when branch is active
+        return prev;
+      }
+
+      if (MASTER_DATA_SUBMODULES.some(s => s.code === code) || code === 'masters:manage') {
         const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
         const hasAnySub = subCodes.some(s => next.includes(s));
         if (hasAnySub) {
@@ -184,7 +210,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         }
       }
 
-      return next;
+      return normalizePermissionDependencies(next);
     });
   };
 
@@ -255,21 +281,34 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const userId = await adminService.createUser({
-        username: formData.username.trim(),
-        email: cleanEmail,
-        phoneNumber: formData.phoneNumber.trim() || undefined,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        displayName: formData.displayName.trim() || `${formData.firstName} ${formData.lastName}`.trim(),
-        password: formData.password,
-        employeeId: cleanEmployeeId,
-        preferredLanguage: formData.preferredLanguage,
-        timeZone: formData.timeZone,
-      });
-
+      let userId: string;
       const matchedRoleDef = ERP_LOGIN_ROLES.find(r => r.code === formData.selectedRoleCode);
       const roleName = matchedRoleDef ? matchedRoleDef.name : 'Sales Representative';
+
+      if (formData.selectedRoleCode === 'ADMIN') {
+        userId = await adminService.createAdminWithCompany({
+          username: formData.username.trim(),
+          email: cleanEmail,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          password: formData.password,
+          companyId: formData.companyId || null,
+          isActive: true
+        });
+      } else {
+        userId = await adminService.createUser({
+          username: formData.username.trim(),
+          email: cleanEmail,
+          phoneNumber: formData.phoneNumber.trim() || undefined,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          displayName: formData.displayName.trim() || `${formData.firstName} ${formData.lastName}`.trim(),
+          password: formData.password,
+          employeeId: cleanEmployeeId,
+          preferredLanguage: formData.preferredLanguage,
+          timeZone: formData.timeZone,
+        });
+      }
 
       if (userId) {
         // Persist generated code to local storage history
@@ -291,13 +330,15 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           formData.employeeId
         );
 
-        const matchedRole = availableRoles.find(
-          (r) => r.code?.toLowerCase() === formData.selectedRoleCode.toLowerCase() || r.name?.toLowerCase() === formData.selectedRoleCode.toLowerCase()
-        );
-        if (matchedRole) {
-          try {
-            await adminService.assignRole(userId, matchedRole.id);
-          } catch {}
+        if (formData.selectedRoleCode !== 'ADMIN') {
+          const matchedRole = availableRoles.find(
+            (r) => r.code?.toLowerCase() === formData.selectedRoleCode.toLowerCase() || r.name?.toLowerCase() === formData.selectedRoleCode.toLowerCase()
+          );
+          if (matchedRole) {
+            try {
+              await adminService.assignRole(userId, matchedRole.id);
+            } catch {}
+          }
         }
       }
 
@@ -547,21 +588,45 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div>
                 <label htmlFor="companyName" className="block font-semibold text-brand-text-primary mb-1">
-                  Company / Business Name <span className="text-red-500">*</span>
+                  {formData.selectedRoleCode === 'ADMIN' ? 'Assigned Company *' : 'Company / Business Name *'}
                 </label>
-                <input
-                  id="companyName"
-                  name="companyName"
-                  type="text"
-                  value={formData.companyName}
-                  onChange={handleChange}
-                  placeholder="e.g. Patanjali Ayurved Ltd"
-                  className={`w-full p-2 border rounded-md outline-none transition ${
-                    fieldErrors.companyName
-                      ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
-                      : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
-                  }`}
-                />
+                {availableCompanies.length > 0 ? (
+                  <select
+                    name="companyId"
+                    value={formData.companyId}
+                    onChange={(e) => {
+                      const compId = e.target.value;
+                      const matched = availableCompanies.find(c => c.id === compId);
+                      setFormData(prev => ({
+                        ...prev,
+                        companyId: compId,
+                        companyName: matched ? (matched.legalName || matched.name) : prev.companyName
+                      }));
+                    }}
+                    className="w-full p-2 border rounded-md border-brand-border bg-white text-xs font-semibold text-brand-text-primary focus:ring-1 focus:ring-brand-primary outline-none"
+                  >
+                    <option value="">-- Select Company --</option>
+                    {availableCompanies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.code ? `[${c.code}] ` : ''}{c.legalName || c.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="companyName"
+                    name="companyName"
+                    type="text"
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    placeholder="e.g. Patanjali Ayurved Ltd"
+                    className={`w-full p-2 border rounded-md outline-none transition ${
+                      fieldErrors.companyName
+                        ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                        : 'border-brand-border focus:ring-1 focus:ring-brand-primary'
+                    }`}
+                  />
+                )}
                 {fieldErrors.companyName && (
                   <p className="mt-1 text-[11px] font-bold text-rose-600">
                     {fieldErrors.companyName}
@@ -725,7 +790,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                                 if (hasAll) {
                                   setSelectedPermissions(prev => prev.filter(p => !subCodes.includes(p)));
                                 } else {
-                                  setSelectedPermissions(prev => Array.from(new Set([...prev, ...subCodes])));
+                                  setSelectedPermissions(prev => normalizePermissionDependencies(Array.from(new Set([...prev, ...subCodes]))));
                                 }
                               }}
                               className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
@@ -740,7 +805,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                               const isAllGroupChecked = groupSubCodes.every(c => selectedPermissions.includes(c));
 
                               return (
-                                <div key={group.groupKey} className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5 shadow-2xs">
+                                <div key={group.groupKey} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-2 shadow-2xs">
                                   <div className="flex items-center justify-between pb-1 border-b border-slate-100">
                                     <div className="flex items-center gap-1.5">
                                       <input
@@ -750,7 +815,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                                           if (isAllGroupChecked) {
                                             setSelectedPermissions(prev => prev.filter(p => !groupSubCodes.includes(p)));
                                           } else {
-                                            setSelectedPermissions(prev => Array.from(new Set([...prev, ...groupSubCodes])));
+                                            setSelectedPermissions(prev => normalizePermissionDependencies(Array.from(new Set([...prev, ...groupSubCodes]))));
                                           }
                                         }}
                                         className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
@@ -762,30 +827,113 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                                     </span>
                                   </div>
 
-                                  <div className="flex flex-wrap gap-1.5 pt-1">
-                                    {group.items.map((sub) => {
-                                      const isSubChecked = selectedPermissions.includes(sub.code);
-                                      return (
-                                        <label
-                                          key={sub.code}
-                                          onClick={(e) => e.stopPropagation()}
-                                          className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold cursor-pointer transition ${
-                                            isSubChecked
-                                              ? 'bg-blue-50/80 border-brand-primary text-brand-primary'
-                                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
-                                          }`}
-                                        >
+                                  {group.groupKey === 'company' ? (
+                                    <div className="space-y-2 pt-1">
+                                      {/* Company Details - Independent */}
+                                      <div className="flex items-center justify-between p-1.5 bg-slate-50 border border-slate-200 rounded-md">
+                                        <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 cursor-pointer">
                                           <input
                                             type="checkbox"
-                                            checked={isSubChecked}
-                                            onChange={() => togglePermission(sub.code)}
+                                            checked={selectedPermissions.includes('masters:company')}
+                                            onChange={() => togglePermission('masters:company')}
                                             className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
                                           />
-                                          <span>{sub.name}</span>
+                                          <span>Company Details</span>
                                         </label>
-                                      );
-                                    })}
-                                  </div>
+                                        <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Independent</span>
+                                      </div>
+
+                                      {/* Branches - Parent Permission */}
+                                      <div className="p-2 bg-blue-50/50 border border-blue-200 rounded-md space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <label className="flex items-center gap-2 text-[11px] font-bold text-brand-primary cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedPermissions.includes('masters:branch')}
+                                              onChange={() => togglePermission('masters:branch')}
+                                              className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                            />
+                                            <span>Branches</span>
+                                          </label>
+                                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                            Parent Permission
+                                          </span>
+                                        </div>
+
+                                        {/* Children: Departments and Warehouse / Stockist */}
+                                        <div className="ml-4 pl-3 border-l-2 border-blue-200 space-y-1.5">
+                                          {/* Departments */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <div className="flex items-center gap-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:department')}
+                                                disabled
+                                                className="rounded border-slate-300 text-brand-primary w-3.5 h-3.5 opacity-80 cursor-not-allowed accent-brand-primary"
+                                              />
+                                              <span className={selectedPermissions.includes('masters:branch') ? 'font-semibold text-slate-800' : 'text-slate-400'}>
+                                                Departments
+                                              </span>
+                                            </div>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                              selectedPermissions.includes('masters:branch')
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                                            }`}>
+                                              {selectedPermissions.includes('masters:branch') ? 'Inherited from Branch access' : 'Requires Branch access'}
+                                            </span>
+                                          </div>
+
+                                          {/* Warehouse / Stockist */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <div className="flex items-center gap-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:warehouse')}
+                                                disabled
+                                                className="rounded border-slate-300 text-brand-primary w-3.5 h-3.5 opacity-80 cursor-not-allowed accent-brand-primary"
+                                              />
+                                              <span className={selectedPermissions.includes('masters:branch') ? 'font-semibold text-slate-800' : 'text-slate-400'}>
+                                                Warehouse / Stockist
+                                              </span>
+                                            </div>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                              selectedPermissions.includes('masters:branch')
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                                            }`}>
+                                              {selectedPermissions.includes('masters:branch') ? 'Inherited from Branch access' : 'Requires Branch access'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                      {group.items.map((sub) => {
+                                        const isSubChecked = selectedPermissions.includes(sub.code);
+                                        return (
+                                          <label
+                                            key={sub.code}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold cursor-pointer transition ${
+                                              isSubChecked
+                                                ? 'bg-blue-50/80 border-brand-primary text-brand-primary'
+                                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
+                                            }`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={isSubChecked}
+                                              onChange={() => togglePermission(sub.code)}
+                                              className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                            />
+                                            <span>{sub.name}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}

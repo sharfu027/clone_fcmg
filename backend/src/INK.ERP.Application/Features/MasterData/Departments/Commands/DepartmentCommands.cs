@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Departments.DTOs;
@@ -17,20 +20,32 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IBranchRepository _branchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateDepartmentCommandHandler(IDepartmentRepository departmentRepository, IBranchRepository branchRepository, IUnitOfWork unitOfWork)
+    public CreateDepartmentCommandHandler(
+        IDepartmentRepository departmentRepository,
+        IBranchRepository branchRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
         _branchRepository = branchRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<DepartmentDto>> Handle(CreateDepartmentCommand request, CancellationToken cancellationToken)
     {
         var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        if (branch == null)
+        if (branch == null || branch.IsDeleted)
         {
             return Result<DepartmentDto>.Failure(Error.NotFound("Branch.NotFound", $"Parent Branch with ID '{request.BranchId}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(branch.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<DepartmentDto>.Failure(accessResult.Error);
         }
 
         if (!await _departmentRepository.IsCodeUniqueAsync(request.BranchId, request.Code, null, cancellationToken))
@@ -77,12 +92,18 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IBranchRepository _branchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateDepartmentCommandHandler(IDepartmentRepository departmentRepository, IBranchRepository branchRepository, IUnitOfWork unitOfWork)
+    public UpdateDepartmentCommandHandler(
+        IDepartmentRepository departmentRepository,
+        IBranchRepository branchRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
         _branchRepository = branchRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<DepartmentDto>> Handle(UpdateDepartmentCommand request, CancellationToken cancellationToken)
@@ -93,15 +114,31 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
             return Result<DepartmentDto>.Failure(Error.NotFound("Department.NotFound", $"Department with ID '{request.Id}' was not found."));
         }
 
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        if (branch == null)
+        var currentBranch = await _branchRepository.GetByIdAsync(department.BranchId, cancellationToken);
+        if (currentBranch != null)
+        {
+            var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(currentBranch.CompanyId, cancellationToken);
+            if (!accessResult.IsSuccess)
+            {
+                return Result<DepartmentDto>.Failure(accessResult.Error);
+            }
+        }
+
+        var newBranch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
+        if (newBranch == null || newBranch.IsDeleted)
         {
             return Result<DepartmentDto>.Failure(Error.NotFound("Branch.NotFound", $"Parent Branch with ID '{request.BranchId}' was not found."));
         }
 
+        var targetAccessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(newBranch.CompanyId, cancellationToken);
+        if (!targetAccessResult.IsSuccess)
+        {
+            return Result<DepartmentDto>.Failure(targetAccessResult.Error);
+        }
+
         if (!await _departmentRepository.IsCodeUniqueAsync(request.BranchId, request.Code, request.Id, cancellationToken))
         {
-            return Result<DepartmentDto>.Failure(Error.Conflict("Department.DuplicateCode", $"Department code '{request.Code}' already exists under branch '{branch.Name}'."));
+            return Result<DepartmentDto>.Failure(Error.Conflict("Department.DuplicateCode", $"Department code '{request.Code}' already exists under branch '{newBranch.Name}'."));
         }
 
         department.BranchId = request.BranchId;
@@ -116,7 +153,7 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
         var dto = new DepartmentDto(
             department.Id,
             department.BranchId,
-            branch.Name,
+            newBranch.Name,
             department.Code,
             department.Name,
             department.Description,
@@ -132,12 +169,20 @@ public record DeleteDepartmentCommand(Guid Id) : IRequest<Result<Unit>>;
 public class DeleteDepartmentCommandHandler : IRequestHandler<DeleteDepartmentCommand, Result<Unit>>
 {
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly IBranchRepository _branchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteDepartmentCommandHandler(IDepartmentRepository departmentRepository, IUnitOfWork unitOfWork)
+    public DeleteDepartmentCommandHandler(
+        IDepartmentRepository departmentRepository,
+        IBranchRepository branchRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
+        _branchRepository = branchRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteDepartmentCommand request, CancellationToken cancellationToken)
@@ -146,6 +191,16 @@ public class DeleteDepartmentCommandHandler : IRequestHandler<DeleteDepartmentCo
         if (department == null)
         {
             return Result<Unit>.Failure(Error.NotFound("Department.NotFound", $"Department with ID '{request.Id}' was not found."));
+        }
+
+        var branch = await _branchRepository.GetByIdAsync(department.BranchId, cancellationToken);
+        if (branch != null)
+        {
+            var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(branch.CompanyId, cancellationToken);
+            if (!accessResult.IsSuccess)
+            {
+                return Result<Unit>.Failure(accessResult.Error);
+            }
         }
 
         await _departmentRepository.DeleteAsync(department, cancellationToken);

@@ -45,6 +45,19 @@ public class PermissionResolver : IPermissionResolver, ICacheInvalidationService
             .Distinct()
             .ToListAsync(cancellationToken);
 
+        // Normalize permission dependencies: Branch access is required for Department & Warehouse access
+        bool hasBranchAccess = permissionCodes.Any(p => 
+            p.Equals("masters:branch", StringComparison.OrdinalIgnoreCase) || 
+            p.Equals("manage:all", StringComparison.OrdinalIgnoreCase));
+
+        if (!hasBranchAccess)
+        {
+            permissionCodes = permissionCodes
+                .Where(p => !p.Equals("masters:department", StringComparison.OrdinalIgnoreCase) &&
+                            !p.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         await _cacheService.SetAsync(cacheKey, permissionCodes, TimeSpan.FromMinutes(30), cancellationToken);
 
         return permissionCodes;

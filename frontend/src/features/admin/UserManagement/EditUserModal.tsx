@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle, Building, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
-import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS } from '../../../constants/roles';
+import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS, normalizePermissionDependencies } from '../../../constants/roles';
 import { saveUserRoleAndPermissions, getUserAccessSettings } from '../../../services/userPermissionsService';
 
 interface EditUserModalProps {
@@ -159,7 +159,22 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         } else {
           next = Array.from(new Set([...next, ...subCodes]));
         }
-      } else if (MASTER_DATA_SUBMODULES.some(s => s.code === code)) {
+      } else if (code === 'masters:branch') {
+        if (isCurrentlySelected) {
+          // If Branch is disabled, Departments and Warehouse/Stockist MUST automatically be disabled
+          next = next.filter(p => p !== 'masters:branch' && p !== 'masters:department' && p !== 'masters:warehouse');
+        } else {
+          // If Branch is enabled, Departments and Warehouse/Stockist MUST automatically be enabled
+          next = Array.from(new Set([...next, 'masters:branch', 'masters:department', 'masters:warehouse']));
+        }
+      } else if (code === 'masters:department' || code === 'masters:warehouse') {
+        // Child permissions cannot be independently toggled:
+        // Reverse inheritance is not allowed (cannot enable branch by clicking department/warehouse alone)
+        // Nor can child permissions be independently unselected when branch is active
+        return prev;
+      }
+
+      if (MASTER_DATA_SUBMODULES.some(s => s.code === code) || code === 'masters:manage') {
         const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
         const hasAnySub = subCodes.some(s => next.includes(s));
         if (hasAnySub) {
@@ -171,7 +186,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         }
       }
 
-      return next;
+      return normalizePermissionDependencies(next);
     });
   };
 
@@ -557,7 +572,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                               if (hasAll) {
                                 setSelectedPermissions(prev => prev.filter(p => !subCodes.includes(p)));
                               } else {
-                                setSelectedPermissions(prev => Array.from(new Set([...prev, ...subCodes])));
+                                setSelectedPermissions(prev => normalizePermissionDependencies(Array.from(new Set([...prev, ...subCodes]))));
                               }
                             }}
                             className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
@@ -572,7 +587,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                             const isAllGroupChecked = groupSubCodes.every(c => selectedPermissions.includes(c));
 
                             return (
-                              <div key={group.groupKey} className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5 shadow-2xs">
+                              <div key={group.groupKey} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-2 shadow-2xs">
                                 <div className="flex items-center justify-between pb-1 border-b border-slate-100">
                                   <div className="flex items-center gap-1.5">
                                     <input
@@ -582,7 +597,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                                         if (isAllGroupChecked) {
                                           setSelectedPermissions(prev => prev.filter(p => !groupSubCodes.includes(p)));
                                         } else {
-                                          setSelectedPermissions(prev => Array.from(new Set([...prev, ...groupSubCodes])));
+                                          setSelectedPermissions(prev => normalizePermissionDependencies(Array.from(new Set([...prev, ...groupSubCodes]))));
                                         }
                                       }}
                                       className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
@@ -594,30 +609,113 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                                   </span>
                                 </div>
 
-                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                  {group.items.map((sub) => {
-                                    const isSubChecked = selectedPermissions.includes(sub.code);
-                                    return (
-                                      <label
-                                        key={sub.code}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold cursor-pointer transition ${
-                                          isSubChecked
-                                            ? 'bg-blue-50/80 border-brand-primary text-brand-primary'
-                                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
-                                        }`}
-                                      >
+                                {group.groupKey === 'company' ? (
+                                  <div className="space-y-2 pt-1">
+                                    {/* Company Details - Independent */}
+                                    <div className="flex items-center justify-between p-1.5 bg-slate-50 border border-slate-200 rounded-md">
+                                      <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 cursor-pointer">
                                         <input
                                           type="checkbox"
-                                          checked={isSubChecked}
-                                          onChange={() => togglePermission(sub.code)}
+                                          checked={selectedPermissions.includes('masters:company')}
+                                          onChange={() => togglePermission('masters:company')}
                                           className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
                                         />
-                                        <span>{sub.name}</span>
+                                        <span>Company Details</span>
                                       </label>
-                                    );
-                                  })}
-                                </div>
+                                      <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Independent</span>
+                                    </div>
+
+                                    {/* Branches - Parent Permission */}
+                                    <div className="p-2 bg-blue-50/50 border border-blue-200 rounded-md space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <label className="flex items-center gap-2 text-[11px] font-bold text-brand-primary cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedPermissions.includes('masters:branch')}
+                                            onChange={() => togglePermission('masters:branch')}
+                                            className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                          />
+                                          <span>Branches</span>
+                                        </label>
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                          Parent Permission
+                                        </span>
+                                      </div>
+
+                                      {/* Children: Departments and Warehouse / Stockist */}
+                                      <div className="ml-4 pl-3 border-l-2 border-blue-200 space-y-1.5">
+                                        {/* Departments */}
+                                        <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedPermissions.includes('masters:department')}
+                                              disabled
+                                              className="rounded border-slate-300 text-brand-primary w-3.5 h-3.5 opacity-80 cursor-not-allowed accent-brand-primary"
+                                            />
+                                            <span className={selectedPermissions.includes('masters:branch') ? 'font-semibold text-slate-800' : 'text-slate-400'}>
+                                              Departments
+                                            </span>
+                                          </div>
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                            selectedPermissions.includes('masters:branch')
+                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                              : 'bg-slate-100 text-slate-400 border-slate-200'
+                                          }`}>
+                                            {selectedPermissions.includes('masters:branch') ? 'Inherited from Branch access' : 'Requires Branch access'}
+                                          </span>
+                                        </div>
+
+                                        {/* Warehouse / Stockist */}
+                                        <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={selectedPermissions.includes('masters:warehouse')}
+                                              disabled
+                                              className="rounded border-slate-300 text-brand-primary w-3.5 h-3.5 opacity-80 cursor-not-allowed accent-brand-primary"
+                                            />
+                                            <span className={selectedPermissions.includes('masters:branch') ? 'font-semibold text-slate-800' : 'text-slate-400'}>
+                                              Warehouse / Stockist
+                                            </span>
+                                          </div>
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                            selectedPermissions.includes('masters:branch')
+                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                              : 'bg-slate-100 text-slate-400 border-slate-200'
+                                          }`}>
+                                            {selectedPermissions.includes('masters:branch') ? 'Inherited from Branch access' : 'Requires Branch access'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {group.items.map((sub) => {
+                                      const isSubChecked = selectedPermissions.includes(sub.code);
+                                      return (
+                                        <label
+                                          key={sub.code}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold cursor-pointer transition ${
+                                            isSubChecked
+                                              ? 'bg-blue-50/80 border-brand-primary text-brand-primary'
+                                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isSubChecked}
+                                            onChange={() => togglePermission(sub.code)}
+                                            className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                          />
+                                          <span>{sub.name}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

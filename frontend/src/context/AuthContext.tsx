@@ -96,37 +96,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
 
       if (validUser && storedToken) {
-        const isRootSuper = (validUser.email && validUser.email.toLowerCase().includes('superadmin')) ||
-                            ((validUser as any).userName && (validUser as any).userName.toLowerCase().includes('superadmin')) ||
-                            ((validUser as any).username && (validUser as any).username.toLowerCase().includes('superadmin'));
-
-        const rawRole = validUser.role || (validUser.roles && (validUser.roles[0] as any)) || 'Admin';
-        const access = getUserAccessSettings(validUser.id, validUser.email, isRootSuper ? 'Super Admin' : rawRole);
-        const resolvedRole = (isRootSuper ? 'Super Admin' : access.roleName) as UserRole;
-        const resolvedPermissions = (isRootSuper
+        const rawRole = validUser.roles?.[0] || validUser.role || '';
+        const resolvedRole = (rawRole === 'Super Administrator' ? 'Super Admin' : (rawRole === 'Administrator' ? 'Admin' : rawRole)) as UserRole;
+        const resolvedPermissions = (resolvedRole === 'Super Admin'
           ? ROLE_PERMISSIONS_MAP['Super Admin']
-          : access.permissions) as UserPermission[];
+          : (validUser.permissions || (ROLE_PERMISSIONS_MAP[resolvedRole] || ['read:dashboard']))) as UserPermission[];
 
         setUser({
           ...validUser,
           role: resolvedRole,
+          roles: [rawRole || resolvedRole],
           permissions: resolvedPermissions,
-          companyName: access.companyName || validUser.companyName,
-          companyLogo: access.companyLogo || validUser.companyLogo
+          companyName: validUser.companyName,
+          companyLogo: validUser.companyLogo
         });
         setToken(storedToken);
       } else {
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
         setUser(null);
         setToken(null);
       }
-    } catch (error) {
-      console.error('Failed to restore auth session:', error);
+    } catch {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
       setUser(null);
       setToken(null);
     } finally {
@@ -139,19 +132,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await authService.login(credentials);
       if (response.accessToken && response.user) {
-        const rawRole = response.user.role || (response.user.roles && (response.user.roles[0] as any)) || 'Sales Representative';
-        const access = getUserAccessSettings(response.user.id, response.user.email, rawRole);
-        const resolvedRole = access.roleName as UserRole;
+        const rawRole = response.user.roles?.[0] || response.user.role || '';
+        const resolvedRole = (rawRole === 'Super Administrator' ? 'Super Admin' : (rawRole === 'Administrator' ? 'Admin' : rawRole)) as UserRole;
         const resolvedPermissions = (resolvedRole === 'Super Admin'
           ? ROLE_PERMISSIONS_MAP['Super Admin']
-          : access.permissions) as UserPermission[];
+          : (response.user.permissions || (ROLE_PERMISSIONS_MAP[resolvedRole] || ['read:dashboard']))) as UserPermission[];
 
         const fullUser: UserProfile = {
           ...response.user,
           role: resolvedRole,
+          roles: [rawRole || resolvedRole],
           permissions: resolvedPermissions,
-          companyName: access.companyName || response.user.companyName,
-          companyLogo: access.companyLogo || response.user.companyLogo
+          companyName: response.user.companyName,
+          companyLogo: response.user.companyLogo
         };
 
         setToken(response.accessToken);

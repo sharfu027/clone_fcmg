@@ -168,7 +168,9 @@ public static class DependencyInjection
                 OnTokenValidated = async context =>
                 {
                     var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                    var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                        ?? context.Principal?.FindFirst("sub")?.Value
+                        ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
                     if (Guid.TryParse(userIdClaim, out var userId))
                     {
                         var userExists = await dbContext.Users.AnyAsync(u => u.Id == userId && !u.IsDeleted && u.IsActive);
@@ -236,6 +238,7 @@ public static class DependencyInjection
         services.AddScoped<IPermissionResolver, PermissionResolver>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ICompanyAccessResolver, CompanyAccessResolver>();
 
         // Register Enterprise Security Model Loader (Singleton)
         services.AddSingleton<IModelLoader, ModelLoader>();

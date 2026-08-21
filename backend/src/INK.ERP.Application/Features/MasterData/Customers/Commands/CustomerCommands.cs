@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Customers.DTOs;
@@ -32,30 +35,44 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
     private readonly ICustomerRepository _customerRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateCustomerCommandHandler(ICustomerRepository customerRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public CreateCustomerCommandHandler(
+        ICustomerRepository customerRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _customerRepository = customerRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CustomerDto>> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            return Result<CustomerDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<CustomerDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
         }
 
-        if (!await _customerRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, null, cancellationToken))
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<CustomerDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
+        }
+
+        if (!await _customerRepository.IsCodeUniqueAsync(targetCompanyId, request.Code, null, cancellationToken))
         {
             return Result<CustomerDto>.Failure(Error.Conflict("Customer.DuplicateCode", $"Customer code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
         var customer = new Customer
         {
-            CompanyId = request.CompanyId,
+            CompanyId = targetCompanyId,
             Code = request.Code.ToUpperInvariant().Trim(),
             LegalName = request.LegalName.Trim(),
             TradeName = request.TradeName?.Trim(),
@@ -66,7 +83,7 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             Phone = request.Phone.Trim(),
             Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country),
             CreditLimit = request.CreditLimit,
-            CreditDays = request.CreditDays <= 0 ? 30 : request.CreditDays,
+            CreditDays = request.CreditDays,
             RouteId = request.RouteId,
             IsActive = true
         };
@@ -129,12 +146,18 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
     private readonly ICustomerRepository _customerRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateCustomerCommandHandler(ICustomerRepository customerRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public UpdateCustomerCommandHandler(
+        ICustomerRepository customerRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _customerRepository = customerRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CustomerDto>> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
@@ -145,18 +168,23 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
             return Result<CustomerDto>.Failure(Error.NotFound("Customer.NotFound", $"Customer with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(customer.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<CustomerDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<CustomerDto>.Failure(accessResult.Error);
         }
 
-        if (!await _customerRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(customer.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<CustomerDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{customer.CompanyId}' was not found."));
+        }
+
+        if (!await _customerRepository.IsCodeUniqueAsync(customer.CompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<CustomerDto>.Failure(Error.Conflict("Customer.DuplicateCode", $"Customer code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
-        customer.CompanyId = request.CompanyId;
         customer.Code = request.Code.ToUpperInvariant().Trim();
         customer.LegalName = request.LegalName.Trim();
         customer.TradeName = request.TradeName?.Trim();
@@ -167,7 +195,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         customer.Phone = request.Phone.Trim();
         customer.Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country);
         customer.CreditLimit = request.CreditLimit;
-        customer.CreditDays = request.CreditDays <= 0 ? 30 : request.CreditDays;
+        customer.CreditDays = request.CreditDays;
         customer.RouteId = request.RouteId;
         customer.IsActive = request.IsActive;
 
@@ -208,11 +236,16 @@ public class DeleteCustomerCommandHandler : IRequestHandler<DeleteCustomerComman
 {
     private readonly ICustomerRepository _customerRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteCustomerCommandHandler(ICustomerRepository customerRepository, IUnitOfWork unitOfWork)
+    public DeleteCustomerCommandHandler(
+        ICustomerRepository customerRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _customerRepository = customerRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteCustomerCommand request, CancellationToken cancellationToken)
@@ -221,6 +254,12 @@ public class DeleteCustomerCommandHandler : IRequestHandler<DeleteCustomerComman
         if (customer == null)
         {
             return Result<Unit>.Failure(Error.NotFound("Customer.NotFound", $"Customer with ID '{request.Id}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(customer.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
         }
 
         await _customerRepository.DeleteAsync(customer, cancellationToken);

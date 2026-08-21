@@ -27,30 +27,44 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, R
     private readonly IBranchRepository _branchRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateBranchCommandHandler(IBranchRepository branchRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public CreateBranchCommandHandler(
+        IBranchRepository branchRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<BranchDto>> Handle(CreateBranchCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            return Result<BranchDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<BranchDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
         }
 
-        if (!await _branchRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, null, cancellationToken))
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<BranchDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
+        }
+
+        if (!await _branchRepository.IsCodeUniqueAsync(targetCompanyId, request.Code, null, cancellationToken))
         {
             return Result<BranchDto>.Failure(Error.Conflict("Branch.DuplicateCode", $"Branch code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
         if (request.IsHeadquarters)
         {
-            var existingHq = await _branchRepository.GetHeadquartersAsync(request.CompanyId, cancellationToken);
+            var existingHq = await _branchRepository.GetHeadquartersAsync(targetCompanyId, cancellationToken);
             if (existingHq != null)
             {
                 return Result<BranchDto>.Failure(Error.Conflict("Branch.DuplicateHeadquarters", $"Company '{company.LegalName}' already has an active Headquarters branch ({existingHq.Name})."));
@@ -59,7 +73,7 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, R
 
         var branch = new Branch
         {
-            CompanyId = request.CompanyId,
+            CompanyId = targetCompanyId,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
             Gstin = request.Gstin.Trim(),

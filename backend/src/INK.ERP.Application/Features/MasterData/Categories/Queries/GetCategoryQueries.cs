@@ -10,16 +10,23 @@ public record GetCategoryByIdQuery(Guid Id) : IRequest<Result<CategoryDto>>;
 public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery, Result<CategoryDto>>
 {
     private readonly ICategoryRepository _categoryRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetCategoryByIdQueryHandler(ICategoryRepository categoryRepository)
+    public GetCategoryByIdQueryHandler(ICategoryRepository categoryRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _categoryRepository = categoryRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CategoryDto>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
         var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken);
         if (category == null)
+        {
+            return Result<CategoryDto>.Failure(Error.NotFound("Category.NotFound", $"Category with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(category.CompanyId, cancellationToken))
         {
             return Result<CategoryDto>.Failure(Error.NotFound("Category.NotFound", $"Category with ID '{request.Id}' was not found."));
         }
@@ -51,28 +58,36 @@ public record GetCategoriesPagedQuery(
 public class GetCategoriesPagedQueryHandler : IRequestHandler<GetCategoriesPagedQuery, Result<IReadOnlyList<CategoryDto>>>
 {
     private readonly ICategoryRepository _categoryRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetCategoriesPagedQueryHandler(ICategoryRepository categoryRepository)
+    public GetCategoriesPagedQueryHandler(ICategoryRepository categoryRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _categoryRepository = categoryRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<CategoryDto>>> Handle(GetCategoriesPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<CategoryDto>>(new List<CategoryDto>());
+        }
+
         var categories = await _categoryRepository.GetAllAsync(cancellationToken);
         var query = categories.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(c => c.CompanyId == request.CompanyId.Value);
+            query = query.Where(c => c.CompanyId == effectiveCompanyId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim();
             query = query.Where(c => c.Code.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                     c.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                     c.HsnCodeDefault.Contains(search, StringComparison.OrdinalIgnoreCase));
+                                     c.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status) && !string.Equals(request.Status, "All", StringComparison.OrdinalIgnoreCase))

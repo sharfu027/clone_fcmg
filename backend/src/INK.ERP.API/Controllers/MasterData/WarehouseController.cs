@@ -19,9 +19,9 @@ public class WarehouseController : BaseApiController
     [HttpGet]
     [Authorize(Policy = "IAM.Users.Read")]
     [ProducesResponseType(typeof(IReadOnlyList<WarehouseDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetWarehouses([FromQuery] Guid? companyId, [FromQuery] Guid? branchId, [FromQuery] SecurityFilterParameters filter, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetWarehouses([FromQuery] Guid? companyId, [FromQuery] Guid? branchId, [FromQuery] string? warehouseType, [FromQuery] SecurityFilterParameters filter, CancellationToken cancellationToken)
     {
-        var query = new GetWarehousesPagedQuery(companyId, branchId, filter.Page, filter.PageSize, filter.Search, filter.Status);
+        var query = new GetWarehousesPagedQuery(companyId, branchId, warehouseType, filter.Page, filter.PageSize, filter.Search, filter.Status);
         var result = await Mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

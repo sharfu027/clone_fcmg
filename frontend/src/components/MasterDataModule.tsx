@@ -64,7 +64,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
       case 'warehouses':
       case 'masters/warehouses':
-        return { name: 'Warehouses Master', singular: 'Warehouse', icon: Building, endpoint: 'warehouse' };
+        return { name: 'Warehouses / Stockists Master', singular: 'Warehouse / Stockist', icon: Building, endpoint: 'warehouse' };
 
       case 'departments':
       case 'masters/departments':
@@ -362,6 +362,16 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [empPhone, setEmpPhone] = useState('');
   const [empJoiningDate, setEmpJoiningDate] = useState(new Date().toISOString().split('T')[0]);
   const [empSalary, setEmpSalary] = useState<number | string>('');
+
+  // Guard Company Read-Only Access for Non-Super Admins
+  useEffect(() => {
+    if (!isSuper && (module === 'companies' || module === 'masters/companies')) {
+      if (mode === 'create' || mode === 'edit') {
+        setMode('list');
+        onTriggerToast('warning', 'Read-Only Company Profile', 'Standard Administrators have view-only access to Company profiles.');
+      }
+    }
+  }, [mode, isSuper, module, onTriggerToast]);
 
   useEffect(() => {
     setMode('list');
@@ -1251,6 +1261,11 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       const isNew = mode === 'create';
       
       if (module === 'companies' || module === 'masters/companies') {
+        if (!isSuper) {
+          onTriggerToast('error', 'Action Forbidden', 'Standard Administrators have Read-Only Company access.');
+          setMode('list');
+          return;
+        }
         if (isNew) {
           await masterDataService.createCompany({
             code: formCode.toUpperCase().trim(),
@@ -1584,7 +1599,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const confirmDelete = async () => {
     if (!deleteId) return;
     try {
-      if (module === 'companies' || module === 'masters/companies') await masterDataService.deleteCompany(deleteId);
+      if (module === 'companies' || module === 'masters/companies') {
+        if (!isSuper) {
+          onTriggerToast('error', 'Action Forbidden', 'Only Super Administrators can delete or archive Companies.');
+          setDeleteId(null);
+          return;
+        }
+        await masterDataService.deleteCompany(deleteId);
+      }
       else if (module === 'branches' || module === 'masters/branches') await masterDataService.deleteBranch(deleteId);
       else if (module === 'departments' || module === 'masters/departments') await masterDataService.deleteDepartment(deleteId);
       else if (module === 'designations' || module === 'masters/designations') await masterDataService.deleteDesignation(deleteId);
@@ -1762,18 +1784,20 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setFormCode(getNextAutoCode());
-              setFormStatus('Active');
-              setFormErrors({});
-              setMode('create');
-            }}
-            className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition self-start sm:self-auto"
-          >
-            <Plus size={13} /> Add New Company
-          </button>
+          {isSuper && (
+            <button
+              type="button"
+              onClick={() => {
+                setFormCode(getNextAutoCode());
+                setFormStatus('Active');
+                setFormErrors({});
+                setMode('create');
+              }}
+              className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition self-start sm:self-auto"
+            >
+              <Plus size={13} /> Add New Company
+            </button>
+          )}
         </div>
       )}
 
@@ -1935,6 +1959,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 selectedCompanyId={hierarchySelectedCompanyId || dbCompanies[0]?.id || null}
                 onSelectCompany={(companyId) => setHierarchySelectedCompanyId(companyId)}
                 onEditCompany={(companyId) => {
+                  if (!isSuper) return;
                   setSelectedId(companyId);
                   populateForm(companyId);
                   setMode('edit');
@@ -2043,30 +2068,39 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
 
                     <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
-                      <button
-                        onClick={() => {
-                          setFormCode(getNextAutoCode());
-                          setFormStatus('Active');
-                          setFormErrors({});
-                          if (module === 'suppliers' || module === 'masters/suppliers') {
-                            setPartnerRole('Supplier');
-                          } else if (module === 'customers' || module === 'masters/customers') {
-                            setPartnerRole('Customer');
-                          } else if (module === 'branches' || module === 'masters/branches') {
-                            const parent = dbCompanies.find(c => c.id === branchCompanyId) || dbCompanies[0];
-                            if (parent) {
-                              setBranchCompanyId(parent.id);
-                              if (parent.gstin) setBranchGstin(parent.gstin);
+                      {((module !== 'companies' && module !== 'masters/companies') || isSuper) && (
+                        <button
+                          onClick={() => {
+                            setFormCode(getNextAutoCode());
+                            setFormStatus('Active');
+                            setFormErrors({});
+                            if (module === 'suppliers' || module === 'masters/suppliers') {
+                              setPartnerRole('Supplier');
+                            } else if (module === 'customers' || module === 'masters/customers') {
+                              setPartnerRole('Customer');
+                            } else if (module === 'branches' || module === 'masters/branches') {
+                              const parent = dbCompanies.find(c => c.id === branchCompanyId) || dbCompanies[0];
+                              if (parent) {
+                                setBranchCompanyId(parent.id);
+                                if (parent.gstin) setBranchGstin(parent.gstin);
+                              }
                             }
-                          }
-                          setMode('create');
-                        }}
-                        className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm transition"
-                      >
-                        <Plus size={13} /> Add New {config.singular}
-                      </button>
+                            setMode('create');
+                          }}
+                          className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm transition"
+                        >
+                          <Plus size={13} /> Add New {config.singular}
+                        </button>
+                      )}
                     </div>
                   </div>
+
+                  {!isSuper && (module === 'companies' || module === 'masters/companies') && dbCompanies.length === 0 && (
+                    <div className="mx-4 my-3 p-3.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs flex items-center gap-2">
+                      <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                      <span>No company has been assigned to your account. Please contact the Super Administrator.</span>
+                    </div>
+                  )}
 
                   {/* TABLE CONTAINER */}
                   <div className="overflow-x-auto min-h-[300px]">
@@ -2105,8 +2139,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                               <td className="p-3 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('view'); }} title="View Details (Read-Only)" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Eye size={13} /></button>
-                                  <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('edit'); }} title="Edit Record" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Edit2 size={13} /></button>
-                                  <button onClick={() => setDeleteId(row.id)} title="Delete (Soft-Delete)" className="p-1 text-brand-text-secondary hover:text-brand-danger hover:bg-red-50 rounded cursor-pointer transition"><Trash2 size={13} /></button>
+                                  {(isSuper || (module !== 'companies' && module !== 'masters/companies')) && (
+                                    <>
+                                      <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('edit'); }} title="Edit Record" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Edit2 size={13} /></button>
+                                      <button onClick={() => setDeleteId(row.id)} title="Delete (Soft-Delete)" className="p-1 text-brand-text-secondary hover:text-brand-danger hover:bg-red-50 rounded cursor-pointer transition"><Trash2 size={13} /></button>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -2151,13 +2189,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setMode('edit')}
-                    className="px-3.5 py-1.5 border border-brand-border text-brand-text-primary hover:bg-brand-bg-secondary font-bold text-xs rounded transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <Edit2 size={13} /> Edit Specifications
-                  </button>
+                  {(isSuper || (module !== 'companies' && module !== 'masters/companies')) && (
+                    <button
+                      type="button"
+                      onClick={() => setMode('edit')}
+                      className="px-3.5 py-1.5 border border-brand-border text-brand-text-primary hover:bg-brand-bg-secondary font-bold text-xs rounded transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 size={13} /> Edit Specifications
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => { setMode('list'); setSelectedId(null); }}
@@ -2649,6 +2689,26 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
           {/* CREATE & EDIT FORM MODE — DEDICATED FORMS FOR ALL 12 ENTITIES */}
           {(mode === 'create' || mode === 'edit') && (
+            (!isSuper && (module === 'companies' || module === 'masters/companies')) ? (
+              <div className="bg-white border border-brand-border rounded-lg shadow-sm-flat p-8 text-center space-y-4 max-w-lg mx-auto">
+                <div className="w-12 h-12 bg-amber-50 text-brand-warning rounded-full flex items-center justify-center mx-auto">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-brand-text-primary">Company Master is Read-Only</h3>
+                  <p className="text-xs text-brand-text-secondary mt-1">
+                    Company creation and modification are restricted to the Super Administrator. Standard Administrators have view-only access to their assigned company.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setMode('list'); setSelectedId(null); }}
+                  className="px-4 py-2 bg-brand-primary text-white font-bold text-xs rounded hover:bg-blue-700 transition cursor-pointer shadow-xs"
+                >
+                  Return to Company Overview
+                </button>
+              </div>
+            ) : (
             <form onSubmit={handleSave} noValidate className="bg-white border border-brand-border rounded-lg shadow-sm-flat p-6 space-y-6">
               
               <div className="flex items-center justify-between border-b pb-4">
@@ -3783,6 +3843,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
 
             </form>
+            )
           )}
 
         </div>

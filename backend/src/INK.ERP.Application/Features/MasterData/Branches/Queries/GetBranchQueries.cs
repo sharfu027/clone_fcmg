@@ -10,16 +10,23 @@ public record GetBranchByIdQuery(Guid Id) : IRequest<Result<BranchDto>>;
 public class GetBranchByIdQueryHandler : IRequestHandler<GetBranchByIdQuery, Result<BranchDto>>
 {
     private readonly IBranchRepository _branchRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetBranchByIdQueryHandler(IBranchRepository branchRepository)
+    public GetBranchByIdQueryHandler(IBranchRepository branchRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<BranchDto>> Handle(GetBranchByIdQuery request, CancellationToken cancellationToken)
     {
         var branch = await _branchRepository.GetByIdAsync(request.Id, cancellationToken);
-        if (branch == null)
+        if (branch == null || branch.IsDeleted)
+        {
+            return Result<BranchDto>.Failure(Error.NotFound("Branch.NotFound", $"Branch with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(branch.CompanyId, cancellationToken))
         {
             return Result<BranchDto>.Failure(Error.NotFound("Branch.NotFound", $"Branch with ID '{request.Id}' was not found."));
         }
@@ -57,20 +64,29 @@ public record GetBranchesPagedQuery(
 public class GetBranchesPagedQueryHandler : IRequestHandler<GetBranchesPagedQuery, Result<IReadOnlyList<BranchDto>>>
 {
     private readonly IBranchRepository _branchRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetBranchesPagedQueryHandler(IBranchRepository branchRepository)
+    public GetBranchesPagedQueryHandler(IBranchRepository branchRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<BranchDto>>> Handle(GetBranchesPagedQuery request, CancellationToken cancellationToken)
     {
-        var branches = await _branchRepository.GetAllAsync(cancellationToken);
-        var query = branches.AsQueryable();
-
-        if (request.CompanyId.HasValue)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            query = query.Where(b => b.CompanyId == request.CompanyId.Value);
+            return Result.Success<IReadOnlyList<BranchDto>>(new List<BranchDto>());
+        }
+
+        var branches = await _branchRepository.GetAllAsync(cancellationToken);
+        var query = branches.Where(b => !b.IsDeleted).AsQueryable();
+
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
+        {
+            query = query.Where(b => b.CompanyId == effectiveCompanyId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))

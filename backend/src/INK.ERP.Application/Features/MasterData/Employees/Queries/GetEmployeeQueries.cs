@@ -10,16 +10,23 @@ public record GetEmployeeByIdQuery(Guid Id) : IRequest<Result<EmployeeDto>>;
 public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery, Result<EmployeeDto>>
 {
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetEmployeeByIdQueryHandler(IEmployeeRepository employeeRepository)
+    public GetEmployeeByIdQueryHandler(IEmployeeRepository employeeRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _employeeRepository = employeeRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<EmployeeDto>> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
     {
         var employee = await _employeeRepository.GetByIdAsync(request.Id, cancellationToken);
         if (employee == null)
+        {
+            return Result<EmployeeDto>.Failure(Error.NotFound("Employee.NotFound", $"Employee with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(employee.CompanyId, cancellationToken))
         {
             return Result<EmployeeDto>.Failure(Error.NotFound("Employee.NotFound", $"Employee with ID '{request.Id}' was not found."));
         }
@@ -61,20 +68,29 @@ public record GetEmployeesPagedQuery(
 public class GetEmployeesPagedQueryHandler : IRequestHandler<GetEmployeesPagedQuery, Result<IReadOnlyList<EmployeeDto>>>
 {
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetEmployeesPagedQueryHandler(IEmployeeRepository employeeRepository)
+    public GetEmployeesPagedQueryHandler(IEmployeeRepository employeeRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _employeeRepository = employeeRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<EmployeeDto>>> Handle(GetEmployeesPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<EmployeeDto>>(new List<EmployeeDto>());
+        }
+
         var employees = await _employeeRepository.GetAllAsync(cancellationToken);
         var query = employees.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(e => e.CompanyId == request.CompanyId.Value);
+            query = query.Where(e => e.CompanyId == effectiveCompanyId.Value);
         }
 
         if (request.BranchId.HasValue)
@@ -93,7 +109,8 @@ public class GetEmployeesPagedQueryHandler : IRequestHandler<GetEmployeesPagedQu
             query = query.Where(e => e.EmployeeCode.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                      e.FirstName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                      e.LastName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                     e.Email.Contains(search, StringComparison.OrdinalIgnoreCase));
+                                     e.Email.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                                     e.Phone.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status) && !string.Equals(request.Status, "All", StringComparison.OrdinalIgnoreCase))

@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Employees.DTOs;
@@ -27,6 +30,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IDesignationRepository _designationRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public CreateEmployeeCommandHandler(
         IEmployeeRepository employeeRepository,
@@ -34,7 +38,8 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         IBranchRepository branchRepository,
         IDepartmentRepository departmentRepository,
         IDesignationRepository designationRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _employeeRepository = employeeRepository;
         _companyRepository = companyRepository;
@@ -42,42 +47,65 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         _departmentRepository = departmentRepository;
         _designationRepository = designationRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<EmployeeDto>> Handle(CreateEmployeeCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            return Result<EmployeeDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<EmployeeDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
         }
 
-        if (!await _employeeRepository.IsEmployeeCodeUniqueAsync(request.CompanyId, request.EmployeeCode, null, cancellationToken))
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<EmployeeDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
+        }
+
+        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
+        if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+        }
+
+        var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
+        if (department == null || !department.IsActive || department.BranchId != branch.Id)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the selected branch."));
+        }
+
+        var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
+        if (designation == null || !designation.IsActive || designation.CompanyId != targetCompanyId)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDesignation", "The selected designation does not exist or does not belong to the authorized company."));
+        }
+
+        if (!await _employeeRepository.IsEmployeeCodeUniqueAsync(targetCompanyId, request.EmployeeCode, null, cancellationToken))
         {
             return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateCode", $"Employee code '{request.EmployeeCode}' already exists under company '{company.LegalName}'."));
         }
 
         if (!await _employeeRepository.IsEmailUniqueAsync(request.Email, null, cancellationToken))
         {
-            return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateEmail", $"Email '{request.Email}' is already registered to another employee."));
+            return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateEmail", $"Email '{request.Email}' is already registered with another employee."));
         }
-
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
-        var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
 
         var employee = new Employee
         {
-            CompanyId = request.CompanyId,
+            CompanyId = targetCompanyId,
             BranchId = request.BranchId,
             DepartmentId = request.DepartmentId,
             DesignationId = request.DesignationId,
             EmployeeCode = request.EmployeeCode.ToUpperInvariant().Trim(),
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
-            Email = request.Email.ToLowerInvariant().Trim(),
+            Email = request.Email.Trim().ToLowerInvariant(),
             Phone = request.Phone.Trim(),
-            JoiningDate = request.JoiningDate.Date,
+            JoiningDate = request.JoiningDate.Kind == DateTimeKind.Utc ? request.JoiningDate : DateTime.SpecifyKind(request.JoiningDate, DateTimeKind.Utc),
             Salary = request.Salary,
             IsActive = true
         };
@@ -90,11 +118,11 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             employee.CompanyId,
             company.LegalName,
             employee.BranchId,
-            branch?.Name,
+            branch.Name,
             employee.DepartmentId,
-            department?.Name,
+            department.Name,
             employee.DesignationId,
-            designation?.Title,
+            designation.Title,
             employee.EmployeeCode,
             employee.FirstName,
             employee.LastName,
@@ -133,6 +161,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IDesignationRepository _designationRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public UpdateEmployeeCommandHandler(
         IEmployeeRepository employeeRepository,
@@ -140,7 +169,8 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         IBranchRepository branchRepository,
         IDepartmentRepository departmentRepository,
         IDesignationRepository designationRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _employeeRepository = employeeRepository;
         _companyRepository = companyRepository;
@@ -148,6 +178,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         _departmentRepository = departmentRepository;
         _designationRepository = designationRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<EmployeeDto>> Handle(UpdateEmployeeCommand request, CancellationToken cancellationToken)
@@ -158,36 +189,55 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             return Result<EmployeeDto>.Failure(Error.NotFound("Employee.NotFound", $"Employee with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(employee.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<EmployeeDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<EmployeeDto>.Failure(accessResult.Error);
         }
 
-        if (!await _employeeRepository.IsEmployeeCodeUniqueAsync(request.CompanyId, request.EmployeeCode, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(employee.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<EmployeeDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{employee.CompanyId}' was not found."));
+        }
+
+        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
+        if (branch == null || branch.IsDeleted || branch.CompanyId != employee.CompanyId)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+        }
+
+        var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
+        if (department == null || !department.IsActive || department.BranchId != branch.Id)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the selected branch."));
+        }
+
+        var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
+        if (designation == null || !designation.IsActive || designation.CompanyId != employee.CompanyId)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDesignation", "The selected designation does not exist or does not belong to the authorized company."));
+        }
+
+        if (!await _employeeRepository.IsEmployeeCodeUniqueAsync(employee.CompanyId, request.EmployeeCode, request.Id, cancellationToken))
         {
             return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateCode", $"Employee code '{request.EmployeeCode}' already exists under company '{company.LegalName}'."));
         }
 
         if (!await _employeeRepository.IsEmailUniqueAsync(request.Email, request.Id, cancellationToken))
         {
-            return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateEmail", $"Email '{request.Email}' is already registered to another employee."));
+            return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateEmail", $"Email '{request.Email}' is already registered with another employee."));
         }
 
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
-        var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
-
-        employee.CompanyId = request.CompanyId;
         employee.BranchId = request.BranchId;
         employee.DepartmentId = request.DepartmentId;
         employee.DesignationId = request.DesignationId;
         employee.EmployeeCode = request.EmployeeCode.ToUpperInvariant().Trim();
         employee.FirstName = request.FirstName.Trim();
         employee.LastName = request.LastName.Trim();
-        employee.Email = request.Email.ToLowerInvariant().Trim();
+        employee.Email = request.Email.Trim().ToLowerInvariant();
         employee.Phone = request.Phone.Trim();
-        employee.JoiningDate = request.JoiningDate.Date;
+        employee.JoiningDate = request.JoiningDate.Kind == DateTimeKind.Utc ? request.JoiningDate : DateTime.SpecifyKind(request.JoiningDate, DateTimeKind.Utc);
         employee.Salary = request.Salary;
         employee.IsActive = request.IsActive;
 
@@ -199,11 +249,11 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             employee.CompanyId,
             company.LegalName,
             employee.BranchId,
-            branch?.Name,
+            branch.Name,
             employee.DepartmentId,
-            department?.Name,
+            department.Name,
             employee.DesignationId,
-            designation?.Title,
+            designation.Title,
             employee.EmployeeCode,
             employee.FirstName,
             employee.LastName,
@@ -225,11 +275,16 @@ public class DeleteEmployeeCommandHandler : IRequestHandler<DeleteEmployeeComman
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteEmployeeCommandHandler(IEmployeeRepository employeeRepository, IUnitOfWork unitOfWork)
+    public DeleteEmployeeCommandHandler(
+        IEmployeeRepository employeeRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteEmployeeCommand request, CancellationToken cancellationToken)
@@ -238,6 +293,12 @@ public class DeleteEmployeeCommandHandler : IRequestHandler<DeleteEmployeeComman
         if (employee == null)
         {
             return Result<Unit>.Failure(Error.NotFound("Employee.NotFound", $"Employee with ID '{request.Id}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(employee.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
         }
 
         await _employeeRepository.DeleteAsync(employee, cancellationToken);

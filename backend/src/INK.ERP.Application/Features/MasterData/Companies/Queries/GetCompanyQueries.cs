@@ -18,14 +18,21 @@ public record GetCompanyByIdQuery(Guid Id) : IRequest<Result<CompanyDto>>;
 public class GetCompanyByIdQueryHandler : IRequestHandler<GetCompanyByIdQuery, Result<CompanyDto>>
 {
     private readonly ICompanyRepository _companyRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetCompanyByIdQueryHandler(ICompanyRepository companyRepository)
+    public GetCompanyByIdQueryHandler(ICompanyRepository companyRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _companyRepository = companyRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CompanyDto>> Handle(GetCompanyByIdQuery request, CancellationToken cancellationToken)
     {
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(request.Id, cancellationToken))
+        {
+            return Result.Failure<CompanyDto>(Error.NotFound("Company.NotFound", $"Company with ID '{request.Id}' was not found."));
+        }
+
         var c = await _companyRepository.GetByIdAsync(request.Id, cancellationToken);
 
         if (c == null || c.IsDeleted)
@@ -50,20 +57,29 @@ public record GetCompaniesPagedQuery(
 public class GetCompaniesPagedQueryHandler : IRequestHandler<GetCompaniesPagedQuery, Result<PagedResult<CompanyDto>>>
 {
     private readonly ICompanyRepository _companyRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetCompaniesPagedQueryHandler(ICompanyRepository companyRepository)
+    public GetCompaniesPagedQueryHandler(ICompanyRepository companyRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _companyRepository = companyRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<PagedResult<CompanyDto>>> Handle(GetCompaniesPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success(PagedResult<CompanyDto>.Create(new List<CompanyDto>(), request.PageNumber, request.PageSize, 0));
+        }
+
         var search = request.Search?.Trim().ToLower();
         Enum.TryParse<CompanyStatus>(request.Status, true, out var statusEnum);
         var hasStatusFilter = !string.IsNullOrWhiteSpace(request.Status);
 
         var allCompanies = await _companyRepository.FindAsync(c =>
             !c.IsDeleted &&
+            (authorizedCompanyId == null || c.Id == authorizedCompanyId.Value) &&
             (string.IsNullOrEmpty(search) || c.Code.ToLower().Contains(search) || c.LegalName.ToLower().Contains(search) || c.TaxRegistrationNumber.ToLower().Contains(search)) &&
             (!hasStatusFilter || c.Status == statusEnum), cancellationToken);
 
@@ -92,16 +108,25 @@ public record GetCompanyLookupQuery() : IRequest<Result<IReadOnlyList<CompanyLoo
 public class GetCompanyLookupQueryHandler : IRequestHandler<GetCompanyLookupQuery, Result<IReadOnlyList<CompanyLookupDto>>>
 {
     private readonly ICompanyRepository _companyRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetCompanyLookupQueryHandler(ICompanyRepository companyRepository)
+    public GetCompanyLookupQueryHandler(ICompanyRepository companyRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _companyRepository = companyRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<CompanyLookupDto>>> Handle(GetCompanyLookupQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<CompanyLookupDto>>(new List<CompanyLookupDto>());
+        }
+
         var activeCompanies = await _companyRepository.FindAsync(c =>
-            !c.IsDeleted && c.IsActive && c.Status == CompanyStatus.Active, cancellationToken);
+            !c.IsDeleted && c.IsActive && c.Status == CompanyStatus.Active &&
+            (authorizedCompanyId == null || c.Id == authorizedCompanyId.Value), cancellationToken);
 
         var items = activeCompanies
             .OrderBy(c => c.LegalName)
@@ -117,16 +142,25 @@ public record GetActiveCompaniesQuery() : IRequest<Result<IReadOnlyList<CompanyD
 public class GetActiveCompaniesQueryHandler : IRequestHandler<GetActiveCompaniesQuery, Result<IReadOnlyList<CompanyDto>>>
 {
     private readonly ICompanyRepository _companyRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetActiveCompaniesQueryHandler(ICompanyRepository companyRepository)
+    public GetActiveCompaniesQueryHandler(ICompanyRepository companyRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _companyRepository = companyRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<CompanyDto>>> Handle(GetActiveCompaniesQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<CompanyDto>>(new List<CompanyDto>());
+        }
+
         var activeCompanies = await _companyRepository.FindAsync(c =>
-            !c.IsDeleted && c.IsActive && c.Status == CompanyStatus.Active, cancellationToken);
+            !c.IsDeleted && c.IsActive && c.Status == CompanyStatus.Active &&
+            (authorizedCompanyId == null || c.Id == authorizedCompanyId.Value), cancellationToken);
 
         var items = activeCompanies
             .OrderBy(c => c.LegalName)

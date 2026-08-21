@@ -52,10 +52,8 @@ builder.Services.AddAuthorization(options =>
 {
     Func<Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext, bool> isSuperOrAdmin = ctx =>
         (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated) &&
-        (ctx.User.IsInRole("Super Admin") ||
-         ctx.User.IsInRole("SUPERADMIN") ||
-         ctx.User.IsInRole("Admin") ||
-         ctx.User.IsInRole("ADMIN") ||
+        (ctx.User.IsInRole("Super Administrator") ||
+         ctx.User.IsInRole("Administrator") ||
          ctx.User.HasClaim("permission", "manage:all") ||
          ctx.User.HasClaim("permission", "iam:manage") ||
          ctx.User.HasClaim("permission", "manage:security"));
@@ -103,8 +101,7 @@ builder.Services.AddAuthorization(options =>
     // Master Data Sub-Module Dual-Check Policies
     Func<Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext, bool> isRootSuper = ctx =>
         (ctx.User.Identity != null && ctx.User.Identity.IsAuthenticated) &&
-        (ctx.User.IsInRole("Super Admin") ||
-         ctx.User.IsInRole("SUPERADMIN") ||
+        (ctx.User.IsInRole("Super Administrator") ||
          ctx.User.HasClaim("permission", "manage:all"));
 
     Func<Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext, string, bool> hasMasterSubmodule = (ctx, subCode) =>
@@ -114,15 +111,15 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Masters.Company", policy =>
         policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
     options.AddPolicy("Masters.Companies.Create", policy =>
-        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+        policy.RequireAssertion(ctx => isRootSuper(ctx)));
     options.AddPolicy("Masters.Companies.Update", policy =>
-        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+        policy.RequireAssertion(ctx => isRootSuper(ctx)));
     options.AddPolicy("Masters.Companies.Archive", policy =>
-        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+        policy.RequireAssertion(ctx => isRootSuper(ctx)));
     options.AddPolicy("Masters.Companies.Restore", policy =>
-        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+        policy.RequireAssertion(ctx => isRootSuper(ctx)));
     options.AddPolicy("Masters.Companies.Delete", policy =>
-        policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:company")));
+        policy.RequireAssertion(ctx => isRootSuper(ctx)));
 
     options.AddPolicy("Masters.Product", policy =>
         policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:product")));

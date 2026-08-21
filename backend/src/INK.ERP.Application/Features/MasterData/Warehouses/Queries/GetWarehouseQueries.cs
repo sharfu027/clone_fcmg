@@ -10,16 +10,23 @@ public record GetWarehouseByIdQuery(Guid Id) : IRequest<Result<WarehouseDto>>;
 public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuery, Result<WarehouseDto>>
 {
     private readonly IWarehouseRepository _warehouseRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetWarehouseByIdQueryHandler(IWarehouseRepository warehouseRepository)
+    public GetWarehouseByIdQueryHandler(IWarehouseRepository warehouseRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<WarehouseDto>> Handle(GetWarehouseByIdQuery request, CancellationToken cancellationToken)
     {
         var warehouse = await _warehouseRepository.GetByIdAsync(request.Id, cancellationToken);
         if (warehouse == null)
+        {
+            return Result<WarehouseDto>.Failure(Error.NotFound("Warehouse.NotFound", $"Warehouse with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(warehouse.CompanyId, cancellationToken))
         {
             return Result<WarehouseDto>.Failure(Error.NotFound("Warehouse.NotFound", $"Warehouse with ID '{request.Id}' was not found."));
         }
@@ -58,6 +65,7 @@ public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuer
 public record GetWarehousesPagedQuery(
     Guid? CompanyId = null,
     Guid? BranchId = null,
+    string? WarehouseType = null,
     int Page = 1,
     int PageSize = 10,
     string? Search = null,
@@ -66,20 +74,29 @@ public record GetWarehousesPagedQuery(
 public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPagedQuery, Result<IReadOnlyList<WarehouseDto>>>
 {
     private readonly IWarehouseRepository _warehouseRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetWarehousesPagedQueryHandler(IWarehouseRepository warehouseRepository)
+    public GetWarehousesPagedQueryHandler(IWarehouseRepository warehouseRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<WarehouseDto>>> Handle(GetWarehousesPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<WarehouseDto>>(new List<WarehouseDto>());
+        }
+
         var warehouses = await _warehouseRepository.GetAllAsync(cancellationToken);
         var query = warehouses.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(w => w.CompanyId == request.CompanyId.Value);
+            query = query.Where(w => w.CompanyId == effectiveCompanyId.Value);
         }
 
         if (request.BranchId.HasValue)
@@ -87,17 +104,24 @@ public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPaged
             query = query.Where(w => w.BranchId == request.BranchId.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.WarehouseType))
+        {
+            query = query.Where(w => w.WarehouseType.Equals(request.WarehouseType, StringComparison.OrdinalIgnoreCase));
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim();
             query = query.Where(w => w.Code.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                     w.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+                                     w.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                                     (!string.IsNullOrEmpty(w.ContactNumber) && w.ContactNumber.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                                     (!string.IsNullOrEmpty(w.Email) && w.Email.Contains(search, StringComparison.OrdinalIgnoreCase)));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status) && !string.Equals(request.Status, "All", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(w => string.Equals(w.Status, request.Status, StringComparison.OrdinalIgnoreCase) ||
-                                     (string.Equals(request.Status, "Active", StringComparison.OrdinalIgnoreCase) && w.IsActive));
+            bool isActive = string.Equals(request.Status, "Active", StringComparison.OrdinalIgnoreCase);
+            query = query.Where(w => w.IsActive == isActive);
         }
 
         var list = query

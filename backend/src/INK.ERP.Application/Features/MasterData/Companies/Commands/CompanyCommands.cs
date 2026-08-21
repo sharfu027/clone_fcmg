@@ -40,15 +40,22 @@ public class CreateCompanyCommandHandler : IRequestHandler<CreateCompanyCommand,
 {
     private readonly ICompanyRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork)
+    public CreateCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork, ICompanyAccessResolver companyAccessResolver)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CompanyDto>> Handle(CreateCompanyCommand request, CancellationToken cancellationToken)
     {
+        if (!await _companyAccessResolver.IsSuperAdminAsync(cancellationToken))
+        {
+            return Result.Failure<CompanyDto>(Error.Unauthorized("Company.ReadOnly", "Only Super Administrators can create Companies. Standard Administrators have Read-Only Company access."));
+        }
+
         if (await _repository.ExistsCodeAsync(request.Code, null, cancellationToken))
             return Result.Failure<CompanyDto>(Error.Conflict("Company.DuplicateCode", $"A company with code '{request.Code}' already exists."));
 
@@ -130,15 +137,22 @@ public class UpdateCompanyCommandHandler : IRequestHandler<UpdateCompanyCommand,
 {
     private readonly ICompanyRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork)
+    public UpdateCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork, ICompanyAccessResolver companyAccessResolver)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CompanyDto>> Handle(UpdateCompanyCommand request, CancellationToken cancellationToken)
     {
+        if (!await _companyAccessResolver.IsSuperAdminAsync(cancellationToken))
+        {
+            return Result.Failure<CompanyDto>(Error.Unauthorized("Company.ReadOnly", "Only Super Administrators can update Companies. Standard Administrators have Read-Only Company access."));
+        }
+
         var company = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (company == null || company.IsDeleted)
             return Result.Failure<CompanyDto>(Error.NotFound("Company.NotFound", $"Company with ID '{request.Id}' was not found."));
@@ -195,15 +209,22 @@ public class ArchiveCompanyCommandHandler : IRequestHandler<ArchiveCompanyComman
 {
     private readonly ICompanyRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public ArchiveCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork)
+    public ArchiveCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork, ICompanyAccessResolver companyAccessResolver)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CompanyDto>> Handle(ArchiveCompanyCommand request, CancellationToken cancellationToken)
     {
+        if (!await _companyAccessResolver.IsSuperAdminAsync(cancellationToken))
+        {
+            return Result.Failure<CompanyDto>(Error.Unauthorized("Company.ReadOnly", "Only Super Administrators can archive Companies."));
+        }
+
         var company = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (company == null || company.IsDeleted)
             return Result.Failure<CompanyDto>(Error.NotFound("Company.NotFound", $"Company with ID '{request.Id}' was not found."));
@@ -234,15 +255,22 @@ public class RestoreCompanyCommandHandler : IRequestHandler<RestoreCompanyComman
 {
     private readonly ICompanyRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public RestoreCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork)
+    public RestoreCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork, ICompanyAccessResolver companyAccessResolver)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<CompanyDto>> Handle(RestoreCompanyCommand request, CancellationToken cancellationToken)
     {
+        if (!await _companyAccessResolver.IsSuperAdminAsync(cancellationToken))
+        {
+            return Result.Failure<CompanyDto>(Error.Unauthorized("Company.ReadOnly", "Only Super Administrators can restore Companies."));
+        }
+
         var company = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (company == null)
             return Result.Failure<CompanyDto>(Error.NotFound("Company.NotFound", $"Company with ID '{request.Id}' was not found."));
@@ -274,15 +302,22 @@ public class DeleteCompanyCommandHandler : IRequestHandler<DeleteCompanyCommand,
 {
     private readonly ICompanyRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork)
+    public DeleteCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork, ICompanyAccessResolver companyAccessResolver)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result> Handle(DeleteCompanyCommand request, CancellationToken cancellationToken)
     {
+        if (!await _companyAccessResolver.IsSuperAdminAsync(cancellationToken))
+        {
+            return Result.Failure(Error.Unauthorized("Company.ReadOnly", "Only Super Administrators can delete Companies."));
+        }
+
         var company = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (company == null || company.IsDeleted)
             return Result.Failure(Error.NotFound("Company.NotFound", $"Company with ID '{request.Id}' was not found."));

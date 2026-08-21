@@ -28,12 +28,18 @@ public class UpdateBranchCommandHandler : IRequestHandler<UpdateBranchCommand, R
     private readonly IBranchRepository _branchRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateBranchCommandHandler(IBranchRepository branchRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public UpdateBranchCommandHandler(
+        IBranchRepository branchRepository,
+        ICompanyRepository companyRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<BranchDto>> Handle(UpdateBranchCommand request, CancellationToken cancellationToken)
@@ -44,27 +50,32 @@ public class UpdateBranchCommandHandler : IRequestHandler<UpdateBranchCommand, R
             return Result<BranchDto>.Failure(Error.NotFound("Branch.NotFound", $"Branch with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(branch.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<BranchDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<BranchDto>.Failure(accessResult.Error);
         }
 
-        if (!await _branchRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(branch.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<BranchDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{branch.CompanyId}' was not found."));
+        }
+
+        if (!await _branchRepository.IsCodeUniqueAsync(branch.CompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<BranchDto>.Failure(Error.Conflict("Branch.DuplicateCode", $"Branch code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
         if (request.IsHeadquarters)
         {
-            var existingHq = await _branchRepository.GetHeadquartersAsync(request.CompanyId, cancellationToken);
+            var existingHq = await _branchRepository.GetHeadquartersAsync(branch.CompanyId, cancellationToken);
             if (existingHq != null && existingHq.Id != request.Id)
             {
                 return Result<BranchDto>.Failure(Error.Conflict("Branch.DuplicateHeadquarters", $"Company '{company.LegalName}' already has an active Headquarters branch ({existingHq.Name})."));
             }
         }
 
-        branch.CompanyId = request.CompanyId;
         branch.Code = request.Code.ToUpperInvariant().Trim();
         branch.Name = request.Name.Trim();
         branch.Gstin = request.Gstin.Trim();
@@ -106,11 +117,16 @@ public class DeleteBranchCommandHandler : IRequestHandler<DeleteBranchCommand, R
 {
     private readonly IBranchRepository _branchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteBranchCommandHandler(IBranchRepository branchRepository, IUnitOfWork unitOfWork)
+    public DeleteBranchCommandHandler(
+        IBranchRepository branchRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteBranchCommand request, CancellationToken cancellationToken)
@@ -121,7 +137,15 @@ public class DeleteBranchCommandHandler : IRequestHandler<DeleteBranchCommand, R
             return Result<Unit>.Failure(Error.NotFound("Branch.NotFound", $"Branch with ID '{request.Id}' was not found."));
         }
 
-        await _branchRepository.DeleteAsync(branch, cancellationToken);
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(branch.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
+        }
+
+        branch.IsDeleted = true;
+        branch.IsActive = false;
+        await _branchRepository.UpdateAsync(branch, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<Unit>.Success(Unit.Value);

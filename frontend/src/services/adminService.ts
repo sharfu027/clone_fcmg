@@ -384,5 +384,34 @@ export const adminService = {
     endDate?: string;
   }): Promise<Blob> {
     return apiClient.postBlob('/api/v1/audit-logs/export', payload);
+  },
+
+  // Admin Company Assignment Management (Super Admin Exclusive)
+  async createAdminWithCompany(payload: {
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+    password: string;
+    companyId?: string | null;
+    isActive?: boolean;
+  }): Promise<string> {
+    return apiClient.post<string>('/api/v1/admins', payload);
+  },
+
+  async assignCompanyToAdmin(adminUserId: string, companyId: string): Promise<void> {
+    return apiClient.post<void>(`/api/v1/admins/${adminUserId}/assign-company`, { companyId });
+  },
+
+  async revokeAdminCompany(adminUserId: string): Promise<void> {
+    return apiClient.post<void>(`/api/v1/admins/${adminUserId}/revoke-company`, {});
+  },
+
+  async getAdminCompanyAssignments(): Promise<any[]> {
+    return apiClient.get<any[]>('/api/v1/admins/assignments');
+  },
+
+  async getAdminSubordinates(adminUserId: string): Promise<any> {
+    return apiClient.get<any>(`/api/v1/admins/${adminUserId}/subordinates`);
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Users,
@@ -37,6 +37,7 @@ import { StatCard } from '../../../components/ui/StatCard';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import AssignRoleModal from './AssignRoleModal';
+import AssignCompanyModal from './AssignCompanyModal';
 import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../SecurityCenter/components/EmployeeSecurityDetailsDrawer';
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
@@ -67,10 +68,14 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   // Face biometrics status cache per user ID
   const [faceStatusMap, setFaceStatusMap] = useState<Record<string, { status: string; version?: number }>>({});
 
+  // Subordinates data map for expanded admins
+  const [subordinatesMap, setSubordinatesMap] = useState<Record<string, { loading: boolean; error?: string; data?: any }>>({});
+
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editUserTarget, setEditUserTarget] = useState<any | null>(null);
   const [assignRoleTarget, setAssignRoleTarget] = useState<any | null>(null);
+  const [assignCompanyTarget, setAssignCompanyTarget] = useState<any | null>(null);
   const [inspectAdminTarget, setInspectAdminTarget] = useState<any | null>(null);
 
   // Security Drawer & Face Modals State
@@ -84,29 +89,31 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [expandedAdminIds, setExpandedAdminIds] = useState<Record<string, boolean>>({});
 
-  const toggleAdminExpand = (adminId: string) => {
+  const toggleAdminExpand = async (adminId: string) => {
+    const willExpand = !expandedAdminIds[adminId];
     setExpandedAdminIds(prev => ({
       ...prev,
-      [adminId]: !prev[adminId]
+      [adminId]: willExpand
     }));
-  };
 
-  const getAdminSubTeam = (adminUser: any) => {
-    const subTeam = users.filter(u => {
-      if (u.id === adminUser.id) return false;
-      const roleName = (u.roles?.[0] || u.role || '').toLowerCase();
-      return !roleName.includes('super') && !roleName.includes('admin');
-    });
-
-    if (subTeam.length > 0) return subTeam;
-
-    return [
-      { id: `${adminUser.id}-emp1`, displayName: 'Rajesh Kumar', username: 'rajesh.k', email: 'rajesh.k@inkerp.com', roles: ['Sales Representative'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-101' },
-      { id: `${adminUser.id}-emp2`, displayName: 'Priya Sharma', username: 'priya.s', email: 'priya.s@inkerp.com', roles: ['Warehouse Manager'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-102' },
-      { id: `${adminUser.id}-emp3`, displayName: 'Amit Verma', username: 'amit.v', email: 'amit.v@inkerp.com', roles: ['Accounts Officer'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-103' },
-      { id: `${adminUser.id}-emp4`, displayName: 'Suresh Raina', username: 'suresh.r', email: 'suresh.r@inkerp.com', roles: ['Purchase Manager'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-104' },
-      { id: `${adminUser.id}-emp5`, displayName: 'Neha Gupta', username: 'neha.g', email: 'neha.g@inkerp.com', roles: ['Field Sales Supervisor'], branchName: 'Delhi Central', isActive: true, employeeId: 'INK-EMP-105' }
-    ];
+    if (willExpand && !subordinatesMap[adminId]?.data && !subordinatesMap[adminId]?.loading) {
+      setSubordinatesMap(prev => ({
+        ...prev,
+        [adminId]: { loading: true }
+      }));
+      try {
+        const res = await adminService.getAdminSubordinates(adminId);
+        setSubordinatesMap(prev => ({
+          ...prev,
+          [adminId]: { loading: false, data: res }
+        }));
+      } catch (err: any) {
+        setSubordinatesMap(prev => ({
+          ...prev,
+          [adminId]: { loading: false, error: err?.message || 'Failed to load subordinates' }
+        }));
+      }
+    }
   };
 
   const [searchParams] = useSearchParams();
@@ -128,10 +135,19 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  // Load Users from Backend
+  // Load ONLY Administrators from Backend
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
+      // 1. Fetch official Administrator assignments from backend (server-side filtered to Administrator role)
+      let assignments: any[] = [];
+      try {
+        assignments = await adminService.getAdminCompanyAssignments();
+      } catch (err) {
+        console.warn('Assignments fetch fallback:', err);
+      }
+
+      // 2. Fetch full user registry to augment profile details
       let isActive: boolean | undefined = undefined;
       let isLocked: boolean | undefined = undefined;
 
@@ -139,56 +155,124 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
       if (statusFilter === 'INACTIVE') isActive = false;
       if (statusFilter === 'LOCKED') isLocked = true;
 
-      const res = await adminService.fetchUsers({
-        searchTerm: debouncedSearch.trim() || undefined,
-        isActive,
-        isLocked,
-        pageNumber,
-        pageSize,
-        sortBy,
-        sortDescending,
+      let allUsersRes: any = { items: [] };
+      try {
+        allUsersRes = await adminService.fetchUsers({
+          isActive,
+          isLocked,
+          pageNumber: 1,
+          pageSize: 100,
+          sortBy,
+          sortDescending,
+        });
+      } catch (err) {
+        console.warn('Users fetch fallback:', err);
+      }
+
+      const userMap = new Map<string, any>();
+      (allUsersRes.items || []).forEach((u: any) => {
+        userMap.set(u.id, u);
       });
 
-      const allLoaded = (res.items || []).map((u: any) => {
-        const access = getUserAccessSettings(u.id, u.email, u.role || u.roles?.[0] || 'Admin');
-        const roleName = access.roleName || u.role || u.roles?.[0] || 'Admin';
-        return {
-          ...u,
-          role: roleName,
-          roles: [roleName]
-        };
+      // Combine assignment records and users, ensuring ONLY Administrator role is displayed
+      const adminList: any[] = [];
+      const processedIds = new Set<string>();
+
+      (assignments || []).forEach((a: any) => {
+        const u = userMap.get(a.adminUserId) || {};
+        const rawRole = (u.roles && u.roles.length > 0) ? u.roles[0] : (u.role || 'Administrator');
+        
+        // Exclude Super Admin explicitly
+        if (rawRole === 'Super Administrator' || rawRole === 'Super Admin' || a.email?.toLowerCase().includes('superadmin')) {
+          return;
+        }
+
+        const accessSettings = getUserAccessSettings(a.adminUserId, a.email);
+        processedIds.add(a.adminUserId);
+
+        adminList.push({
+          id: a.adminUserId,
+          username: a.username || u.username,
+          email: a.email || u.email,
+          displayName: a.displayName || u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || a.username,
+          firstName: u.firstName || '',
+          lastName: u.lastName || '',
+          phoneNumber: u.phoneNumber || '',
+          profileImageUrl: u.profileImageUrl || '',
+          role: 'Administrator',
+          roles: ['Administrator'],
+          assignedCompanyId: a.companyId || null,
+          assignedCompanyName: a.companyLegalName || null,
+          assignedCompanyCode: a.companyCode || null,
+          assignedAtUtc: a.assignedAtUtc || null,
+          isActive: a.isActive !== undefined ? a.isActive : (u.isActive !== undefined ? u.isActive : true),
+          isLocked: u.isLocked || false,
+          adminCode: accessSettings.adminCode || u.employeeId || u.userCode || null,
+          createdAtUtc: u.createdAtUtc,
+        });
       });
 
-      // Multi-Tenant Data Isolation Filter:
-      // Super Admin sees ALL Admin accounts across companies.
-      // Company Admin sees ONLY user accounts belonging to THEIR company!
-      const currentCompanyName = (currentUser?.companyName || '').trim().toLowerCase();
-      const isSuperAdmin = currentUser?.role === 'Super Admin' ||
-                           (currentUser?.email && currentUser.email.toLowerCase().includes('superadmin'));
+      // Also check if any users in userMap have role === 'Administrator' or 'Admin' not in assignments yet
+      (allUsersRes.items || []).forEach((u: any) => {
+        if (processedIds.has(u.id)) return;
+        const rawRole = (u.roles && u.roles.length > 0) ? u.roles[0] : (u.role || '');
+        const isSuper = rawRole === 'Super Administrator' || rawRole === 'Super Admin' || (u.email && u.email.toLowerCase().includes('superadmin'));
+        const isAdmin = !isSuper && (rawRole === 'Administrator' || rawRole === 'Admin');
 
-      const adminOnlyUsers = allLoaded.filter((u: any) => {
-        const roleLower = (u.role || u.roles?.[0] || '').toLowerCase();
-        const isAdminRole = roleLower.includes('admin') || roleLower.includes('admin') || roleLower.includes('super');
-        if (!isAdminRole) return false;
+        if (isAdmin) {
+          const accessSettings = getUserAccessSettings(u.id, u.email);
+          adminList.push({
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            displayName: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
+            firstName: u.firstName || '',
+            lastName: u.lastName || '',
+            phoneNumber: u.phoneNumber || '',
+            profileImageUrl: u.profileImageUrl || '',
+            role: 'Administrator',
+            roles: ['Administrator'],
+            assignedCompanyId: null,
+            assignedCompanyName: null,
+            assignedCompanyCode: null,
+            assignedAtUtc: null,
+            isActive: u.isActive !== undefined ? u.isActive : true,
+            isLocked: u.isLocked || false,
+            adminCode: accessSettings.adminCode || u.employeeId || u.userCode || null,
+            createdAtUtc: u.createdAtUtc,
+          });
+        }
+      });
 
-        if (isSuperAdmin) return true; // Super Admin sees all companies
-
-        // Company Admin sees ONLY users matching their own companyName or created by them
-        const access = getUserAccessSettings(u.id, u.email);
-        const userCompany = (u.companyName || access.companyName || '').trim().toLowerCase();
-
-        return (
-          u.id === currentUser?.id ||
-          (userCompany && currentCompanyName && userCompany === currentCompanyName)
+      // Filter by search query
+      let filteredAdmins = adminList;
+      if (debouncedSearch.trim()) {
+        const q = debouncedSearch.toLowerCase().trim();
+        filteredAdmins = filteredAdmins.filter(admin => 
+          admin.displayName?.toLowerCase().includes(q) ||
+          admin.email?.toLowerCase().includes(q) ||
+          admin.username?.toLowerCase().includes(q) ||
+          admin.adminCode?.toLowerCase().includes(q) ||
+          admin.assignedCompanyName?.toLowerCase().includes(q) ||
+          admin.assignedCompanyCode?.toLowerCase().includes(q)
         );
-      });
+      }
 
-      setUsers(adminOnlyUsers);
-      setTotalCount(adminOnlyUsers.length);
-      setTotalPages(Math.ceil(adminOnlyUsers.length / pageSize) || 1);
+      // Filter by status
+      if (statusFilter === 'ACTIVE') {
+        filteredAdmins = filteredAdmins.filter(a => a.isActive && !a.isLocked);
+      } else if (statusFilter === 'INACTIVE') {
+        filteredAdmins = filteredAdmins.filter(a => !a.isActive);
+      } else if (statusFilter === 'LOCKED') {
+        filteredAdmins = filteredAdmins.filter(a => a.isLocked);
+      }
 
-      // Fetch face status in background for loaded users
-      adminOnlyUsers.forEach(async (u) => {
+      setUsers(filteredAdmins);
+      setTotalCount(filteredAdmins.length);
+      setTotalPages(Math.ceil(filteredAdmins.length / pageSize) || 1);
+
+      // Fetch face status in background for loaded admins
+      filteredAdmins.forEach(async (u) => {
         try {
           const profile = await authService.getFaceStatus(u.id);
           if (profile) {
@@ -204,15 +288,15 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
             }));
           }
         } catch {
-          // Face status not registered or 404
+          // Ignore
         }
       });
     } catch (err: any) {
-      onTriggerToast('error', 'Failed to Load Users', err?.message || 'Unable to fetch user registry from server.');
+      onTriggerToast('error', 'Failed to Load Admins', err?.message || 'Unable to fetch admin registry from server.');
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, statusFilter, pageNumber, pageSize, sortBy, sortDescending]);
+  }, [debouncedSearch, statusFilter, pageSize, sortBy, sortDescending]);
 
   useEffect(() => {
     loadUsers();
@@ -240,10 +324,10 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
     }
   };
 
-  const isSuperUser = (u: any) =>
-    u.username?.toLowerCase().includes('superadmin') ||
-    u.email?.toLowerCase().includes('superadmin') ||
-    (u.roles && u.roles.includes('Super Admin'));
+  const isSuperUser = (u: any) => {
+    const r = u?.roles?.[0] || u?.role || '';
+    return r === 'Super Administrator' || r === 'Super Admin';
+  };
 
   const handleDeactivate = async (user: any) => {
     if (isSuperUser(user)) {
@@ -376,10 +460,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
     return name.substring(0, 2).toUpperCase();
   };
 
-  // Active / Locked / Total counts dynamically from loaded list & totalCount
+  // Active / Locked / Total counts dynamically from loaded admin list
   const activeCount = users.filter((u) => u.isActive && !u.isLocked).length;
   const lockedCount = users.filter((u) => u.isLocked).length;
-  const inactiveCount = users.filter((u) => !u.isActive).length;
+  const assignedCount = users.filter((u) => Boolean(u.assignedCompanyId)).length;
+  const unassignedCount = users.filter((u) => !u.assignedCompanyId).length;
+
+  const paginatedUsers = useMemo(() => {
+    const start = (pageNumber - 1) * pageSize;
+    return users.slice(start, start + pageSize);
+  }, [users, pageNumber, pageSize]);
 
   return (
     <div className="space-y-5">
@@ -387,40 +477,40 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
       {/* ── SECTION 1: DYNAMIC IAM STAT CARDS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total User Accounts"
+          title="Total Administrators"
           value={`${totalCount} Registered`}
-          badgeText="Active Directory"
+          badgeText="Admin Directory"
           badgeVariant="primary"
           subLabel="Current Query Result"
           subValue={`Page ${pageNumber} of ${totalPages}`}
         />
         <StatCard
-          title="Active Accounts"
-          value={`${activeCount} Users`}
-          badgeText="Enabled"
+          title="Company-Assigned Admins"
+          value={`${assignedCount} Assigned`}
+          badgeText="Assigned"
           badgeVariant="success"
-          subLabel="Filtered in View"
-          subValue={`${inactiveCount} Inactive`}
+          subLabel="Enterprise Scope"
+          subValue="Scoped to Companies"
         />
         <StatCard
-          title="Locked Accounts"
-          value={`${lockedCount} Locked`}
-          badgeText={lockedCount > 0 ? 'Security Alert' : 'Normal'}
-          badgeVariant={lockedCount > 0 ? 'warning' : 'success'}
-          subLabel="Failed Attempts / Manual"
-          subValue="Security policy active"
+          title="Unassigned Admins"
+          value={`${unassignedCount} Pending`}
+          badgeText={unassignedCount > 0 ? 'Action Needed' : 'Complete'}
+          badgeVariant={unassignedCount > 0 ? 'warning' : 'success'}
+          subLabel="Awaiting Assignment"
+          subValue="Super Admin to assign"
         />
         <StatCard
-          title="Face Biometrics Registry"
-          value={`${Object.keys(faceStatusMap).length} Checked`}
-          badgeText="Biometric Security"
+          title="Active Administrators"
+          value={`${activeCount} Active`}
+          badgeText="Operational"
           badgeVariant="info"
-          subLabel="Registered Profiles"
-          subValue={`${(Object.values(faceStatusMap) as { status: string; version?: number }[]).filter((f) => f.status === 'Registered').length} Biometric Templates`}
+          subLabel="System Access"
+          subValue={`${lockedCount} Locked Accounts`}
         />
       </div>
 
-      {/* ── SECTION 2: PRODUCTION USER MANAGEMENT MODULE ── */}
+      {/* ── SECTION 2: PRODUCTION ADMIN USER MANAGEMENT MODULE ── */}
       <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
         
         {/* Module Header Toolbar */}
@@ -434,12 +524,12 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
               />
             ) : (
               <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg shrink-0">
-                <Users size={20} />
+                <ShieldCheck size={20} />
               </div>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-brand-text-primary">Production User Management</h2>
+                <h2 className="text-base font-bold text-brand-text-primary">Administrator Management</h2>
                 {currentUser?.companyName && (
                   <span className="px-2 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 text-[10px] font-bold rounded-full">
                     {currentUser.companyName}
@@ -447,7 +537,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                 )}
               </div>
               <p className="text-xs text-brand-text-secondary">
-                Manage ERP user accounts, security roles, status lifecycle, and facial biometric enrollment.
+                Manage Enterprise Administrators, company assignments, and inspect company-scoped operational rosters.
               </p>
             </div>
           </div>
@@ -467,7 +557,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
               className="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-blue-700 flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus size={15} />
-              Add New User
+              Add New Admin
             </button>
           </div>
         </div>
@@ -479,7 +569,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
             <SearchInput
               value={searchTerm}
               onChange={setSearchTerm}
-              placeholder="Search by name, email, username, employee ID..."
+              placeholder="Search by Admin name, email, username, code, company..."
             />
 
             {/* Status Filter */}
@@ -547,16 +637,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
           </div>
         </div>
 
-        {/* ── SECTION 3: USERS DATA TABLE ── */}
+        {/* ── SECTION 3: ADMINISTRATORS DATA TABLE ── */}
         <div className="min-h-[350px]">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-brand-bg-secondary border-b text-[10px] font-bold text-brand-text-secondary uppercase">
               <tr>
                 <th className="p-3 w-8 text-center"></th>
-                <th className="p-3">Admin User / Profile</th>
+                <th className="p-3">Administrator / Profile</th>
                 <th className="p-3">Admin Code</th>
-                <th className="p-3">Security Role</th>
-                <th className="p-3">Company Name</th>
+                <th className="p-3">Role</th>
+                <th className="p-3">Assigned Company</th>
                 <th className="p-3 text-center">Status</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
@@ -568,77 +658,53 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                   <td colSpan={7} className="p-12 text-center text-xs text-brand-text-secondary">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw size={20} className="animate-spin text-brand-primary" />
-                      <span>Fetching user registry from ASP.NET Core backend...</span>
+                      <span>Fetching Administrator registry from ASP.NET Core backend...</span>
                     </div>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-xs text-brand-text-secondary">
-                    No user accounts match the selected filter criteria.
+                    No Administrator accounts match the selected filter criteria.
                   </td>
                 </tr>
               ) : (
-                users.map((u, idx) => {
-                  const roleStr = u.roles?.[0] || u.role || 'Admin';
-                  const roleLower = roleStr.toLowerCase();
-                  const isSuper = isSuperUser(u) || roleLower.includes('super') || (u.email && u.email.toLowerCase().includes('superadmin'));
-                  const isAdmin = roleLower.includes('admin') || roleLower.includes('admin') || roleLower.includes('super');
-                  const faceInfo = faceStatusMap[u.id];
-                  const faceStatus = faceInfo?.status || 'Not Registered';
-                  const isExpanded = Boolean(expandedAdminIds[u.id]) && !isSuper;
-
+                paginatedUsers.map((u, idx) => {
+                  const isExpanded = Boolean(expandedAdminIds[u.id]);
                   const accessSettings = getUserAccessSettings(u.id, u.email);
-                  const userCompanyName = isSuper ? 'INK WORLDWIDE' : (u.companyName || accessSettings.companyName || 'INK FMCG India Pvt Ltd');
-                  const userCompanyLogo = u.companyLogo || accessSettings.companyLogo;
-                  let formattedAdminCode = 'SA-001';
-                  if (!isSuper) {
-                    if (u.employeeId && String(u.employeeId).startsWith('ADM-')) {
-                      formattedAdminCode = u.employeeId;
-                    } else if (accessSettings.adminCode && String(accessSettings.adminCode).startsWith('ADM-')) {
-                      formattedAdminCode = accessSettings.adminCode;
-                    } else if (u.userCode && String(u.userCode).startsWith('ADM-')) {
-                      formattedAdminCode = u.userCode;
-                    } else {
-                      formattedAdminCode = `ADM-${String(idx + 1).padStart(3, '0')}`;
-                    }
+                  
+                  let formattedAdminCode = u.adminCode;
+                  if (!formattedAdminCode || !String(formattedAdminCode).startsWith('ADM-')) {
+                    formattedAdminCode = `ADM-${String(idx + 1).padStart(3, '0')}`;
                   }
+
+                  const subordinatesState = subordinatesMap[u.id];
+                  const subordinatesList = subordinatesState?.data?.subordinates || [];
 
                   return (
                     <React.Fragment key={u.id}>
                       <tr className="hover:bg-brand-bg-secondary/30 transition group">
                         
-                        {/* Chevron Accordion Expand Button (Standard Admins only, NOT Super Admin) */}
+                        {/* Chevron Accordion Expand Button */}
                         <td className="p-3 text-center w-8">
-                          {isAdmin && !isSuper ? (
-                            <button
-                              type="button"
-                              onClick={() => toggleAdminExpand(u.id)}
-                              className="p-1 hover:bg-blue-50 rounded text-slate-400 hover:text-brand-primary transition cursor-pointer"
-                              title={isExpanded ? "Collapse sub-team roles" : "Expand operational roles under this Admin"}
-                            >
-                              {isExpanded ? (
-                                <ChevronDown size={15} className="text-brand-primary font-bold" />
-                              ) : (
-                                <ChevronRight size={15} />
-                              )}
-                            </button>
-                          ) : (
-                            <span className="text-slate-300 font-mono">—</span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleAdminExpand(u.id)}
+                            className="p-1 hover:bg-blue-50 rounded text-slate-400 hover:text-brand-primary transition cursor-pointer"
+                            title={isExpanded ? "Collapse users under this Admin" : "Expand users working under this Admin"}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown size={16} className="text-brand-primary font-bold" />
+                            ) : (
+                              <ChevronRight size={16} />
+                            )}
+                          </button>
                         </td>
 
-                        {/* Admin User / Profile (Avatar + Logo + Name + Username + Email) */}
+                        {/* Admin User / Profile (Avatar + Name + Username + Email) */}
                         <td className="p-3">
                           <div className="flex items-center gap-2.5">
-                            {userCompanyLogo ? (
-                              <img
-                                src={userCompanyLogo}
-                                alt={userCompanyName || 'Company Logo'}
-                                className="w-8 h-8 rounded-lg object-contain border border-brand-border bg-white p-0.5 shadow-xs shrink-0"
-                                title={`Company: ${userCompanyName || 'Enterprise ERP'}`}
-                              />
-                            ) : u.profileImageUrl ? (
+                            {u.profileImageUrl ? (
                               <img
                                 src={u.profileImageUrl}
                                 alt={u.displayName}
@@ -651,19 +717,13 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                             )}
                             <div>
                               <div>
-                                {isAdmin && !isSuper ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAdminExpand(u.id)}
-                                    className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
-                                  >
-                                    {u.displayName || `${u.firstName} ${u.lastName}`}
-                                  </button>
-                                ) : (
-                                  <span className="font-bold text-brand-text-primary block text-xs">
-                                    {u.displayName || `${u.firstName} ${u.lastName}`}
-                                  </span>
-                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleAdminExpand(u.id)}
+                                  className="font-bold text-brand-text-primary hover:text-brand-primary text-left cursor-pointer transition block text-xs"
+                                >
+                                  {u.displayName || `${u.firstName} ${u.lastName}`}
+                                </button>
                               </div>
                               <span className="text-[10.5px] text-brand-text-secondary flex items-center gap-1">
                                 <Mail size={10} /> {u.email}
@@ -673,174 +733,266 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         </td>
 
                         {/* Admin Code */}
-                        <td className={`p-3 font-mono ${isSuper ? 'text-purple-700 font-extrabold' : 'text-brand-primary font-bold'} text-xs`}>
+                        <td className="p-3 font-mono text-brand-primary font-bold text-xs">
                           {formattedAdminCode}
                         </td>
 
-                        {/* Role(s) Badge */}
+                        {/* Role Badge (Admin) */}
                         <td className="p-3">
-                          {isAdmin && !isSuper ? (
-                            <button
-                              type="button"
-                              onClick={() => toggleAdminExpand(u.id)}
-                              className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                              title="Click to view operational roles & team under this Admin"
-                            >
-                              {roleStr}
-                            </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleAdminExpand(u.id)}
+                            className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                            title="Click to view users & employees working under this Admin"
+                          >
+                            Admin
+                          </button>
+                        </td>
+
+                        {/* Assigned Company */}
+                        <td className="p-3 text-brand-text-secondary text-xs">
+                          {u.assignedCompanyName ? (
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                              <Building size={14} className="text-brand-primary shrink-0" />
+                              <span>{u.assignedCompanyName}</span>
+                              {u.assignedCompanyCode && (
+                                <span className="text-[10px] font-mono text-slate-400">({u.assignedCompanyCode})</span>
+                              )}
+                            </div>
                           ) : (
-                            <span className={`px-2.5 py-1 ${isSuper ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} font-bold text-xs rounded-lg border shadow-2xs`}>
-                              {roleStr}
-                            </span>
+                            <div className="flex items-center gap-1.5 font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 w-fit">
+                              <Building size={13} className="text-amber-500 shrink-0" />
+                              <span>Not Assigned</span>
+                            </div>
                           )}
                         </td>
 
-                          {/* Company Name */}
-                          <td className="p-3 text-brand-text-secondary text-xs">
-                            <div className="flex items-center gap-1.5 font-bold text-brand-text-primary">
-                              <Building size={14} className="text-brand-primary shrink-0" />
-                              <span>{userCompanyName || 'INK FMCG India Pvt Ltd'}</span>
-                            </div>
-                          </td>
-
-                          {/* Status */}
-                          <td className="p-3 text-center">
-                            {isSuperUser(u) ? (
-                              <span title="Permanent Root Account (Cannot be deactivated)">
-                                <Badge variant="success">Permanent Active</Badge>
-                              </span>
+                        {/* Status */}
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
+                            title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
+                            className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                          >
+                            {u.isLocked ? (
+                              <Badge variant="danger">Locked</Badge>
+                            ) : u.isActive ? (
+                              <Badge variant="success">Active</Badge>
                             ) : (
+                              <Badge variant="warning">Inactive</Badge>
+                            )}
+                          </button>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="p-3 text-right">
+                          <div className="flex justify-end items-center gap-1">
+                            {(currentUser?.role === 'Super Administrator' || isSuperUser(currentUser)) && (
                               <button
-                                type="button"
-                                onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
-                                title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
-                                className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                                onClick={() => setAssignCompanyTarget(u)}
+                                title="Assign / Reassign Company to Administrator"
+                                className="p-1.5 border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
                               >
-                                {u.isLocked ? (
-                                  <Badge variant="danger">Locked</Badge>
-                                ) : u.isActive ? (
-                                  <Badge variant="success">Active</Badge>
-                                ) : (
-                                  <Badge variant="warning">Inactive</Badge>
-                                )}
+                                <Building size={14} />
                               </button>
                             )}
-                          </td>
+                            <button
+                              onClick={() => handleViewDetails(u)}
+                              title="View Security Details & Audit Logs"
+                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                            >
+                              <Eye size={14} />
+                            </button>
+                            <button
+                              onClick={() => setEditUserTarget(u)}
+                              title="Edit Profile & Security Clearances"
+                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleResetPassword(u)}
+                              title="Reset User Password"
+                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
+                            >
+                              <Key size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(u)}
+                              title="Soft Delete User Account"
+                              className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
 
-                          {/* Actions */}
-                          <td className="p-3 text-right">
-                            <div className="flex justify-end items-center gap-1">
-                              <button
-                                onClick={() => handleViewDetails(u)}
-                                title="View Security Details & Audit Logs"
-                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              {isSuperUser(u) ? (
-                                <button
-                                  disabled
-                                  title="Root Super Admin account cannot be edited"
-                                  className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
+                      {/* ── EXPANDED AREA: USERS / EMPLOYEES UNDER THIS ADMIN ── */}
+                      {isExpanded && (
+                        <tr key={`${u.id}-expanded`} className="bg-slate-50/80">
+                          <td colSpan={7} className="p-4 border-y border-slate-200">
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-sm">
+                              
+                              {/* Header summary */}
+                              <div className="flex flex-wrap items-center justify-between border-b pb-3 gap-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-lg bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold border border-brand-primary/20">
+                                    <ShieldCheck size={18} />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-xs font-bold text-slate-800">
+                                        {u.displayName || u.username}
+                                      </h4>
+                                      <span className="px-2 py-0.5 bg-blue-100 text-brand-primary text-[10px] font-extrabold rounded-full uppercase">
+                                        Admin
+                                      </span>
+                                      <span className="text-xs font-mono font-bold text-brand-primary">
+                                        {formattedAdminCode}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                      <span><Mail size={11} className="inline mr-1" />{u.email}</span>
+                                      {u.phoneNumber && <span><Phone size={11} className="inline mr-1" />{u.phoneNumber}</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {u.assignedCompanyName ? (
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-brand-primary rounded-lg border border-blue-200 text-xs font-bold">
+                                      <Building size={14} />
+                                      <span>Assigned Company: {u.assignedCompanyName}</span>
+                                      {u.assignedCompanyCode && <span className="font-mono text-slate-500">({u.assignedCompanyCode})</span>}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-200 text-xs font-bold">
+                                        <Building size={14} />
+                                        <span>Company: Not Assigned</span>
+                                      </div>
+                                      {(currentUser?.role === 'Super Administrator' || isSuperUser(currentUser)) && (
+                                        <button
+                                          onClick={() => setAssignCompanyTarget(u)}
+                                          className="px-2.5 py-1 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-blue-700 flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                                        >
+                                          <Plus size={12} />
+                                          Assign Company
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Content Area */}
+                              {!u.assignedCompanyId ? (
+                                <div className="p-6 bg-slate-50 rounded-lg border border-dashed border-slate-300 text-center space-y-2">
+                                  <Building size={28} className="mx-auto text-slate-400" />
+                                  <h5 className="text-xs font-bold text-slate-700">No Company Assigned</h5>
+                                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                    This Admin has no assigned Company. No subordinate users or operational employees can be resolved yet.
+                                  </p>
+                                  {(currentUser?.role === 'Super Administrator' || isSuperUser(currentUser)) && (
+                                    <button
+                                      onClick={() => setAssignCompanyTarget(u)}
+                                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-blue-700 cursor-pointer transition shadow-xs"
+                                    >
+                                      <Building size={13} />
+                                      Assign Company Now
+                                    </button>
+                                  )}
+                                </div>
+                              ) : subordinatesState?.loading ? (
+                                <div className="p-8 text-center text-xs text-slate-500 space-y-2">
+                                  <RefreshCw size={20} className="animate-spin text-brand-primary mx-auto" />
+                                  <p>Fetching company-scoped employee roster for {u.assignedCompanyName} from server...</p>
+                                </div>
+                              ) : subordinatesState?.error ? (
+                                <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center justify-between">
+                                  <span>{subordinatesState.error}</span>
+                                  <button
+                                    onClick={() => toggleAdminExpand(u.id)}
+                                    className="font-bold underline cursor-pointer"
+                                  >
+                                    Retry
+                                  </button>
+                                </div>
                               ) : (
-                                <button
-                                  onClick={() => setEditUserTarget(u)}
-                                  title="Edit Profile & Security Clearances"
-                                  className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleResetPassword(u)}
-                                title="Reset User Password"
-                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
-                              >
-                                <Key size={14} />
-                              </button>
-                              {isSuperUser(u) ? (
-                                <button
-                                  disabled
-                                  title="Root Super Admin account cannot be deleted"
-                                  className="p-1.5 border border-slate-200 text-slate-300 rounded-md cursor-not-allowed opacity-50"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleDelete(u)}
-                                  title="Soft Delete User Account"
-                                  className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                      <Users size={14} className="text-brand-primary" />
+                                      Users / Employees Under This Admin ({subordinatesList.length})
+                                    </h5>
+                                    <span className="text-[11px] text-slate-500 font-medium">
+                                      Scoped to Company: <strong className="text-slate-700">{u.assignedCompanyName}</strong>
+                                    </span>
+                                  </div>
+
+                                  {subordinatesList.length === 0 ? (
+                                    <div className="p-6 bg-slate-50 rounded-lg border border-slate-200 text-center text-xs text-slate-500">
+                                      No subordinate users or employees registered under {u.assignedCompanyName} yet.
+                                    </div>
+                                  ) : (
+                                    <div className="border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
+                                      <table className="w-full text-left text-xs">
+                                        <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-600 border-b">
+                                          <tr>
+                                            <th className="p-2.5">Employee / User Name</th>
+                                            <th className="p-2.5">Code</th>
+                                            <th className="p-2.5">Email</th>
+                                            <th className="p-2.5">Role / Designation</th>
+                                            <th className="p-2.5">Department</th>
+                                            <th className="p-2.5">Branch</th>
+                                            <th className="p-2.5 text-center">Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                          {subordinatesList.map((sub: any) => (
+                                            <tr key={sub.id} className="hover:bg-slate-50/80 transition">
+                                              <td className="p-2.5 font-bold text-slate-800">
+                                                {sub.name}
+                                              </td>
+                                              <td className="p-2.5 font-mono text-[11px] font-bold text-brand-primary">
+                                                {sub.employeeCode || '—'}
+                                              </td>
+                                              <td className="p-2.5 text-slate-600 font-medium">
+                                                {sub.email}
+                                              </td>
+                                              <td className="p-2.5">
+                                                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold text-[10.5px] rounded border border-blue-200">
+                                                  {sub.roleOrDesignation || 'Staff'}
+                                                </span>
+                                              </td>
+                                              <td className="p-2.5 text-slate-600 font-medium">
+                                                {sub.departmentName || '—'}
+                                              </td>
+                                              <td className="p-2.5 text-slate-600 font-medium">
+                                                {sub.branchName || '—'}
+                                              </td>
+                                              <td className="p-2.5 text-center">
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${sub.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                  {sub.isActive ? 'Active' : 'Inactive'}
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </td>
                         </tr>
-
-                        {/* Inline Nested Table for Operational Roles Under This Admin */}
-                        {isExpanded && !isSuper && (
-                          <tr key={`${u.id}-expanded`} className="bg-slate-50/60">
-                            <td colSpan={7} className="p-3.5 border-y border-slate-200">
-                              <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 space-y-2.5 shadow-2xs">
-                                <div className="flex items-center justify-between border-b pb-2">
-                                  <div className="flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-brand-primary" />
-                                    <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider">
-                                      Roles & Operational Roster Assigned Under Admin ({u.displayName || u.username})
-                                    </h4>
-                                  </div>
-                                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-blue-50 text-brand-primary border border-blue-200 rounded-full">
-                                    {getAdminSubTeam(u).length} Active Accounts Under This Admin
-                                  </span>
-                                </div>
-
-                                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                                  <table className="w-full text-left text-xs">
-                                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-600 border-b">
-                                      <tr>
-                                        <th className="p-2.5">Staff Name & Code</th>
-                                        <th className="p-2.5">Email</th>
-                                        <th className="p-2.5">Assigned Operational Role</th>
-                                        <th className="p-2.5 text-center">Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                      {getAdminSubTeam(u).map((member: any) => (
-                                        <tr key={member.id} className="hover:bg-slate-50/80 transition">
-                                          <td className="p-2.5 font-bold text-slate-800">
-                                            {member.displayName || `${member.firstName || ''} ${member.lastName || ''}`}
-                                            <span className="block text-[10px] text-brand-primary font-mono font-bold">
-                                              {member.employeeId || member.username}
-                                            </span>
-                                          </td>
-                                          <td className="p-2.5 text-slate-600 font-medium">{member.email}</td>
-                                          <td className="p-2.5">
-                                            <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[10.5px] rounded border border-blue-200 shadow-2xs">
-                                              {member.roles?.[0] || member.role || 'Operational Staff'}
-                                            </span>
-                                          </td>
-                                          <td className="p-2.5 text-center">
-                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${member.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                              {member.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1001,6 +1153,19 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
           adminUser={inspectAdminTarget}
           allUsers={users}
           onEditUser={(userToEdit) => setEditUserTarget(userToEdit)}
+        />
+      )}
+
+      {assignCompanyTarget && (
+        <AssignCompanyModal
+          isOpen={Boolean(assignCompanyTarget)}
+          onClose={() => setAssignCompanyTarget(null)}
+          onSuccess={(msg) => {
+            onTriggerToast('success', 'Company Assignment', msg);
+            loadUsers();
+          }}
+          onTriggerToast={onTriggerToast}
+          targetUser={assignCompanyTarget}
         />
       )}
 

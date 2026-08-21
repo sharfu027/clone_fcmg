@@ -64,8 +64,15 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
             return Result.Failure<AuthResponseDto>(new Error("IAM.USER.INVALID_CREDENTIALS", "Invalid username or password.", ErrorType.Unauthorized));
         }
 
-        var isSuperAdminUser = (user.Email != null && user.Email.Contains("superadmin", StringComparison.OrdinalIgnoreCase))
-            || (user.UserName != null && user.UserName.Contains("superadmin", StringComparison.OrdinalIgnoreCase));
+        var userRoleRepo = _unitOfWork.Repository<UserRole>();
+        var roleRepo = _unitOfWork.Repository<ApplicationRole>();
+
+        var userRoleEntities = await userRoleRepo.FindAsync(ur => ur.UserId == user.Id && !ur.IsDeleted, cancellationToken);
+        var roleIds = userRoleEntities.Select(ur => ur.RoleId).ToList();
+        var assignedRoleEntities = await roleRepo.FindAsync(r => roleIds.Contains(r.Id) && !r.IsDeleted, cancellationToken);
+        var roleNames = assignedRoleEntities.Select(r => r.Name ?? r.Code).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+
+        var isSuperAdminUser = roleNames.Contains("Super Administrator");
 
         if (isSuperAdminUser)
         {
@@ -135,11 +142,6 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
         user.LastLoginUtc = _dateTime.UtcNow;
         userRepo.Update(user);
 
-        // Fetch permissions and role names safely without concurrent DbContext execution
-        var roleNames = isSuperAdminUser
-            ? new List<string> { "Super Admin" }
-            : new List<string> { "Admin" };
-
         var permissions = isSuperAdminUser
             ? new List<string> {
                 "manage:all", "read:dashboard", "iam:manage", "admin:manage_users", "masters:manage",
@@ -151,7 +153,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
               }
             : await _permissionResolver.GetPermissionsForUserAsync(user.Id, cancellationToken);
 
-        // Generate JWT Access & Refresh Tokens directly
+        // Generate JWT Access & Refresh Tokens directly with canonical database roles
         var accessToken = _tokenService.GenerateJwtToken(user, roleNames, permissions);
         var (refreshTokenEntity, rawRefreshToken) = _tokenService.GenerateRefreshToken(user.Id, request.IpAddress);
         await refreshTokenRepo.AddAsync(refreshTokenEntity, cancellationToken);
@@ -165,7 +167,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
             user.RequirePasswordChange, user.PreferredLanguage, user.TimeZone, user.ProfileImageUrl,
             user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames);
 
-        _logger.LogInformation("[AUDIT LOG] Ultra-Fast Login Completed | UserId: {UserId} ({Username})", user.Id, user.UserName);
+        _logger.LogInformation("[AUDIT LOG] Ultra-Fast Login Completed | UserId: {UserId} ({Username}) | Roles: {Roles}", user.Id, user.UserName, string.Join(", ", roleNames));
 
         return Result.Success(new AuthResponseDto(
             AccessToken: accessToken,
@@ -413,8 +415,8 @@ public sealed class DevLoginCommandHandler : IRequestHandler<DevLoginCommand, Re
 
         bool isSuperAdminUser = cleanEmail.Contains("superadmin", StringComparison.OrdinalIgnoreCase);
         var roleNames = isSuperAdminUser
-            ? new System.Collections.Generic.List<string> { "Super Admin" }
-            : new System.Collections.Generic.List<string> { string.IsNullOrWhiteSpace(request.RoleName) ? "Admin" : request.RoleName };
+            ? new System.Collections.Generic.List<string> { "Super Administrator" }
+            : new System.Collections.Generic.List<string> { string.IsNullOrWhiteSpace(request.RoleName) ? "Administrator" : request.RoleName };
 
         System.Collections.Generic.List<string> permissions;
 

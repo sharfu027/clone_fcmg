@@ -10,15 +10,19 @@ public record GetNextSupplierCodeQuery(Guid CompanyId) : IRequest<Result<string>
 public class GetNextSupplierCodeQueryHandler : IRequestHandler<GetNextSupplierCodeQuery, Result<string>>
 {
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetNextSupplierCodeQueryHandler(ISupplierRepository supplierRepository)
+    public GetNextSupplierCodeQueryHandler(ISupplierRepository supplierRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _supplierRepository = supplierRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<string>> Handle(GetNextSupplierCodeQuery request, CancellationToken cancellationToken)
     {
-        var code = await _supplierRepository.GenerateNextCodeAsync(request.CompanyId, cancellationToken);
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+        var code = await _supplierRepository.GenerateNextCodeAsync(targetCompanyId, cancellationToken);
         return Result<string>.Success(code);
     }
 }
@@ -28,16 +32,23 @@ public record GetSupplierByIdQuery(Guid Id) : IRequest<Result<SupplierDto>>;
 public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery, Result<SupplierDto>>
 {
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetSupplierByIdQueryHandler(ISupplierRepository supplierRepository)
+    public GetSupplierByIdQueryHandler(ISupplierRepository supplierRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _supplierRepository = supplierRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<SupplierDto>> Handle(GetSupplierByIdQuery request, CancellationToken cancellationToken)
     {
         var supplier = await _supplierRepository.GetByIdAsync(request.Id, cancellationToken);
         if (supplier == null)
+        {
+            return Result<SupplierDto>.Failure(Error.NotFound("Supplier.NotFound", $"Supplier with ID '{request.Id}' was not found."));
+        }
+
+        if (!await _companyAccessResolver.HasAccessToCompanyAsync(supplier.CompanyId, cancellationToken))
         {
             return Result<SupplierDto>.Failure(Error.NotFound("Supplier.NotFound", $"Supplier with ID '{request.Id}' was not found."));
         }
@@ -78,20 +89,29 @@ public record GetSuppliersPagedQuery(
 public class GetSuppliersPagedQueryHandler : IRequestHandler<GetSuppliersPagedQuery, Result<IReadOnlyList<SupplierDto>>>
 {
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetSuppliersPagedQueryHandler(ISupplierRepository supplierRepository)
+    public GetSuppliersPagedQueryHandler(ISupplierRepository supplierRepository, ICompanyAccessResolver companyAccessResolver)
     {
         _supplierRepository = supplierRepository;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<IReadOnlyList<SupplierDto>>> Handle(GetSuppliersPagedQuery request, CancellationToken cancellationToken)
     {
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
+        {
+            return Result.Success<IReadOnlyList<SupplierDto>>(new List<SupplierDto>());
+        }
+
         var suppliers = await _supplierRepository.GetAllAsync(cancellationToken);
         var query = suppliers.AsQueryable();
 
-        if (request.CompanyId.HasValue)
+        var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
+        if (effectiveCompanyId.HasValue)
         {
-            query = query.Where(s => s.CompanyId == request.CompanyId.Value);
+            query = query.Where(s => s.CompanyId == effectiveCompanyId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))

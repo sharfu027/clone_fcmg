@@ -1,9 +1,11 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Products.DTOs;
 using INK.ERP.Domain.Common;
 using INK.ERP.Domain.Entities.MasterData;
-using INK.ERP.Domain.ValueObjects;
 
 namespace INK.ERP.Application.Features.MasterData.Products.Commands;
 
@@ -32,6 +34,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     private readonly IBrandRepository _brandRepository;
     private readonly IUnitOfMeasureRepository _uomRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public CreateProductCommandHandler(
         IProductRepository productRepository,
@@ -39,7 +42,8 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         ICategoryRepository categoryRepository,
         IBrandRepository brandRepository,
         IUnitOfMeasureRepository uomRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _productRepository = productRepository;
         _companyRepository = companyRepository;
@@ -47,32 +51,41 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         _brandRepository = brandRepository;
         _uomRepository = uomRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<ProductDto>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            company = (await _companyRepository.GetAllAsync(cancellationToken)).FirstOrDefault();
-            if (company == null)
-            {
-                company = new Company
-                {
-                    Id = request.CompanyId != Guid.Empty ? request.CompanyId : Guid.NewGuid(),
-                    Code = "COMP-001",
-                    LegalName = "INK FMCG Enterprise Ltd",
-                    TradeName = "INK FMCG",
-                    TaxRegistrationNumber = "07AAAAA0000A1Z5",
-                    PanNumber = "AAAAA0000A",
-                    Email = "admin@inkerp.com",
-                    Phone = "+91 98100 12345",
-                    Address = new Address("Corporate Headquarters", "", "Delhi", "Delhi", "110001", "India"),
-                    CurrencyCode = "INR",
-                    IsActive = true
-                };
-                await _companyRepository.AddAsync(company, cancellationToken);
-            }
+            return Result<ProductDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
+        }
+
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Target Company was not found or is inactive."));
+        }
+
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
+        if (category == null || !category.IsActive || category.CompanyId != targetCompanyId)
+        {
+            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
+        }
+
+        var brand = await _brandRepository.GetByIdAsync(request.BrandId, cancellationToken);
+        if (brand == null || !brand.IsActive || brand.CompanyId != targetCompanyId)
+        {
+            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidBrand", "The selected brand does not exist or does not belong to the authorized company."));
+        }
+
+        var uom = await _uomRepository.GetByIdAsync(request.BaseUomId, cancellationToken);
+        if (uom == null || !uom.IsActive || uom.CompanyId != targetCompanyId)
+        {
+            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidUom", "The selected unit of measure does not exist or does not belong to the authorized company."));
         }
 
         if (!await _productRepository.IsCodeUniqueAsync(company.Id, request.Code, null, cancellationToken))
@@ -83,67 +96,6 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         if (!await _productRepository.IsSkuUniqueAsync(company.Id, request.Sku, null, cancellationToken))
         {
             return Result<ProductDto>.Failure(Error.Conflict("Product.DuplicateSku", $"Product SKU '{request.Sku}' already exists under company '{company.LegalName}'. Please use a unique SKU."));
-        }
-
-        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
-        if (category == null)
-        {
-            category = (await _categoryRepository.GetAllAsync(cancellationToken)).FirstOrDefault();
-            if (category == null)
-            {
-                category = new Category
-                {
-                    Id = request.CategoryId != Guid.Empty ? request.CategoryId : Guid.NewGuid(),
-                    CompanyId = company.Id,
-                    Code = "CAT-001",
-                    Name = "Food & Grains",
-                    GstTaxRatePercent = 5.0m,
-                    HsnCodeDefault = "1006.30",
-                    IsActive = true
-                };
-                await _categoryRepository.AddAsync(category, cancellationToken);
-            }
-        }
-
-        var brand = await _brandRepository.GetByIdAsync(request.BrandId, cancellationToken);
-        if (brand == null)
-        {
-            brand = (await _brandRepository.GetAllAsync(cancellationToken)).FirstOrDefault();
-            if (brand == null)
-            {
-                brand = new Brand
-                {
-                    Id = request.BrandId != Guid.Empty ? request.BrandId : Guid.NewGuid(),
-                    CompanyId = company.Id,
-                    Code = "BRND-001",
-                    Name = "India Gate",
-                    ManufacturerName = "FMCG Brand",
-                    OriginCountry = "India",
-                    IsActive = true
-                };
-                await _brandRepository.AddAsync(brand, cancellationToken);
-            }
-        }
-
-        var uom = await _uomRepository.GetByIdAsync(request.BaseUomId, cancellationToken);
-        if (uom == null)
-        {
-            uom = (await _uomRepository.GetAllAsync(cancellationToken)).FirstOrDefault();
-            if (uom == null)
-            {
-                uom = new UnitOfMeasure
-                {
-                    Id = request.BaseUomId != Guid.Empty ? request.BaseUomId : Guid.NewGuid(),
-                    CompanyId = company.Id,
-                    Code = "KG",
-                    Name = "Kilograms",
-                    BaseUnitCode = "KG",
-                    ConversionFactor = 1.0m,
-                    IsFractionalAllowed = true,
-                    IsActive = true
-                };
-                await _uomRepository.AddAsync(uom, cancellationToken);
-            }
         }
 
         var product = new Product
@@ -176,7 +128,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             var detailMsg = ex.InnerException?.Message ?? ex.Message;
             if (detailMsg.Contains("23505") || detailMsg.ToLower().Contains("unique") || detailMsg.ToLower().Contains("duplicate"))
             {
-                return Result<ProductDto>.Failure(Error.Conflict("Product.DuplicateRecord", $"Product code '{request.Code}' or SKU '{request.Sku}' already exists in database. Please choose a unique SKU Code."));
+                return Result<ProductDto>.Failure(Error.Conflict("Product.DuplicateRecord", $"Product code '{request.Code}' or SKU '{request.Sku}' already exists."));
             }
             return Result<ProductDto>.Failure(Error.Failure("Product.SaveError", $"Failed to save product: {detailMsg}"));
         }
@@ -186,11 +138,11 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             product.CompanyId,
             company.LegalName,
             product.CategoryId,
-            category?.Name,
+            category.Name,
             product.BrandId,
-            brand?.Name,
+            brand.Name,
             product.BaseUomId,
-            uom?.Code,
+            uom.Code,
             product.Code,
             product.Name,
             product.Sku,
@@ -236,6 +188,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
     private readonly IBrandRepository _brandRepository;
     private readonly IUnitOfMeasureRepository _uomRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public UpdateProductCommandHandler(
         IProductRepository productRepository,
@@ -243,7 +196,8 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         ICategoryRepository categoryRepository,
         IBrandRepository brandRepository,
         IUnitOfMeasureRepository uomRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _productRepository = productRepository;
         _companyRepository = companyRepository;
@@ -251,6 +205,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         _brandRepository = brandRepository;
         _uomRepository = uomRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<ProductDto>> Handle(UpdateProductCommand request, CancellationToken cancellationToken)
@@ -261,27 +216,46 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             return Result<ProductDto>.Failure(Error.NotFound("Product.NotFound", $"Product with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(product.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<ProductDto>.Failure(accessResult.Error);
         }
 
-        if (!await _productRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(product.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company was not found."));
+        }
+
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
+        if (category == null || !category.IsActive || category.CompanyId != product.CompanyId)
+        {
+            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
+        }
+
+        var brand = await _brandRepository.GetByIdAsync(request.BrandId, cancellationToken);
+        if (brand == null || !brand.IsActive || brand.CompanyId != product.CompanyId)
+        {
+            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidBrand", "The selected brand does not exist or does not belong to the authorized company."));
+        }
+
+        var uom = await _uomRepository.GetByIdAsync(request.BaseUomId, cancellationToken);
+        if (uom == null || !uom.IsActive || uom.CompanyId != product.CompanyId)
+        {
+            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidUom", "The selected unit of measure does not exist or does not belong to the authorized company."));
+        }
+
+        if (!await _productRepository.IsCodeUniqueAsync(product.CompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<ProductDto>.Failure(Error.Conflict("Product.DuplicateCode", $"Product code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
-        if (!await _productRepository.IsSkuUniqueAsync(request.CompanyId, request.Sku, request.Id, cancellationToken))
+        if (!await _productRepository.IsSkuUniqueAsync(product.CompanyId, request.Sku, request.Id, cancellationToken))
         {
             return Result<ProductDto>.Failure(Error.Conflict("Product.DuplicateSku", $"Product SKU '{request.Sku}' already exists under company '{company.LegalName}'."));
         }
 
-        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
-        var brand = await _brandRepository.GetByIdAsync(request.BrandId, cancellationToken);
-        var uom = await _uomRepository.GetByIdAsync(request.BaseUomId, cancellationToken);
-
-        product.CompanyId = request.CompanyId;
         product.CategoryId = request.CategoryId;
         product.BrandId = request.BrandId;
         product.BaseUomId = request.BaseUomId;
@@ -306,11 +280,11 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             product.CompanyId,
             company.LegalName,
             product.CategoryId,
-            category?.Name,
+            category.Name,
             product.BrandId,
-            brand?.Name,
+            brand.Name,
             product.BaseUomId,
-            uom?.Code,
+            uom.Code,
             product.Code,
             product.Name,
             product.Sku,
@@ -335,11 +309,16 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand,
 {
     private readonly IProductRepository _productRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteProductCommandHandler(IProductRepository productRepository, IUnitOfWork unitOfWork)
+    public DeleteProductCommandHandler(
+        IProductRepository productRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _productRepository = productRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
@@ -348,6 +327,12 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand,
         if (product == null)
         {
             return Result<Unit>.Failure(Error.NotFound("Product.NotFound", $"Product with ID '{request.Id}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(product.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
         }
 
         await _productRepository.DeleteAsync(product, cancellationToken);

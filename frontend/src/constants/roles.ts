@@ -35,8 +35,8 @@ export const MASTER_DATA_SUBMODULE_GROUPS: MasterDataSubModuleGroup[] = [
     items: [
       { code: 'masters:company', name: 'Company Details', subRoute: 'masters/companies' },
       { code: 'masters:branch', name: 'Branches', subRoute: 'masters/branches' },
-      { code: 'masters:warehouse', name: 'Warehouse', subRoute: 'masters/warehouses' },
       { code: 'masters:department', name: 'Departments', subRoute: 'masters/departments' },
+      { code: 'masters:warehouse', name: 'Warehouse / Stockist', subRoute: 'masters/warehouses' },
     ]
   },
   {
@@ -79,6 +79,21 @@ export const MASTER_DATA_SUBMODULES = MASTER_DATA_SUBMODULE_GROUPS.flatMap(g => 
   category: g.groupName,
   subRoutes: [item.subRoute]
 })));
+
+export const BRANCH_PARENT_PERMISSION = 'masters:branch';
+export const BRANCH_DEPENDENT_PERMISSIONS = ['masters:department', 'masters:warehouse'];
+
+export const normalizePermissionDependencies = (permissions: string[]): string[] => {
+  let next = [...permissions];
+  if (next.includes(BRANCH_PARENT_PERMISSION)) {
+    BRANCH_DEPENDENT_PERMISSIONS.forEach(dep => {
+      if (!next.includes(dep)) next.push(dep);
+    });
+  } else {
+    next = next.filter(p => !BRANCH_DEPENDENT_PERMISSIONS.includes(p));
+  }
+  return next;
+};
 
 export const CANONICAL_MODULE_PERMISSIONS: FMCGModulePermission[] = [
   { code: 'manage:all', name: 'Root System Clearance', category: 'Root', description: 'Complete unrestricted access across all 17 FMCG ERP modules', protected: true },

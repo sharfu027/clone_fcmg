@@ -117,15 +117,15 @@ export default function EnterpriseLayout({
       const subSlug = item.href.split('/')[1];
       const branchMap: Record<string, string> = {
         companies: 'masters:company',
-        branches: 'masters:company',
-        warehouses: 'masters:company',
-        departments: 'masters:company',
+        branches: 'masters:branch',
+        warehouses: 'masters:warehouse',
+        departments: 'masters:department',
         products: 'masters:product',
-        categories: 'masters:product',
-        brands: 'masters:product',
-        units: 'masters:product',
+        categories: 'masters:category',
+        brands: 'masters:brand',
+        units: 'masters:unit',
         employees: 'masters:employee',
-        designations: 'masters:employee',
+        designations: 'masters:designation',
         customers: 'masters:customer',
         suppliers: 'masters:supplier'
       };

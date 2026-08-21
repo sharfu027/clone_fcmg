@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Warehouses.DTOs;
@@ -35,48 +38,71 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
 {
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ICompanyRepository _companyRepository;
+    private readonly IBranchRepository _branchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateWarehouseCommandHandler(IWarehouseRepository warehouseRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public CreateWarehouseCommandHandler(
+        IWarehouseRepository warehouseRepository,
+        ICompanyRepository companyRepository,
+        IBranchRepository branchRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
         _companyRepository = companyRepository;
+        _branchRepository = branchRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<WarehouseDto>> Handle(CreateWarehouseCommand request, CancellationToken cancellationToken)
     {
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        if (authorizedCompanyId == Guid.Empty)
         {
-            return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<WarehouseDto>.Failure(Error.Unauthorized("IAM.NoCompanyAssigned", "No company has been assigned to your account. Please contact the Super Administrator."));
         }
 
-        if (!await _warehouseRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, null, cancellationToken))
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
+        }
+
+        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
+        if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+        {
+            return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+        }
+
+        if (!await _warehouseRepository.IsCodeUniqueAsync(targetCompanyId, request.Code, null, cancellationToken))
         {
             return Result<WarehouseDto>.Failure(Error.Conflict("Warehouse.DuplicateCode", $"Warehouse code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
         var warehouse = new Warehouse
         {
-            CompanyId = request.CompanyId,
+            CompanyId = targetCompanyId,
             BranchId = request.BranchId,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
-            WarehouseType = string.IsNullOrWhiteSpace(request.WarehouseType) ? "Central Warehouse" : request.WarehouseType.Trim(),
-            Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim(),
+            WarehouseType = request.WarehouseType,
+            Status = request.Status,
             ManagerEmployeeId = request.ManagerEmployeeId,
-            Address = new Address(request.AddressLine1.Trim(), request.AddressLine2?.Trim(), request.City.Trim(), request.State.Trim(), request.PostalCode.Trim(), string.IsNullOrWhiteSpace(request.Country) ? "India" : request.Country.Trim()),
+            Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country),
             CapacitySqFt = request.CapacitySqFt,
             PalletCapacity = request.PalletCapacity,
             CartonCapacity = request.CartonCapacity,
-            ContactNumber = request.ContactNumber?.Trim(),
-            Email = request.Email?.Trim().ToLowerInvariant(),
+            ContactNumber = request.ContactNumber,
+            Email = request.Email,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
-            Remarks = request.Remarks?.Trim(),
+            Remarks = request.Remarks,
             IsTemperatureControlled = request.IsTemperatureControlled,
-            IsActive = !string.Equals(request.Status, "Inactive", StringComparison.OrdinalIgnoreCase)
+            IsActive = true
         };
 
         await _warehouseRepository.AddAsync(warehouse, cancellationToken);
@@ -143,13 +169,22 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
 {
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ICompanyRepository _companyRepository;
+    private readonly IBranchRepository _branchRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public UpdateWarehouseCommandHandler(IWarehouseRepository warehouseRepository, ICompanyRepository companyRepository, IUnitOfWork unitOfWork)
+    public UpdateWarehouseCommandHandler(
+        IWarehouseRepository warehouseRepository,
+        ICompanyRepository companyRepository,
+        IBranchRepository branchRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
         _companyRepository = companyRepository;
+        _branchRepository = branchRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<WarehouseDto>> Handle(UpdateWarehouseCommand request, CancellationToken cancellationToken)
@@ -160,33 +195,44 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             return Result<WarehouseDto>.Failure(Error.NotFound("Warehouse.NotFound", $"Warehouse with ID '{request.Id}' was not found."));
         }
 
-        var company = await _companyRepository.GetByIdAsync(request.CompanyId, cancellationToken);
-        if (company == null)
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(warehouse.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
         {
-            return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{request.CompanyId}' was not found."));
+            return Result<WarehouseDto>.Failure(accessResult.Error);
         }
 
-        if (!await _warehouseRepository.IsCodeUniqueAsync(request.CompanyId, request.Code, request.Id, cancellationToken))
+        var company = await _companyRepository.GetByIdAsync(warehouse.CompanyId, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{warehouse.CompanyId}' was not found."));
+        }
+
+        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
+        if (branch == null || branch.IsDeleted || branch.CompanyId != warehouse.CompanyId)
+        {
+            return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+        }
+
+        if (!await _warehouseRepository.IsCodeUniqueAsync(warehouse.CompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<WarehouseDto>.Failure(Error.Conflict("Warehouse.DuplicateCode", $"Warehouse code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
-        warehouse.CompanyId = request.CompanyId;
         warehouse.BranchId = request.BranchId;
         warehouse.Code = request.Code.ToUpperInvariant().Trim();
         warehouse.Name = request.Name.Trim();
-        warehouse.WarehouseType = string.IsNullOrWhiteSpace(request.WarehouseType) ? "Central Warehouse" : request.WarehouseType.Trim();
-        warehouse.Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim();
+        warehouse.WarehouseType = request.WarehouseType;
+        warehouse.Status = request.Status;
         warehouse.ManagerEmployeeId = request.ManagerEmployeeId;
-        warehouse.Address = new Address(request.AddressLine1.Trim(), request.AddressLine2?.Trim(), request.City.Trim(), request.State.Trim(), request.PostalCode.Trim(), string.IsNullOrWhiteSpace(request.Country) ? "India" : request.Country.Trim());
+        warehouse.Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country);
         warehouse.CapacitySqFt = request.CapacitySqFt;
         warehouse.PalletCapacity = request.PalletCapacity;
         warehouse.CartonCapacity = request.CartonCapacity;
-        warehouse.ContactNumber = request.ContactNumber?.Trim();
-        warehouse.Email = request.Email?.Trim().ToLowerInvariant();
+        warehouse.ContactNumber = request.ContactNumber;
+        warehouse.Email = request.Email;
         warehouse.Latitude = request.Latitude;
         warehouse.Longitude = request.Longitude;
-        warehouse.Remarks = request.Remarks?.Trim();
+        warehouse.Remarks = request.Remarks;
         warehouse.IsTemperatureControlled = request.IsTemperatureControlled;
         warehouse.IsActive = request.IsActive;
 
@@ -230,11 +276,16 @@ public class DeleteWarehouseCommandHandler : IRequestHandler<DeleteWarehouseComm
 {
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public DeleteWarehouseCommandHandler(IWarehouseRepository warehouseRepository, IUnitOfWork unitOfWork)
+    public DeleteWarehouseCommandHandler(
+        IWarehouseRepository warehouseRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
         _unitOfWork = unitOfWork;
+        _companyAccessResolver = companyAccessResolver;
     }
 
     public async Task<Result<Unit>> Handle(DeleteWarehouseCommand request, CancellationToken cancellationToken)
@@ -243,6 +294,12 @@ public class DeleteWarehouseCommandHandler : IRequestHandler<DeleteWarehouseComm
         if (warehouse == null)
         {
             return Result<Unit>.Failure(Error.NotFound("Warehouse.NotFound", $"Warehouse with ID '{request.Id}' was not found."));
+        }
+
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(warehouse.CompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<Unit>.Failure(accessResult.Error);
         }
 
         await _warehouseRepository.DeleteAsync(warehouse, cancellationToken);
