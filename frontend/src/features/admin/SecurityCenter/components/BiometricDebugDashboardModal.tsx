@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Activity, Cpu, Database, Eye, Zap, RefreshCw, X, AlertTriangle } from 'lucide-react';
 import { authService } from '../../../../services/authService';
 import { Badge } from '../../../../components/ui/Badge';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 
 interface BiometricDebugDashboardModalProps {
   isOpen: boolean;
@@ -20,21 +21,18 @@ export const BiometricDebugDashboardModal: React.FC<BiometricDebugDashboardModal
 
   useEffect(() => {
     if (isOpen) {
-      fetchDiagnostics();
+      loadData();
     }
   }, [isOpen, userId]);
 
-  const fetchDiagnostics = async () => {
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const auditData = await authService.getFaceAuditLogs(userId);
-      setLogs(auditData || []);
-      if (userId) {
-        const faceStat = await authService.getFaceStatus(userId);
-        setStatus(faceStat);
-      }
-    } catch (err) {
-      console.warn('Could not fetch biometric diagnostic telemetry:', err);
+      const diagData = await authService.getBiometricDiagnostics(userId);
+      setLogs(diagData.logs || []);
+      setStatus(diagData.serviceStatus || {});
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
@@ -43,8 +41,8 @@ export const BiometricDebugDashboardModal: React.FC<BiometricDebugDashboardModal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-slate-900 border border-slate-800 text-white rounded-xl max-w-4xl w-full p-6 space-y-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+      <div className="bg-slate-900 border border-slate-700 max-w-4xl w-full p-6 rounded-xl space-y-4 shadow-2xl text-slate-100 max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -57,9 +55,11 @@ export const BiometricDebugDashboardModal: React.FC<BiometricDebugDashboardModal
               Dev Mode Only
             </Badge>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white cursor-pointer p-1">
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-white cursor-pointer p-1">
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Model Spec Grid */}

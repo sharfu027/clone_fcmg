@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Compass, Check, AlertCircle, RefreshCw, X, ShieldCheck, Navigation } from 'lucide-react';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 export interface EmployeeDetails {
   id: string;
   name: string;
@@ -172,12 +173,15 @@ export const LocationEnrollmentModal: React.FC<LocationEnrollmentModalProps> = (
               <p className="text-[11px] text-slate-400">Configure GPS Geofence clearance parameters for login policy.</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* MODAL BODY */}

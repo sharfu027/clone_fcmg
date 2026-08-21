@@ -56,8 +56,11 @@ public class CreateCompanyCommandHandler : IRequestHandler<CreateCompanyCommand,
             return Result.Failure<CompanyDto>(Error.Unauthorized("Company.ReadOnly", "Only Super Administrators can create Companies. Standard Administrators have Read-Only Company access."));
         }
 
-        if (await _repository.ExistsCodeAsync(request.Code, null, cancellationToken))
-            return Result.Failure<CompanyDto>(Error.Conflict("Company.DuplicateCode", $"A company with code '{request.Code}' already exists."));
+        string code = request.Code?.Trim().ToUpperInvariant() ?? "";
+        if (string.IsNullOrWhiteSpace(code) || await _repository.ExistsCodeAsync(code, null, cancellationToken))
+        {
+            code = await _repository.GetNextCompanyCodeAsync(cancellationToken);
+        }
 
         if (await _repository.ExistsGstinAsync(request.TaxRegistrationNumber, null, cancellationToken))
             return Result.Failure<CompanyDto>(Error.Conflict("Company.DuplicateGstin", $"A company with Tax Registration (GSTIN) '{request.TaxRegistrationNumber}' already exists."));
@@ -68,7 +71,7 @@ public class CreateCompanyCommandHandler : IRequestHandler<CreateCompanyCommand,
         var company = new Company
         {
             TenantId = request.TenantId,
-            Code = request.Code.Trim().ToUpperInvariant(),
+            Code = code,
             LegalName = request.LegalName.Trim(),
             TradeName = request.TradeName?.Trim(),
             TaxRegistrationNumber = request.TaxRegistrationNumber.Trim().ToUpperInvariant(),

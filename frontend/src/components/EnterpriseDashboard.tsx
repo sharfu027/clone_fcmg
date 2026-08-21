@@ -24,6 +24,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { ActivityLog, TaskItem, OrderItem, DashboardApprovalRequest } from '../types';
+import { Tooltip } from './ui/Tooltip';
 
 interface DashboardProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
@@ -534,13 +535,15 @@ export default function EnterpriseDashboard({ onTriggerToast }: DashboardProps) 
               <h4 className="text-xs font-bold text-brand-text-primary uppercase tracking-wider">Upcoming Tasks Checklist</h4>
               <p className="text-[11px] text-brand-text-secondary mt-0.5">Simulated team responsibilities</p>
             </div>
-            <button 
-              onClick={handleAddNewTask}
-              className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary transition cursor-pointer"
-              title="Add brand-new checklist item"
-            >
-              <Plus size={14} />
-            </button>
+            <Tooltip content="Add Checklist Task">
+              <button 
+                onClick={handleAddNewTask}
+                aria-label="Add Checklist Task"
+                className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary transition cursor-pointer"
+              >
+                <Plus size={14} />
+              </button>
+            </Tooltip>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2.5 max-h-72 pr-1">

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AuditLogDto } from '../../../../types/admin';
 import { Badge } from '../../../../components/ui/Badge';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 
 interface SecurityEventDetailsDrawerProps {
   isOpen: boolean;
@@ -67,12 +68,15 @@ export const SecurityEventDetailsDrawer: React.FC<SecurityEventDetailsDrawerProp
               <p className="text-slate-500 text-xs mt-0.5">Audit Record ID: #{event.id.substring(0, 8)}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Drawer Content Body */}

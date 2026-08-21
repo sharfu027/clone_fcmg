@@ -5,7 +5,7 @@ namespace INK.ERP.Domain.Entities.MasterData;
 public sealed class Product : BaseEntity
 {
     public Guid CompanyId { get; set; }
-    public Guid CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public Guid BaseUomId { get; set; }
     public string Code { get; set; } = string.Empty;

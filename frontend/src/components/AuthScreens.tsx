@@ -36,6 +36,7 @@ import {
 } from '../services/securityPolicyResolver';
 import { SecurityProfile, AuthenticationPolicy } from '../types/security';
 import { authService } from '../services/authService';
+import { Tooltip } from './ui/Tooltip';
 
 interface AuthScreensProps {
   onLoginSuccess: (userName: string, role: string) => void;
@@ -849,13 +850,16 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
                       className="w-full pl-9 pr-10 py-2.5 text-xs border border-brand-border rounded focus:outline-none focus:border-brand-primary transition bg-white text-brand-text-primary"
                       placeholder="••••••••••••"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-brand-text-secondary hover:text-brand-text-primary cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
+                    <Tooltip content={showPassword ? 'Hide Password' : 'Show Password'}>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Hide Password' : 'Show Password'}
+                        className="absolute right-3 top-3 text-brand-text-secondary hover:text-brand-text-primary cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
               </div>

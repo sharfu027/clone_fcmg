@@ -1,6 +1,8 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
+import { Tooltip } from './Tooltip';
+
 export interface ConfirmDialogProps {
   isOpen: boolean;
   title: string;
@@ -40,9 +42,11 @@ export function ConfirmDialog({
             </div>
             <h3 className="text-base font-bold text-brand-text-primary">{title}</h3>
           </div>
-          <button onClick={onCancel} className="text-brand-text-secondary hover:text-brand-text-primary cursor-pointer">
-            <X size={16} />
-          </button>
+          <Tooltip content="Close">
+            <button onClick={onCancel} aria-label="Close" className="text-brand-text-secondary hover:text-brand-text-primary cursor-pointer">
+              <X size={16} />
+            </button>
+          </Tooltip>
         </div>
         <p className="text-xs text-brand-text-secondary leading-relaxed">{message}</p>
         <div className="flex justify-end gap-2 pt-2 border-t border-brand-border">

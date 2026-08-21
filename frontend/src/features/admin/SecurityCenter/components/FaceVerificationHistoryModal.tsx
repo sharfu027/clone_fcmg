@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Activity, X, RefreshCw, CheckCircle2, AlertTriangle, ShieldAlert, Monitor } from 'lucide-react';
 import { authService } from '../../../../services/authService';
 import { Badge } from '../../../../components/ui/Badge';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 
 interface FaceVerificationHistoryModalProps {
   isOpen: boolean;
@@ -61,18 +62,22 @@ export const FaceVerificationHistoryModal: React.FC<FaceVerificationHistoryModal
               Employee: <span className="font-semibold text-brand-primary">{employee.fullName}</span> ({employee.employeeCode})
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchLogs}
-              disabled={isLoading}
-              className="p-1.5 border text-brand-text-secondary hover:text-brand-text-primary rounded hover:bg-brand-bg-secondary cursor-pointer disabled:opacity-50"
-              title="Refresh Audit History"
-            >
-              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-            </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer p-1">
-              <X size={18} />
-            </button>
+          <div className="flex items-center gap-1.5">
+            <Tooltip content="Refresh Data">
+              <button
+                onClick={fetchLogs}
+                disabled={isLoading}
+                aria-label="Refresh Data"
+                className="p-1.5 border text-brand-text-secondary hover:text-brand-text-primary rounded hover:bg-brand-bg-secondary cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Close">
+              <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 cursor-pointer p-1">
+                <X size={18} />
+              </button>
+            </Tooltip>
           </div>
         </div>
 

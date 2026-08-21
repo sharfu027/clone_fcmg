@@ -436,17 +436,38 @@ public sealed class UpdateRolePermissionsCommandHandler : IRequestHandler<Update
             p.Code.Equals("masters:branch", StringComparison.OrdinalIgnoreCase) || 
             p.Code.Equals("manage:all", StringComparison.OrdinalIgnoreCase));
 
-        var effectivePermissionIds = request.PermissionIds;
-        if (!hasBranchPerm)
-        {
-            var invalidPermIds = targetPerms
-                .Where(p => p.Code.Equals("masters:department", StringComparison.OrdinalIgnoreCase) || 
-                            p.Code.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase))
-                .Select(p => p.Id)
-                .ToHashSet();
+        bool hasWarehousePerm = hasBranchPerm || targetPerms.Any(p => 
+            p.Code.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase));
 
-            effectivePermissionIds = effectivePermissionIds.Where(id => !invalidPermIds.Contains(id)).ToList();
+        bool hasProductParentPerm = targetPerms.Any(p =>
+            p.Code.Equals("masters:category", StringComparison.OrdinalIgnoreCase) ||
+            p.Code.Equals("masters:brand", StringComparison.OrdinalIgnoreCase) ||
+            p.Code.Equals("masters:unit", StringComparison.OrdinalIgnoreCase) ||
+            p.Code.Equals("masters:uom", StringComparison.OrdinalIgnoreCase) ||
+            p.Code.Equals("manage:all", StringComparison.OrdinalIgnoreCase));
+
+        var effectivePermSet = new HashSet<Guid>(request.PermissionIds);
+
+        if (hasBranchPerm)
+        {
+            var warehousePerm = allPerms.FirstOrDefault(p => p.Code.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase));
+            var departmentPerm = allPerms.FirstOrDefault(p => p.Code.Equals("masters:department", StringComparison.OrdinalIgnoreCase));
+            if (warehousePerm != null) effectivePermSet.Add(warehousePerm.Id);
+            if (departmentPerm != null) effectivePermSet.Add(departmentPerm.Id);
         }
+        else if (hasWarehousePerm)
+        {
+            var departmentPerm = allPerms.FirstOrDefault(p => p.Code.Equals("masters:department", StringComparison.OrdinalIgnoreCase));
+            if (departmentPerm != null) effectivePermSet.Add(departmentPerm.Id);
+        }
+
+        if (hasProductParentPerm)
+        {
+            var productPerm = allPerms.FirstOrDefault(p => p.Code.Equals("masters:product", StringComparison.OrdinalIgnoreCase));
+            if (productPerm != null) effectivePermSet.Add(productPerm.Id);
+        }
+
+        var effectivePermissionIds = effectivePermSet.ToList();
 
         // Soft delete removed perms
         foreach (var existing in existingPerms)

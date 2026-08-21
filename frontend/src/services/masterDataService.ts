@@ -13,6 +13,9 @@ export async function fetchCompanyById(id: string): Promise<CompanyDto> {
 export async function fetchCompanyLookup(): Promise<any[]> {
   return apiClient.get<any[]>(`${API_BASE_URL}/company/lookup`);
 }
+export async function fetchNextCompanyCode(): Promise<string> {
+  return apiClient.get<string>(`${API_BASE_URL}/company/next-code`);
+}
 export async function createCompany(data: Partial<CompanyDto>): Promise<CompanyDto> {
   return apiClient.post<CompanyDto>(`${API_BASE_URL}/company`, data);
 }

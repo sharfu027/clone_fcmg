@@ -48,8 +48,23 @@ public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
             address.Property(a => a.Country).HasColumnName("country").HasMaxLength(50).IsRequired();
         });
 
+        builder.Property(w => w.CompanyId)
+            .IsRequired();
+
+        builder.Property(w => w.BranchId)
+            .IsRequired(false);
+
+        builder.HasOne(w => w.Company)
+            .WithMany()
+            .HasForeignKey(w => w.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(w => w.Branch)
+            .WithMany()
+            .HasForeignKey(w => w.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(w => new { w.CompanyId, w.Code })
-            .IsUnique()
-            ;
+            .IsUnique();
     }
 }

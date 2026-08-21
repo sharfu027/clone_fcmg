@@ -10,4 +10,5 @@ public interface ICompanyRepository : IGenericRepository<Company>
     Task<bool> ExistsCodeAsync(string code, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task<bool> ExistsGstinAsync(string gstin, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task<bool> ExistsLegalNameAsync(string legalName, Guid? excludeId = null, CancellationToken cancellationToken = default);
+    Task<string> GetNextCompanyCodeAsync(CancellationToken cancellationToken = default);
 }

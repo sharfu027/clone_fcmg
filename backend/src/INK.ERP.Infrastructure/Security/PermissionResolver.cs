@@ -45,18 +45,53 @@ public class PermissionResolver : IPermissionResolver, ICacheInvalidationService
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        // Normalize permission dependencies: Branch access is required for Department & Warehouse access
-        bool hasBranchAccess = permissionCodes.Any(p => 
-            p.Equals("masters:branch", StringComparison.OrdinalIgnoreCase) || 
-            p.Equals("manage:all", StringComparison.OrdinalIgnoreCase));
+        // Normalize permission dependencies:
+        // 1. Company Master cascading hierarchy: Branch -> Warehouse/Stockist -> Department
+        // 2. Product Master cascading dependency: Category/Brand/UOM -> Products
+        bool hasManageAll = permissionCodes.Any(p => p.Equals("manage:all", StringComparison.OrdinalIgnoreCase));
+        
+        // Company Master cascade
+        bool hasBranch = hasManageAll || permissionCodes.Any(p => p.Equals("masters:branch", StringComparison.OrdinalIgnoreCase));
+        bool hasWarehouse = hasBranch || permissionCodes.Any(p => p.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase));
+        bool hasDepartment = hasWarehouse || permissionCodes.Any(p => p.Equals("masters:department", StringComparison.OrdinalIgnoreCase));
 
-        if (!hasBranchAccess)
+        // Product Master cascade (Category/Brand/Unit -> Product)
+        bool hasCategory = hasManageAll || permissionCodes.Any(p => p.Equals("masters:category", StringComparison.OrdinalIgnoreCase));
+        bool hasBrand = hasManageAll || permissionCodes.Any(p => p.Equals("masters:brand", StringComparison.OrdinalIgnoreCase));
+        bool hasUnit = hasManageAll || permissionCodes.Any(p => p.Equals("masters:unit", StringComparison.OrdinalIgnoreCase) || p.Equals("masters:uom", StringComparison.OrdinalIgnoreCase));
+        bool hasProduct = hasCategory || hasBrand || hasUnit || permissionCodes.Any(p => p.Equals("masters:product", StringComparison.OrdinalIgnoreCase));
+
+        var normalizedCodes = new HashSet<string>(permissionCodes, StringComparer.OrdinalIgnoreCase);
+
+        if (hasBranch)
         {
-            permissionCodes = permissionCodes
-                .Where(p => !p.Equals("masters:department", StringComparison.OrdinalIgnoreCase) &&
-                            !p.Equals("masters:warehouse", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            normalizedCodes.Add("masters:branch");
+            normalizedCodes.Add("masters:warehouse");
+            normalizedCodes.Add("masters:department");
         }
+        else if (hasWarehouse)
+        {
+            normalizedCodes.Add("masters:warehouse");
+            normalizedCodes.Add("masters:department");
+        }
+        else if (hasDepartment)
+        {
+            normalizedCodes.Add("masters:department");
+        }
+
+        if (hasCategory) normalizedCodes.Add("masters:category");
+        if (hasBrand) normalizedCodes.Add("masters:brand");
+        if (hasUnit)
+        {
+            normalizedCodes.Add("masters:unit");
+            normalizedCodes.Add("masters:uom");
+        }
+        if (hasProduct)
+        {
+            normalizedCodes.Add("masters:product");
+        }
+
+        permissionCodes = normalizedCodes.ToList();
 
         await _cacheService.SetAsync(cacheKey, permissionCodes, TimeSpan.FromMinutes(30), cancellationToken);
 

@@ -12,7 +12,7 @@ namespace INK.ERP.Application.Features.MasterData.Warehouses.Commands;
 
 public record CreateWarehouseCommand(
     Guid CompanyId,
-    Guid BranchId,
+    Guid? BranchId,
     string Code,
     string Name,
     string WarehouseType,
@@ -72,10 +72,13 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
         }
 
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+        if (request.BranchId.HasValue)
         {
-            return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            var branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
+            if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+            {
+                return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            }
         }
 
         if (!await _warehouseRepository.IsCodeUniqueAsync(targetCompanyId, request.Code, null, cancellationToken))
@@ -142,7 +145,7 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
 public record UpdateWarehouseCommand(
     Guid Id,
     Guid CompanyId,
-    Guid BranchId,
+    Guid? BranchId,
     string Code,
     string Name,
     string WarehouseType,
@@ -201,23 +204,30 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             return Result<WarehouseDto>.Failure(accessResult.Error);
         }
 
-        var company = await _companyRepository.GetByIdAsync(warehouse.CompanyId, cancellationToken);
+        var authorizedCompanyId = await _companyAccessResolver.GetAuthorizedCompanyIdAsync(cancellationToken);
+        var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+
+        var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
         if (company == null || company.IsDeleted)
         {
-            return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{warehouse.CompanyId}' was not found."));
+            return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
         }
 
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        if (branch == null || branch.IsDeleted || branch.CompanyId != warehouse.CompanyId)
+        if (request.BranchId.HasValue)
         {
-            return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            var branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
+            if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+            {
+                return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            }
         }
 
-        if (!await _warehouseRepository.IsCodeUniqueAsync(warehouse.CompanyId, request.Code, request.Id, cancellationToken))
+        if (!await _warehouseRepository.IsCodeUniqueAsync(targetCompanyId, request.Code, request.Id, cancellationToken))
         {
             return Result<WarehouseDto>.Failure(Error.Conflict("Warehouse.DuplicateCode", $"Warehouse code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
+        warehouse.CompanyId = targetCompanyId;
         warehouse.BranchId = request.BranchId;
         warehouse.Code = request.Code.ToUpperInvariant().Trim();
         warehouse.Name = request.Name.Trim();

@@ -17,6 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Badge } from '../../../../components/ui/Badge';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 import { authService } from '../../../../services/authService';
 
 export interface EmployeeSecurityDetails {
@@ -139,9 +140,11 @@ export const EmployeeSecurityDetailsDrawer: React.FC<EmployeeSecurityDetailsDraw
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1.5 cursor-pointer rounded hover:bg-white">
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 p-1.5 cursor-pointer rounded hover:bg-white">
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Drawer Content Body */}

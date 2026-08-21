@@ -11,7 +11,7 @@ namespace INK.ERP.Application.Features.MasterData.Products.Commands;
 
 public record CreateProductCommand(
     Guid CompanyId,
-    Guid CategoryId,
+    Guid? CategoryId,
     Guid? BrandId,
     Guid BaseUomId,
     string Code,
@@ -70,11 +70,15 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Target Company was not found or is inactive."));
         }
 
-        // Category may be a Root Category OR a Subcategory — Subcategory is OPTIONAL.
-        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
-        if (category == null || !category.IsActive || category.CompanyId != targetCompanyId)
+        // Category is OPTIONAL. When provided, must belong to the authorized company.
+        Category? category = null;
+        if (request.CategoryId.HasValue)
         {
-            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
+            category = await _categoryRepository.GetByIdAsync(request.CategoryId.Value, cancellationToken);
+            if (category == null || !category.IsActive || category.CompanyId != targetCompanyId)
+            {
+                return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
+            }
         }
 
         // Brand is OPTIONAL. When provided, must belong to the authorized company.
@@ -107,7 +111,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         var product = new Product
         {
             CompanyId = company.Id,
-            CategoryId = category.Id,
+            CategoryId = request.CategoryId,
             BrandId = request.BrandId,
             BaseUomId = uom.Id,
             Code = request.Code.ToUpperInvariant().Trim(),
@@ -139,7 +143,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             return Result<ProductDto>.Failure(Error.Failure("Product.SaveError", $"Failed to save product: {detailMsg}"));
         }
 
-        var parentCategory = category.ParentCategoryId.HasValue
+        var parentCategory = (category != null && category.ParentCategoryId.HasValue)
             ? await _categoryRepository.GetByIdAsync(category.ParentCategoryId.Value, cancellationToken)
             : null;
 
@@ -148,8 +152,8 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             product.CompanyId,
             company.LegalName,
             product.CategoryId,
-            category.Name,
-            category.ParentCategoryId,
+            category?.Name,
+            category?.ParentCategoryId,
             parentCategory?.Name,
             product.BrandId,
             brand?.Name,
@@ -176,7 +180,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
 public record UpdateProductCommand(
     Guid Id,
     Guid CompanyId,
-    Guid CategoryId,
+    Guid? CategoryId,
     Guid? BrandId,
     Guid BaseUomId,
     string Code,
@@ -240,11 +244,15 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             return Result<ProductDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company was not found."));
         }
 
-        // Category may be a Root Category OR a Subcategory — Subcategory is OPTIONAL.
-        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
-        if (category == null || !category.IsActive || category.CompanyId != product.CompanyId)
+        // Category is OPTIONAL. When provided, must belong to the authorized company.
+        Category? category = null;
+        if (request.CategoryId.HasValue)
         {
-            return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
+            category = await _categoryRepository.GetByIdAsync(request.CategoryId.Value, cancellationToken);
+            if (category == null || !category.IsActive || category.CompanyId != product.CompanyId)
+            {
+                return Result<ProductDto>.Failure(Error.Validation("Product.InvalidCategory", "The selected category does not exist or does not belong to the authorized company."));
+            }
         }
 
         // Brand is OPTIONAL. When provided, must belong to the authorized company.
@@ -293,7 +301,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         await _productRepository.UpdateAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var parentCategory = category.ParentCategoryId.HasValue
+        var parentCategory = (category != null && category.ParentCategoryId.HasValue)
             ? await _categoryRepository.GetByIdAsync(category.ParentCategoryId.Value, cancellationToken)
             : null;
 
@@ -302,8 +310,8 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             product.CompanyId,
             company.LegalName,
             product.CategoryId,
-            category.Name,
-            category.ParentCategoryId,
+            category?.Name,
+            category?.ParentCategoryId,
             parentCategory?.Name,
             product.BrandId,
             brand?.Name,

@@ -2,6 +2,7 @@ import React from 'react';
 import { Supplier } from '../../../../../types/supplier';
 import { Download, Eye } from 'lucide-react';
 import { Badge } from '../../../../../components/ui/Badge';
+import { Tooltip } from '../../../../../components/ui/Tooltip';
 import { NoDocumentsState } from '../../empty-states/SupplierEmptyStates';
 
 interface Props {
@@ -55,12 +56,16 @@ export function DocumentsTab({ supplier }: Props) {
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex justify-end gap-1">
-                    <button className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer" title="Preview">
-                      <Eye size={14} />
-                    </button>
-                    <button className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer" title="Download">
-                      <Download size={14} />
-                    </button>
+                    <Tooltip content="Preview Document">
+                      <button aria-label="Preview Document" className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer">
+                        <Eye size={14} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Download Document">
+                      <button aria-label="Download Document" className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer">
+                        <Download size={14} />
+                      </button>
+                    </Tooltip>
                   </div>
                 </td>
               </tr>

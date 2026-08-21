@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Check, Plus, Trash2 } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { RoleDefinition } from '../../../types/admin';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface AssignRoleModalProps {
   isOpen: boolean;
@@ -99,12 +100,15 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
               <p className="text-xs text-brand-text-secondary">Assign or revoke security roles for {user.displayName}.</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-brand-text-secondary hover:text-brand-text-primary rounded-lg hover:bg-brand-bg-secondary transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1 text-brand-text-secondary hover:text-brand-text-primary rounded-lg hover:bg-brand-bg-secondary transition cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Current Roles */}
@@ -118,14 +122,16 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
                   className="px-2.5 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-full font-semibold flex items-center gap-1 text-xs"
                 >
                   {roleName}
-                  <button
-                    onClick={() => handleRemoveRole(roleName)}
-                    disabled={isSubmitting}
-                    title="Remove Role"
-                    className="hover:text-red-600 cursor-pointer ml-1"
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                  <Tooltip content={`Remove ${roleName} role`}>
+                    <button
+                      onClick={() => handleRemoveRole(roleName)}
+                      disabled={isSubmitting}
+                      aria-label={`Remove ${roleName} role`}
+                      className="hover:text-red-600 cursor-pointer ml-1"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </Tooltip>
                 </span>
               ))}
             </div>

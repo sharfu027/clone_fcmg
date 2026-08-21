@@ -43,6 +43,7 @@ import * as masterDataService from '../services/masterDataService';
 import { useAuth } from '../context/AuthContext';
 import CompanyOrganizationHierarchy from './CompanyOrganizationHierarchy';
 import ProductClassificationHierarchy from './ProductClassificationHierarchy';
+import { Tooltip } from './ui/Tooltip';
 
 const isGuid = (val: any) => typeof val === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
 
@@ -230,7 +231,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [branchIsHq, setBranchIsHq] = useState(false);
 
   // 3. Department
-  const [deptBranchId, setDeptBranchId] = useState('1');
+  const [deptCompanyId, setDeptCompanyId] = useState('');
+  const [deptBranchId, setDeptBranchId] = useState('');
   const [deptName, setDeptName] = useState('');
   const [deptDesc, setDeptDesc] = useState('');
 
@@ -483,13 +485,27 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
             })));
             setDbWarehouses(whList.map((x: any) => ({
-              id: x.id, companyId: x.companyId, branchId: x.branchId, branchName: x.branchName || 'Main Branch',
-              code: x.code, name: x.name, warehouseType: x.warehouseType || 'Central Warehouse',
-              city: x.city || '', state: x.state || '',
+              id: x.id,
+              companyId: x.companyId,
+              companyName: x.companyName || '',
+              branchId: x.branchId || null,
+              branchName: x.branchName || '',
+              code: x.code,
+              name: x.name,
+              warehouseType: x.warehouseType || 'Central Warehouse',
+              city: x.city || '',
+              state: x.state || '',
               status: x.status || (x.isActive ? 'Active' : 'Inactive')
             })));
             setDbDepartments(dpList.map((x: any) => ({
-              id: x.id, code: x.code, name: x.name, description: x.description || '', branchId: x.branchId, branchName: x.branchName || 'Main Branch',
+              id: x.id,
+              companyId: x.companyId,
+              companyName: x.companyName || '',
+              branchId: x.branchId || null,
+              branchName: x.branchName || '',
+              code: x.code,
+              name: x.name,
+              description: x.description || '',
               status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
             })));
           } catch (e) {}
@@ -509,10 +525,39 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchDepartments(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbDepartments(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.name, description: x.description || '', branchId: x.branchId, branchName: x.branchName || 'Main Branch',
+            id: x.id,
+            companyId: x.companyId,
+            companyName: x.companyName || '',
+            branchId: x.branchId || null,
+            branchName: x.branchName || '',
+            code: x.code,
+            name: x.name,
+            description: x.description || '',
             status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          try {
+            const [compRes, brRes] = await Promise.all([
+              masterDataService.fetchCompanies({ pageSize: 100 }),
+              masterDataService.fetchBranches({ pageSize: 100 })
+            ]);
+            const extractList = (res: any): any[] => {
+              if (!res) return [];
+              if (Array.isArray(res)) return res;
+              if (Array.isArray(res.items)) return res.items;
+              if (Array.isArray(res.data)) return res.data;
+              if (Array.isArray(res.value)) return res.value;
+              return [];
+            };
+            const compList = extractList(compRes);
+            const brList = extractList(brRes);
+            setDbCompanies(compList);
+            setDbBranches(brList);
+            if (compList[0]?.id && !isGuid(deptCompanyId)) {
+              setDeptCompanyId(compList[0].id);
+            }
+          } catch (e) {}
         } else if (module === 'designations' || module === 'masters/designations') {
           apiData = await masterDataService.fetchDesignations(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
@@ -823,7 +868,13 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'departments' || module === 'masters/departments') {
       const x = dbDepartments.find(d => d.id === id);
       if (x) {
-        setFormCode(x.code); setDeptName(x.name); setDeptBranchId(x.branchId); setDeptDesc(x.description); setFormStatus(x.status as any);
+        setFormCode(x.code);
+        setDeptName(x.name);
+        setDeptCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setDeptBranchId(x.branchId || '');
+        setDeptDesc(x.description || '');
+        setFormStatus(x.status as any);
+        setFormErrors({});
       }
     } else if (module === 'designations' || module === 'masters/designations') {
       const x = dbDesignations.find(d => d.id === id);
@@ -1014,8 +1065,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     e.preventDefault();
     const errors: Record<string, string> = {};
 
-    if (!formCode.trim()) {
-      errors.code = 'Code identifier is required. Example: CMP-001 or PROD-001';
+    let activeCode = formCode.trim();
+    if (!activeCode && mode === 'create') {
+      activeCode = getNextAutoCode();
+      setFormCode(activeCode);
+    }
+
+    if (!activeCode) {
+      errors.code = 'Code identifier is required. Example: COM-001 or PROD-001';
     }
 
     if (module === 'companies' || module === 'masters/companies') {
@@ -1042,6 +1099,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'branches' || module === 'masters/branches') {
       if (!branchName.trim()) errors.branchName = 'Branch Name is required. Example: Delhi Main Branch';
     } else if (module === 'departments' || module === 'masters/departments') {
+      if (!deptCompanyId || !isGuid(deptCompanyId)) {
+        errors.deptCompanyId = 'Company is required. Please select a valid Company.';
+      }
       if (!deptName.trim()) errors.deptName = 'Department Name is required. Example: Supply Chain & Logistics';
     } else if (module === 'designations' || module === 'masters/designations') {
       if (!desigTitle.trim()) errors.desigTitle = 'Designation Title is required. Example: Regional Sales Manager';
@@ -1098,9 +1158,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       if (!prodCompanyId || !isGuid(prodCompanyId)) {
         errors.prodCompanyId = 'Company is required. Please select a valid Company.';
       }
-      if (!prodCategoryId || !isGuid(prodCategoryId)) {
-        errors.prodCategoryId = 'Product Category is required. Please select a Category.';
-      }
+      // Category is OPTIONAL — no validation required
       if (!prodBaseUomId || !isGuid(prodBaseUomId)) {
         errors.prodBaseUomId = 'Base Unit of Measure is required. Please select a UOM.';
       }
@@ -1140,8 +1198,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'units' || module === 'masters/units') {
       if (!uomName.trim()) errors.uomName = 'Unit Name is required. Example: Kilograms';
     } else if (module === 'warehouses' || module === 'masters/warehouses') {
-      if (!whBranchId) errors.whBranchId = 'Branch Link is required.';
-      if (!whName.trim()) errors.whName = 'Warehouse Name is required. Example: Delhi Central Depot';
+      if (!whCompanyId || !isGuid(whCompanyId)) {
+        errors.whCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!whName.trim()) errors.whName = 'Warehouse / Stockist Name is required. Example: Delhi Central Depot';
       if (!whType.trim()) errors.whType = 'Warehouse Type is required.';
       if (!whStatus.trim()) errors.whStatus = 'Status is required.';
       if (!whAddrLine1.trim()) errors.whAddrLine1 = 'Address Line 1 is required.';
@@ -1323,12 +1383,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Branch Updated', 'Branch record configured.');
         }
       } else if (module === 'departments' || module === 'masters/departments') {
-        const validBranchId = isGuid(deptBranchId) ? deptBranchId : (dbBranches.find(b => isGuid(b.id))?.id || 'a59e6217-3baa-426c-aff5-ba8fa06e48ac');
+        const validCompId = isGuid(deptCompanyId) ? deptCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
+        const validBranchId = isGuid(deptBranchId) ? deptBranchId : null;
         const payload = { 
+          companyId: validCompId,
           branchId: validBranchId, 
           code: formCode.toUpperCase().trim(), 
           name: deptName.trim(), 
-          description: (deptDesc || 'Department').trim() 
+          description: (deptDesc || '').trim() || undefined,
+          isActive: formStatus === 'Active'
         };
         if (isNew) {
            await masterDataService.createDepartment(payload);
@@ -1378,7 +1441,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       } else if (module === 'products' || module === 'masters/products') {
         const payload = {
           companyId: prodCompanyId,
-          categoryId: prodCategoryId,
+          categoryId: isGuid(prodCategoryId) ? prodCategoryId : null,
           brandId: isGuid(prodBrandId) ? prodBrandId : null,
           baseUomId: prodBaseUomId,
           code: formCode.toUpperCase().trim(),
@@ -1453,9 +1516,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Unit Updated', 'Unit of Measure configured.');
         }
       } else if (module === 'warehouses' || module === 'masters/warehouses') {
-        const validBranch = dbBranches.find(b => b.id === whBranchId) || dbBranches[0];
-        const validBranchId = isGuid(whBranchId) ? whBranchId : (validBranch?.id || 'a59e6217-3baa-426c-aff5-ba8fa06e48ac');
+        const validBranch = isGuid(whBranchId) ? dbBranches.find(b => b.id === whBranchId) : null;
         const validCompId = isGuid(whCompanyId) ? whCompanyId : (validBranch?.companyId || dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
+        const validBranchId = isGuid(whBranchId) ? whBranchId : null;
         const validManagerId = isGuid(whManagerEmployeeId) ? whManagerEmployeeId : undefined;
 
         const payload = { 
@@ -1480,14 +1543,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           latitude: typeof whLatitude === 'number' ? whLatitude : undefined,
           longitude: typeof whLongitude === 'number' ? whLongitude : undefined,
           remarks: whRemarks.trim() || undefined,
-          isTemperatureControlled: Boolean(whTempControl)
+          isTemperatureControlled: Boolean(whTempControl),
+          isActive: whStatus === 'Active'
         };
         if (isNew) {
            await masterDataService.createWarehouse(payload);
-           onTriggerToast('success', 'Warehouse Saved', 'Warehouse configured.');
+           onTriggerToast('success', 'Warehouse / Stockist Saved', 'Warehouse / Stockist configured.');
         } else {
-           await masterDataService.updateWarehouse(selectedId!, { ...payload, id: selectedId!, isActive: whStatus === 'Active' });
-           onTriggerToast('success', 'Warehouse Updated', 'Warehouse configured.');
+           await masterDataService.updateWarehouse(selectedId!, { ...payload, id: selectedId! });
+           onTriggerToast('success', 'Warehouse / Stockist Updated', 'Warehouse / Stockist configured.');
         }
       } else if (module === 'customers' || module === 'masters/customers') {
         const payload = { 
@@ -1650,7 +1714,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       return { id: c.id, code: c.code, name: c.legalName, detail1: gstin, detail2: location, numericText: currency, status: statusDisplay };
     });
     if (module === 'branches' || module === 'masters/branches') return dbBranches.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.companyName, detail2: b.city, numericText: b.isHeadquarters ? 'Headquarters' : 'Depot', status: b.status }));
-    if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => ({ id: d.id, code: d.code, name: d.name, detail1: d.branchName, detail2: d.description, numericText: 'Dept', status: d.status }));
+    if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => ({ id: d.id, code: d.code, name: d.name, detail1: d.branchName ? `Branch: ${d.branchName}` : (d.companyName ? `Company: ${d.companyName}` : 'Company Level'), detail2: d.description || 'Department', numericText: 'Dept', status: d.status }));
     if (module === 'designations' || module === 'masters/designations') return dbDesignations.map(d => ({ id: d.id, code: d.code, name: d.title, detail1: d.companyName, detail2: `Level ${d.level}`, numericText: `Limit: ₹${d.approvalLimit.toLocaleString()}`, status: d.status }));
     if (module === 'employees' || module === 'masters/employees') return dbEmployees.map(e => ({
       id: e.id,
@@ -1661,7 +1725,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       numericText: e.salary !== undefined && e.salary !== null && e.salary !== '' ? `₹${Number(e.salary).toLocaleString('en-IN')}` : '—',
       status: e.status
     }));
-    if (module === 'products' || module === 'masters/products') return dbProducts.map(p => ({ id: p.id, code: p.code, name: p.name, detail1: p.category, detail2: p.brand, numericText: `₹${p.price}`, status: p.status }));
+    if (module === 'products' || module === 'masters/products') return dbProducts.map(p => ({ id: p.id, code: p.code, name: p.name, detail1: p.categoryName || 'Unclassified', detail2: p.brandName || 'Unbranded', numericText: `₹${p.basePrice ?? p.price ?? 0}`, status: p.isActive ? 'Active' : 'Inactive' }));
     if (module === 'categories' || module === 'masters/categories') return dbCategories.map(c => ({
       id: c.id,
       code: c.code,
@@ -1673,7 +1737,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     }));
     if (module === 'brands' || module === 'masters/brands') return dbBrands.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.origin, detail2: '', numericText: `${b.productCount} SKUs`, status: b.status }));
     if (module === 'units' || module === 'masters/units') return dbUnits.map(u => ({ id: u.id, code: u.code, name: u.name, detail1: u.baseUnit, detail2: '', numericText: `Factor: ${u.conversionFactor}`, status: u.status }));
-    if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => ({ id: w.id, code: w.code, name: w.name, detail1: w.manager, detail2: w.address, numericText: `${w.capacitySft.toLocaleString()} sq ft`, status: w.status }));
+    if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => ({ id: w.id, code: w.code, name: w.name, detail1: w.branchName ? `Branch: ${w.branchName}` : (w.companyName ? `Company: ${w.companyName}` : (w.manager || 'Company Level')), detail2: w.address || w.warehouseType || 'Warehouse / Stockist', numericText: `${(w.capacitySft || w.storageAreaSqFt || 0).toLocaleString()} sq ft`, status: w.status }));
     if (module === 'customers' || module === 'masters/customers') return dbCustomers.map(c => ({
       id: c.id,
       code: c.code,
@@ -1775,11 +1839,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           {isSuper && (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setFormCode(getNextAutoCode());
                 setFormStatus('Active');
                 setFormErrors({});
                 setMode('create');
+                try {
+                  const nextCode = await masterDataService.fetchNextCompanyCode();
+                  if (nextCode) setFormCode(nextCode);
+                } catch {
+                  // Fallback to getNextAutoCode() already set
+                }
               }}
               className="px-3.5 py-1.5 bg-brand-primary text-white hover:bg-blue-700 rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition self-start sm:self-auto"
             >
@@ -1860,8 +1930,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               setFormStatus('Active');
               setFormErrors({});
               if (dbCompanies[0]?.id) setProdCompanyId(dbCompanies[0].id);
-              if (dbCategories[0]?.id) setProdCategoryId(dbCategories[0].id);
-              if (dbBrands[0]?.id) setProdBrandId(dbBrands[0].id);
+              setProdCategoryId(''); // Category is OPTIONAL — default to no selection
+              setProdBrandId('');   // Brand is OPTIONAL — default to no selection
               if (dbUnits[0]?.id) setProdBaseUomId(dbUnits[0].id);
               setMode('create');
             }}
@@ -1980,6 +2050,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   }
                   window.location.href = '/masters/branches';
                 }}
+                onAddNewWarehouse={(companyId) => {
+                  setWhCompanyId(companyId);
+                  window.location.href = '/masters/warehouses';
+                }}
+                onAddNewDepartment={(companyId) => {
+                  const companyBranches = dbBranches.filter(b => b.companyId === companyId);
+                  if (companyBranches.length > 0) {
+                    setDeptBranchId(companyBranches[0].id);
+                  }
+                  window.location.href = '/masters/departments';
+                }}
                 onViewFullRegistry={() => setCompanyViewType('table')}
                 isLoading={simulatedState === 'loading'}
               />
@@ -2097,11 +2178,18 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
                       {((module !== 'companies' && module !== 'masters/companies') || isSuper) && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setFormCode(getNextAutoCode());
                             setFormStatus('Active');
                             setFormErrors({});
-                            if (module === 'suppliers' || module === 'masters/suppliers') {
+                            if (module === 'companies' || module === 'masters/companies') {
+                              try {
+                                const nextCode = await masterDataService.fetchNextCompanyCode();
+                                if (nextCode) setFormCode(nextCode);
+                              } catch {
+                                // Fallback to getNextAutoCode()
+                              }
+                            } else if (module === 'suppliers' || module === 'masters/suppliers') {
                               setPartnerRole('Supplier');
                             } else if (module === 'customers' || module === 'masters/customers') {
                               setPartnerRole('Customer');
@@ -2165,11 +2253,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                               </td>
                               <td className="p-3 text-center">
                                 <div className="flex items-center justify-center gap-1">
-                                  <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('view'); }} title="View Details (Read-Only)" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Eye size={13} /></button>
+                                  <Tooltip content="View Details">
+                                    <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('view'); }} aria-label="View Details" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Eye size={13} /></button>
+                                  </Tooltip>
                                   {(isSuper || (module !== 'companies' && module !== 'masters/companies')) && (
                                     <>
-                                      <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('edit'); }} title="Edit Record" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Edit2 size={13} /></button>
-                                      <button onClick={() => setDeleteId(row.id)} title="Delete (Soft-Delete)" className="p-1 text-brand-text-secondary hover:text-brand-danger hover:bg-red-50 rounded cursor-pointer transition"><Trash2 size={13} /></button>
+                                      <Tooltip content="Edit Record">
+                                        <button onClick={() => { setSelectedId(row.id); populateForm(row.id); setMode('edit'); }} aria-label="Edit Record" className="p-1 text-brand-text-secondary hover:text-brand-primary hover:bg-blue-50 rounded cursor-pointer transition"><Edit2 size={13} /></button>
+                                      </Tooltip>
+                                      <Tooltip content="Delete Record">
+                                        <button onClick={() => setDeleteId(row.id)} aria-label="Delete Record" className="p-1 text-brand-text-secondary hover:text-brand-danger hover:bg-red-50 rounded cursor-pointer transition"><Trash2 size={13} /></button>
+                                      </Tooltip>
                                     </>
                                   )}
                                 </div>
@@ -2185,9 +2279,13 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="p-4 border-t border-brand-border bg-brand-bg-secondary/10 flex items-center justify-between text-xs">
                     <span className="text-brand-text-secondary">Total {totalRows} records</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 border rounded disabled:opacity-40"><ChevronLeft size={13} /></button>
+                      <Tooltip content="Previous Page">
+                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} aria-label="Previous Page" className="p-1.5 border rounded disabled:opacity-40"><ChevronLeft size={13} /></button>
+                      </Tooltip>
                       <span className="font-bold px-2">Page {currentPage} of {totalPages}</span>
-                      <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 border rounded disabled:opacity-40"><ChevronRight size={13} /></button>
+                      <Tooltip content="Next Page">
+                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} aria-label="Next Page" className="p-1.5 border rounded disabled:opacity-40"><ChevronRight size={13} /></button>
+                      </Tooltip>
                     </div>
                   </div>
 
@@ -2353,11 +2451,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       <div className="space-y-2">
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Category</span>
-                          <span className="font-medium text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.categoryName || 'N/A'}</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {dbProducts.find(p => p.id === selectedId)?.categoryName || <span className="text-slate-400 italic font-normal">Not Applicable</span>}
+                          </span>
                         </div>
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Brand</span>
-                          <span className="font-medium text-brand-text-primary">{dbProducts.find(p => p.id === selectedId)?.brandName || 'N/A'}</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {dbProducts.find(p => p.id === selectedId)?.brandName || <span className="text-slate-400 italic font-normal">Not Applicable</span>}
+                          </span>
                         </div>
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Base Unit of Measure</span>
@@ -2786,11 +2888,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         id="code" 
                         type="text" 
                         value={formCode} 
-                        readOnly={mode === 'edit'} 
-                        disabled={mode === 'edit'} 
-                        onChange={e => setFormCode(e.target.value.toUpperCase())}
-                        title={mode === 'edit' ? "Company Code cannot be changed after creation." : "Enter unique Company Code (e.g. COM-001)"} 
-                        className={`w-full p-2 border rounded text-brand-text-primary font-mono font-bold ${mode === 'edit' ? 'bg-gray-100/80 cursor-not-allowed' : 'bg-white'} ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} 
+                        readOnly 
+                        disabled={true} 
+                        title="Code is auto-generated and cannot be changed manually." 
+                        className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} 
                         placeholder="COM-001" 
                       />
                       {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
@@ -2911,11 +3012,32 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 3. DEPARTMENT FORM */}
               {(module === 'departments' || module === 'masters/departments') && (
                 <div className="space-y-6 text-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Parent Branch <span className="text-red-500">*</span></label>
-                      <select value={deptBranchId} onChange={e => setDeptBranchId(e.target.value)} className="w-full p-2 border rounded bg-white font-semibold border-brand-border">
-                        {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select 
+                        value={deptCompanyId} 
+                        onChange={e => {
+                          setDeptCompanyId(e.target.value);
+                          setDeptBranchId('');
+                          setFormErrors(p => ({ ...p, deptCompanyId: '' }));
+                        }} 
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.deptCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
+                      </select>
+                      {formErrors.deptCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.deptCompanyId}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Parent Branch <span className="text-slate-400 font-normal">(Optional)</span></label>
+                      <select 
+                        value={deptBranchId} 
+                        onChange={e => setDeptBranchId(e.target.value)} 
+                        className="w-full p-2 border rounded bg-white font-medium border-brand-border"
+                      >
+                        <option value="">-- No Parent Branch / Company Level --</option>
+                        {dbBranches.filter(b => !deptCompanyId || b.companyId === deptCompanyId).map(b => <option key={b.id} value={b.id}>{b.name} ({b.code})</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -2924,7 +3046,18 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                     <div className="space-y-1">
                       <label htmlFor="deptName" className="font-bold text-brand-text-primary">Department Name <span className="text-red-500">*</span></label>
-                      <input id="deptName" type="text" value={deptName} onChange={e => setDeptName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Supply Chain & Logistics" />
+                      <input 
+                        id="deptName" 
+                        type="text" 
+                        value={deptName} 
+                        onChange={e => {
+                          setDeptName(e.target.value);
+                          setFormErrors(p => ({ ...p, deptName: '' }));
+                        }} 
+                        className={`w-full p-2 border rounded ${formErrors.deptName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} 
+                        placeholder="Supply Chain & Logistics" 
+                      />
+                      {formErrors.deptName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.deptName}</p>}
                     </div>
                   </div>
 
@@ -3167,18 +3300,20 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
                   {/* Row 2: Category (Tree), Brand, Base UOM */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/20 p-4 rounded-lg border border-blue-100">
-                    {/* 1. Product Category (Hierarchical Tree Select) */}
+                    {/* 1. Product Category (Hierarchical Tree Select) — OPTIONAL */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Product Category <span className="text-red-500">*</span></label>
+                      <label className="font-bold text-brand-text-primary">
+                        Product Category <span className="text-[10px] font-normal text-slate-400 normal-case">(optional)</span>
+                      </label>
                       <select
                         value={prodCategoryId}
                         onChange={e => { 
                           setProdCategoryId(e.target.value); 
                           setFormErrors(p => ({ ...p, prodCategoryId: '' })); 
                         }}
-                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.prodCategoryId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        className="w-full p-2 border rounded bg-white font-medium border-brand-border"
                       >
-                        <option value="">-- Select Product Category --</option>
+                        <option value="">-- No Category / Unclassified --</option>
                         {(() => {
                           const companyCats = dbCategories.filter(c => !prodCompanyId || !c.companyId || c.companyId === prodCompanyId);
                           const roots = companyCats.filter(c => !c.parentCategoryId || !companyCats.some(p => p.id === c.parentCategoryId));
@@ -3198,7 +3333,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           ));
                         })()}
                       </select>
-                      {formErrors.prodCategoryId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.prodCategoryId}</p>}
                     </div>
 
                     {/* 2. Brand */}
@@ -3478,13 +3612,35 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     <h4 className="font-bold text-brand-text-primary flex items-center gap-1.5 text-xs">
                       <Building size={14} className="text-brand-primary" /> Basic Information
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="space-y-1">
-                        <label htmlFor="whBranchId" className="font-bold text-brand-text-primary">Branch Link <span className="text-red-500">*</span></label>
-                        <select id="whBranchId" value={whBranchId} onChange={e => setWhBranchId(e.target.value)} className={`w-full p-2 border rounded bg-white font-semibold ${formErrors.whBranchId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}>
-                          {dbBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        <label htmlFor="whCompanyId" className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                        <select 
+                          id="whCompanyId" 
+                          value={whCompanyId} 
+                          onChange={e => {
+                            setWhCompanyId(e.target.value);
+                            setWhBranchId('');
+                            setFormErrors(p => ({ ...p, whCompanyId: '' }));
+                          }} 
+                          className={`w-full p-2 border rounded bg-white font-semibold ${formErrors.whCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        >
+                          <option value="">-- Select Company --</option>
+                          {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
                         </select>
-                        {formErrors.whBranchId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whBranchId}</p>}
+                        {formErrors.whCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whCompanyId}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="whBranchId" className="font-bold text-brand-text-primary">Parent Branch <span className="text-slate-400 font-normal">(Optional)</span></label>
+                        <select 
+                          id="whBranchId" 
+                          value={whBranchId} 
+                          onChange={e => setWhBranchId(e.target.value)} 
+                          className="w-full p-2 border rounded bg-white font-semibold border-brand-border"
+                        >
+                          <option value="">-- No Parent Branch / Company Level --</option>
+                          {dbBranches.filter(b => !whCompanyId || b.companyId === whCompanyId).map(b => <option key={b.id} value={b.id}>{b.name} ({b.code})</option>)}
+                        </select>
                       </div>
                       <div className="space-y-1">
                         <label htmlFor="code" className="font-bold text-brand-text-primary">Warehouse Code <span className="text-red-500">*</span></label>
@@ -3492,8 +3648,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                       </div>
                       <div className="space-y-1">
-                        <label htmlFor="whName" className="font-bold text-brand-text-primary">Warehouse Name <span className="text-red-500">*</span></label>
-                        <input id="whName" type="text" value={whName} onChange={e => setWhName(e.target.value)} className={`w-full p-2 border rounded ${formErrors.whName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Delhi Central Depot" />
+                        <label htmlFor="whName" className="font-bold text-brand-text-primary">Warehouse / Stockist Name <span className="text-red-500">*</span></label>
+                        <input id="whName" type="text" value={whName} onChange={e => { setWhName(e.target.value); setFormErrors(p => ({ ...p, whName: '' })); }} className={`w-full p-2 border rounded ${formErrors.whName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="Delhi Central Depot" />
                         {formErrors.whName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.whName}</p>}
                       </div>
                     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Loader2, X, AlertCircle, Package } from 'lucide-react';
 import { fetchProducts } from '../services/masterDataService';
 import { ProductDto } from '../types/masterData';
+import { Tooltip } from './ui/Tooltip';
 
 interface ProductAutocompleteProps {
   companyId: string;
@@ -156,13 +157,16 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         />
         {loading && <Loader2 size={13} className="absolute right-2.5 text-emerald-600 animate-spin" />}
         {!loading && query && !disabled && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute right-2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
-          >
-            <X size={13} />
-          </button>
+          <Tooltip content="Clear Product Selection">
+            <button
+              type="button"
+              onClick={handleClear}
+              aria-label="Clear Product Selection"
+              className="absolute right-2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
+            >
+              <X size={13} />
+            </button>
+          </Tooltip>
         )}
       </div>
 

@@ -62,6 +62,18 @@ public class CompanyController : BaseApiController
     }
 
     /// <summary>
+    /// Computes the next unique sequential company code.
+    /// </summary>
+    [HttpGet("next-code")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNextCompanyCode(CancellationToken cancellationToken = default)
+    {
+        var query = new GetNextCompanyCodeQuery();
+        var result = await Mediator.Send(query, cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Retrieves a single company profile by ID.
     /// </summary>
     [HttpGet("{id:guid}")]

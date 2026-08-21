@@ -2,6 +2,7 @@ import React from 'react';
 import { X, ShieldCheck, Users, Briefcase, Building, Layers, CheckCircle, Mail, Phone, UserCheck, Shield } from 'lucide-react';
 import { getUserAccessSettings } from '../../../services/userPermissionsService';
 import { MASTER_DATA_SUBMODULES, CANONICAL_MODULE_PERMISSIONS } from '../../../constants/roles';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface AdminTeamInspectorModalProps {
   isOpen: boolean;
@@ -78,12 +79,15 @@ export const AdminTeamInspectorModal: React.FC<AdminTeamInspectorModalProps> = (
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* SECTION 1: ROLES & TEAM BREAKDOWN OVERVIEW */}

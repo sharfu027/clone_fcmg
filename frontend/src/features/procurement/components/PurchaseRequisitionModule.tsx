@@ -36,6 +36,7 @@ import { ApiError } from '../../../api/apiClient';
 import { fetchCompanies, fetchDepartments } from '../../../services/masterDataService';
 import { ProductAutocomplete } from '../../../components/ProductAutocomplete';
 import { ProductDto } from '../../../types/masterData';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface PurchaseRequisitionModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => void;
@@ -712,84 +713,98 @@ export const PurchaseRequisitionModule: React.FC<PurchaseRequisitionModuleProps>
                     <td className="p-3.5 text-center">{renderStatusBadge(pr.status)}</td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setSelectedPr(pr);
-                            setIsDetailModalOpen(true);
-                          }}
-                          className="p-1.5 text-gray-600 hover:bg-gray-200 rounded transition"
-                          title="View Requisition Details"
-                        >
-                          <Eye size={14} />
-                        </button>
+                        <Tooltip content="View Requisition Details">
+                          <button
+                            onClick={() => {
+                              setSelectedPr(pr);
+                              setIsDetailModalOpen(true);
+                            }}
+                            aria-label="View Requisition Details"
+                            className="p-1.5 text-gray-600 hover:bg-gray-200 rounded transition cursor-pointer"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </Tooltip>
 
                         {pr.status === 'Draft' && (
                           <>
-                            <button
-                              onClick={() => handleOpenEditModal(pr)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
-                              title="Edit Draft"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleSubmitPr(pr.id, pr.requisitionNumber)}
-                              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition"
-                              title="Submit for Approval"
-                            >
-                              <Send size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePr(pr.id, pr.requisitionNumber)}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition"
-                              title="Delete Draft"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <Tooltip content="Edit Draft">
+                              <button
+                                onClick={() => handleOpenEditModal(pr)}
+                                aria-label="Edit Draft"
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition cursor-pointer"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Submit for Approval">
+                              <button
+                                onClick={() => handleSubmitPr(pr.id, pr.requisitionNumber)}
+                                aria-label="Submit for Approval"
+                                className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition cursor-pointer"
+                              >
+                                <Send size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Delete Draft">
+                              <button
+                                onClick={() => handleDeletePr(pr.id, pr.requisitionNumber)}
+                                aria-label="Delete Draft"
+                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </Tooltip>
                           </>
                         )}
 
                         {pr.status === 'PendingApproval' && (
                           <>
-                            <button
-                              onClick={() => handleApprovePr(pr.id, pr.requisitionNumber)}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition"
-                              title="Approve Requisition"
-                            >
-                              <CheckCircle2 size={14} />
-                            </button>
-                            <button
-                              onClick={() =>
-                                setPromptModal({
-                                  isOpen: true,
-                                  type: 'REJECT',
-                                  prId: pr.id,
-                                  reason: '',
-                                })
-                              }
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition"
-                              title="Reject Requisition"
-                            >
-                              <XCircle size={14} />
-                            </button>
+                            <Tooltip content="Approve Requisition">
+                              <button
+                                onClick={() => handleApprovePr(pr.id, pr.requisitionNumber)}
+                                aria-label="Approve Requisition"
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition cursor-pointer"
+                              >
+                                <CheckCircle2 size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Reject Requisition">
+                              <button
+                                onClick={() =>
+                                  setPromptModal({
+                                    isOpen: true,
+                                    type: 'REJECT',
+                                    prId: pr.id,
+                                    reason: '',
+                                  })
+                                }
+                                aria-label="Reject Requisition"
+                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                              >
+                                <XCircle size={14} />
+                              </button>
+                            </Tooltip>
                           </>
                         )}
 
                         {(pr.status === 'Draft' || pr.status === 'PendingApproval') && (
-                          <button
-                            onClick={() =>
-                              setPromptModal({
-                                isOpen: true,
-                                type: 'CANCEL',
-                                prId: pr.id,
-                                reason: '',
-                              })
-                            }
-                            className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition"
-                            title="Cancel Requisition"
-                          >
-                            <Ban size={14} />
-                          </button>
+                          <Tooltip content="Cancel Requisition">
+                            <button
+                              onClick={() =>
+                                setPromptModal({
+                                  isOpen: true,
+                                  type: 'CANCEL',
+                                  prId: pr.id,
+                                  reason: '',
+                                })
+                              }
+                              aria-label="Cancel Requisition"
+                              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition cursor-pointer"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </Tooltip>
                         )}
                       </div>
                     </td>
@@ -841,15 +856,18 @@ export const PurchaseRequisitionModule: React.FC<PurchaseRequisitionModuleProps>
                   <span className="font-mono font-bold text-amber-300">[ {nextPrCode} ] System generated</span>
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setIsCreateModalOpen(false);
-                  setIsEditModalOpen(false);
-                }}
-                className="text-emerald-300 hover:text-white p-1 rounded-lg"
-              >
-                <X size={18} />
-              </button>
+              <Tooltip content="Close">
+                <button
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setIsEditModalOpen(false);
+                  }}
+                  aria-label="Close"
+                  className="text-emerald-300 hover:text-white p-1 rounded-lg cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </Tooltip>
             </div>
 
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
@@ -1162,12 +1180,15 @@ export const PurchaseRequisitionModule: React.FC<PurchaseRequisitionModuleProps>
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">Requested by {selectedPr.requestedByName}</p>
               </div>
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="text-gray-400 hover:text-white p-1 rounded-lg"
-              >
-                <X size={18} />
-              </button>
+              <Tooltip content="Close">
+                <button
+                  onClick={() => setIsDetailModalOpen(false)}
+                  aria-label="Close"
+                  className="text-gray-400 hover:text-white p-1 rounded-lg cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </Tooltip>
             </div>
 
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs">

@@ -73,9 +73,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         }
 
         var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
-        if (department == null || !department.IsActive || department.BranchId != branch.Id)
+        if (department == null || !department.IsActive || department.CompanyId != targetCompanyId || (department.BranchId.HasValue && department.BranchId.Value != branch.Id))
         {
-            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the selected branch."));
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company/branch."));
         }
 
         var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
@@ -208,9 +208,9 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         }
 
         var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
-        if (department == null || !department.IsActive || department.BranchId != branch.Id)
+        if (department == null || !department.IsActive || department.CompanyId != employee.CompanyId || (department.BranchId.HasValue && department.BranchId.Value != branch.Id))
         {
-            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the selected branch."));
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company/branch."));
         }
 
         var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);

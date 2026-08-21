@@ -61,6 +61,7 @@ import { Badge } from '../../components/ui/Badge';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { StatCard } from '../../components/ui/StatCard';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Tooltip } from '../../components/ui/Tooltip';
 import { formatINR, formatDate } from '../../utils/formatters';
 
 interface PricingModuleProps {
@@ -1454,12 +1455,28 @@ export default function PricingModule({ onTriggerToast }: PricingModuleProps) {
                         <Badge variant={getStatusBadgeVariant(list.status)}>{list.status}</Badge>
                       </td>
                       <td className="p-3 text-right space-x-1">
-                        <button onClick={() => handleViewPriceList(list.id)} className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer" title="View Price List Details"><Eye size={13} /></button>
-                        <button onClick={() => handleOpenEditModal(list.id)} className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer" title="Edit Price List"><Edit2 size={13} /></button>
-                        <button onClick={() => handleDuplicatePriceList(list)} className="p-1 border border-brand-border rounded hover:bg-purple-50 text-purple-600 cursor-pointer" title="Duplicate / Copy Price List"><Copy size={13} /></button>
-                        {list.status === 'Draft' && (<button onClick={() => handlePublish(list)} className="p-1 border border-brand-border rounded hover:bg-emerald-50 text-emerald-600 cursor-pointer" title="Publish Price List"><Send size={13} /></button>)}
-                        {list.status !== 'Archived' && (<button onClick={() => handleArchive(list)} className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-600 cursor-pointer" title="Archive Price List"><Archive size={13} /></button>)}
-                        <button onClick={() => setIsDeletingId(list.id)} className="p-1 border border-brand-border rounded hover:bg-red-50 text-red-600 cursor-pointer" title="Soft Delete Price List"><Trash2 size={13} /></button>
+                        <Tooltip content="View Price List Details">
+                          <button onClick={() => handleViewPriceList(list.id)} aria-label="View Price List Details" className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer"><Eye size={13} /></button>
+                        </Tooltip>
+                        <Tooltip content="Edit Price List">
+                          <button onClick={() => handleOpenEditModal(list.id)} aria-label="Edit Price List" className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer"><Edit2 size={13} /></button>
+                        </Tooltip>
+                        <Tooltip content="Duplicate / Copy Price List">
+                          <button onClick={() => handleDuplicatePriceList(list)} aria-label="Duplicate / Copy Price List" className="p-1 border border-brand-border rounded hover:bg-purple-50 text-purple-600 cursor-pointer"><Copy size={13} /></button>
+                        </Tooltip>
+                        {list.status === 'Draft' && (
+                          <Tooltip content="Publish Price List">
+                            <button onClick={() => handlePublish(list)} aria-label="Publish Price List" className="p-1 border border-brand-border rounded hover:bg-emerald-50 text-emerald-600 cursor-pointer"><Send size={13} /></button>
+                          </Tooltip>
+                        )}
+                        {list.status !== 'Archived' && (
+                          <Tooltip content="Archive Price List">
+                            <button onClick={() => handleArchive(list)} aria-label="Archive Price List" className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-600 cursor-pointer"><Archive size={13} /></button>
+                          </Tooltip>
+                        )}
+                        <Tooltip content="Delete Price List">
+                          <button onClick={() => setIsDeletingId(list.id)} aria-label="Delete Price List" className="p-1 border border-brand-border rounded hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 size={13} /></button>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))}
@@ -1609,18 +1626,32 @@ export default function PricingModule({ onTriggerToast }: PricingModuleProps) {
                         <Badge variant={getStatusBadgeVariant(rule.status) as any}>{rule.status}</Badge>
                       </td>
                       <td className="p-3 text-right space-x-1">
-                        <button onClick={() => handleViewCustPrice(rule.id)} className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer" title="View Details"><Eye size={13} /></button>
-                        <button onClick={() => handleOpenEditCustPriceModal(rule.id)} className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer" title="Edit Customer Price"><Edit2 size={13} /></button>
-                        <button onClick={() => handleDuplicateCustPrice(rule)} className="p-1 border border-brand-border rounded hover:bg-purple-50 text-purple-600 cursor-pointer" title="Duplicate"><Copy size={13} /></button>
+                        <Tooltip content="View Details">
+                          <button onClick={() => handleViewCustPrice(rule.id)} aria-label="View Details" className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer"><Eye size={13} /></button>
+                        </Tooltip>
+                        <Tooltip content="Edit Customer Price">
+                          <button onClick={() => handleOpenEditCustPriceModal(rule.id)} aria-label="Edit Customer Price" className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer"><Edit2 size={13} /></button>
+                        </Tooltip>
+                        <Tooltip content="Duplicate Customer Price">
+                          <button onClick={() => handleDuplicateCustPrice(rule)} aria-label="Duplicate Customer Price" className="p-1 border border-brand-border rounded hover:bg-purple-50 text-purple-600 cursor-pointer"><Copy size={13} /></button>
+                        </Tooltip>
                         {rule.status === 'Inactive' || rule.status === 'Draft' ? (
-                          <button onClick={() => handleActivateCustPrice(rule)} className="p-1 border border-brand-border rounded hover:bg-emerald-50 text-emerald-600 cursor-pointer" title="Activate Rule"><Power size={13} /></button>
+                          <Tooltip content="Activate Rule">
+                            <button onClick={() => handleActivateCustPrice(rule)} aria-label="Activate Rule" className="p-1 border border-brand-border rounded hover:bg-emerald-50 text-emerald-600 cursor-pointer"><Power size={13} /></button>
+                          </Tooltip>
                         ) : (
-                          <button onClick={() => handleDeactivateCustPrice(rule)} className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-600 cursor-pointer" title="Deactivate Rule"><PowerOff size={13} /></button>
+                          <Tooltip content="Deactivate Rule">
+                            <button onClick={() => handleDeactivateCustPrice(rule)} aria-label="Deactivate Rule" className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-600 cursor-pointer"><PowerOff size={13} /></button>
+                          </Tooltip>
                         )}
                         {rule.status !== 'Archived' && (
-                          <button onClick={() => handleArchiveCustPrice(rule)} className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-700 cursor-pointer" title="Archive Rule"><Archive size={13} /></button>
+                          <Tooltip content="Archive Rule">
+                            <button onClick={() => handleArchiveCustPrice(rule)} aria-label="Archive Rule" className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-700 cursor-pointer"><Archive size={13} /></button>
+                          </Tooltip>
                         )}
-                        <button onClick={() => setIsCustDeletingId(rule.id)} className="p-1 border border-brand-border rounded hover:bg-red-50 text-red-600 cursor-pointer" title="Delete Rule"><Trash2 size={13} /></button>
+                        <Tooltip content="Delete Rule">
+                          <button onClick={() => setIsCustDeletingId(rule.id)} aria-label="Delete Rule" className="p-1 border border-brand-border rounded hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 size={13} /></button>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))}
@@ -1980,21 +2011,35 @@ export default function PricingModule({ onTriggerToast }: PricingModuleProps) {
                           <Badge variant={getStatusBadgeVariant(rule.status) as any}>{rule.status}</Badge>
                         </td>
                         <td className="p-3 text-right space-x-1">
-                          <button onClick={() => handleViewDiscountRule(rule)} className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer" title="View Rule Details"><Eye size={13} /></button>
-                          <button onClick={() => handleOpenEditDiscountModal(rule)} className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer" title="Edit Rule"><Edit2 size={13} /></button>
-                          <button onClick={() => handleDuplicateDiscountRule(rule)} className="p-1 border border-brand-border rounded hover:bg-purple-50 text-purple-600 cursor-pointer" title="Duplicate Rule (Draft)"><Copy size={13} /></button>
+                          <Tooltip content="View Rule Details">
+                            <button onClick={() => handleViewDiscountRule(rule)} aria-label="View Rule Details" className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer"><Eye size={13} /></button>
+                          </Tooltip>
+                          <Tooltip content="Edit Rule">
+                            <button onClick={() => handleOpenEditDiscountModal(rule)} aria-label="Edit Rule" className="p-1 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-primary cursor-pointer"><Edit2 size={13} /></button>
+                          </Tooltip>
+                          <Tooltip content="Duplicate Rule (Draft)">
+                            <button onClick={() => handleDuplicateDiscountRule(rule)} aria-label="Duplicate Rule (Draft)" className="p-1 border border-brand-border rounded hover:bg-purple-50 text-purple-600 cursor-pointer"><Copy size={13} /></button>
+                          </Tooltip>
                           
                           {rule.status === 'Inactive' || rule.status === 'Draft' ? (
-                            <button onClick={() => handleActivateDiscountRule(rule)} className="p-1 border border-brand-border rounded hover:bg-emerald-50 text-emerald-600 cursor-pointer" title="Activate Rule"><Power size={13} /></button>
+                            <Tooltip content="Activate Rule">
+                              <button onClick={() => handleActivateDiscountRule(rule)} aria-label="Activate Rule" className="p-1 border border-brand-border rounded hover:bg-emerald-50 text-emerald-600 cursor-pointer"><Power size={13} /></button>
+                            </Tooltip>
                           ) : (
-                            <button onClick={() => handleDeactivateDiscountRule(rule)} className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-600 cursor-pointer" title="Deactivate Rule"><PowerOff size={13} /></button>
+                            <Tooltip content="Deactivate Rule">
+                              <button onClick={() => handleDeactivateDiscountRule(rule)} aria-label="Deactivate Rule" className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-600 cursor-pointer"><PowerOff size={13} /></button>
+                            </Tooltip>
                           )}
 
                           {rule.status !== 'Archived' && (
-                            <button onClick={() => handleArchiveDiscountRule(rule)} className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-700 cursor-pointer" title="Archive Rule"><Archive size={13} /></button>
+                            <Tooltip content="Archive Rule">
+                              <button onClick={() => handleArchiveDiscountRule(rule)} aria-label="Archive Rule" className="p-1 border border-brand-border rounded hover:bg-amber-50 text-amber-700 cursor-pointer"><Archive size={13} /></button>
+                            </Tooltip>
                           )}
 
-                          <button onClick={() => setIsDiscountDeletingId(rule.id)} className="p-1 border border-brand-border rounded hover:bg-red-50 text-red-600 cursor-pointer" title="Delete Rule"><Trash2 size={13} /></button>
+                          <Tooltip content="Delete Rule">
+                            <button onClick={() => setIsDiscountDeletingId(rule.id)} aria-label="Delete Rule" className="p-1 border border-brand-border rounded hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 size={13} /></button>
+                          </Tooltip>
                         </td>
                       </tr>
                     ))}

@@ -37,6 +37,7 @@ import { procurementService } from '../../../services/procurementService';
 import { ApiError } from '../../../api/apiClient';
 import { fetchCompanies, fetchSuppliers } from '../../../services/masterDataService';
 import { SupplierDto } from '../../../types/masterData';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface RfqModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => void;
@@ -467,9 +468,11 @@ export const RfqModule: React.FC<RfqModuleProps> = ({ onTriggerToast }) => {
             <option value="Closed">Closed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <button onClick={loadData} className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" title="Refresh">
-            <RefreshCw size={15} className="text-gray-500" />
-          </button>
+          <Tooltip content="Refresh Data">
+            <button onClick={loadData} aria-label="Refresh Data" className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <RefreshCw size={15} className="text-gray-500" />
+            </button>
+          </Tooltip>
           <button
             onClick={handleOpenCreate}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
@@ -532,40 +535,54 @@ export const RfqModule: React.FC<RfqModuleProps> = ({ onTriggerToast }) => {
                     <td className="px-4 py-3 text-gray-600">{rfq.suppliers?.length ?? 0}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => { setSelectedRfq(rfq); setIsDetailModalOpen(true); }}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-                          title="View"
-                        >
-                          <Eye size={14} />
-                        </button>
+                        <Tooltip content="View Details">
+                          <button
+                            onClick={() => { setSelectedRfq(rfq); setIsDetailModalOpen(true); }}
+                            aria-label="View Details"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </Tooltip>
                         {rfq.status === 'Draft' && (
                           <>
-                            <button onClick={() => handleOpenEdit(rfq)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors" title="Edit">
-                              <Edit2 size={14} />
-                            </button>
-                            <button onClick={() => handleSubmit(rfq)} className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors" title="Submit">
-                              <ClipboardList size={14} />
-                            </button>
-                            <button onClick={() => handleOpenPrompt('CANCEL', rfq.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="Cancel">
-                              <Ban size={14} />
-                            </button>
+                            <Tooltip content="Edit RFQ">
+                              <button onClick={() => handleOpenEdit(rfq)} aria-label="Edit RFQ" className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors cursor-pointer">
+                                <Edit2 size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Submit RFQ">
+                              <button onClick={() => handleSubmit(rfq)} aria-label="Submit RFQ" className="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors cursor-pointer">
+                                <ClipboardList size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Cancel RFQ">
+                              <button onClick={() => handleOpenPrompt('CANCEL', rfq.id)} aria-label="Cancel RFQ" className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer">
+                                <Ban size={14} />
+                              </button>
+                            </Tooltip>
                           </>
                         )}
                         {rfq.status === 'Submitted' && (
                           <>
-                            <button onClick={() => handleSend(rfq)} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors" title="Send to Suppliers">
-                              <Send size={14} />
-                            </button>
-                            <button onClick={() => handleOpenPrompt('CANCEL', rfq.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="Cancel">
-                              <Ban size={14} />
-                            </button>
+                            <Tooltip content="Send to Suppliers">
+                              <button onClick={() => handleSend(rfq)} aria-label="Send to Suppliers" className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors cursor-pointer">
+                                <Send size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Cancel RFQ">
+                              <button onClick={() => handleOpenPrompt('CANCEL', rfq.id)} aria-label="Cancel RFQ" className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer">
+                                <Ban size={14} />
+                              </button>
+                            </Tooltip>
                           </>
                         )}
                         {rfq.status === 'Sent' && (
-                          <button onClick={() => handleOpenPrompt('CLOSE', rfq.id)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors" title="Close RFQ">
-                            <XCircle size={14} />
-                          </button>
+                          <Tooltip content="Close RFQ">
+                            <button onClick={() => handleOpenPrompt('CLOSE', rfq.id)} aria-label="Close RFQ" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer">
+                              <XCircle size={14} />
+                            </button>
+                          </Tooltip>
                         )}
                       </div>
                     </td>
@@ -872,9 +889,11 @@ function CreateRfqModal({
               <p className="text-xs text-gray-500">Create a new Request for Quotation from an approved PR</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
-            <X size={16} />
-          </button>
+          <Tooltip content="Close">
+            <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer">
+              <X size={16} />
+            </button>
+          </Tooltip>
         </div>
 
         <div className="px-6 py-5 space-y-5">
@@ -1081,9 +1100,11 @@ function EditRfqModal({
               <p className="text-xs text-gray-500">PR: {rfq.purchaseRequisitionNumber} · Modify suppliers, due date, or notes</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
-            <X size={16} />
-          </button>
+          <Tooltip content="Close">
+            <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer">
+              <X size={16} />
+            </button>
+          </Tooltip>
         </div>
 
         <div className="px-6 py-5 space-y-5">
@@ -1208,9 +1229,11 @@ function DetailModal({ rfq, onClose }: { rfq: Rfq; onClose: () => void }) {
           </div>
           <div className="flex items-center gap-3">
             <RfqStatusBadge status={rfq.status} />
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
-              <X size={16} />
-            </button>
+            <Tooltip content="Close">
+              <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer">
+                <X size={16} />
+              </button>
+            </Tooltip>
           </div>
         </div>
 

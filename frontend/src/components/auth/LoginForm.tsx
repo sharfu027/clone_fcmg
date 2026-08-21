@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Key, ChevronRight } from 'lucide-react';
 import { AuthenticationPolicy } from '../../types/security';
+import { Tooltip } from '../ui/Tooltip';
 
 interface LoginFormProps {
   effectivePolicy: AuthenticationPolicy;
@@ -65,13 +66,16 @@ export default function LoginForm({
             className="w-full pl-9 pr-9 py-2 border rounded-md border-brand-border text-xs text-brand-text-primary focus:outline-none focus:border-brand-primary font-mono"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-secondary hover:text-brand-text-primary cursor-pointer"
-          >
-            {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
+          <Tooltip content={showPassword ? 'Hide Password' : 'Show Password'}>
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide Password' : 'Show Password'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-secondary hover:text-brand-text-primary cursor-pointer"
+            >
+              {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </Tooltip>
         </div>
       </div>
 

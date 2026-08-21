@@ -2,7 +2,9 @@ namespace INK.ERP.Application.Features.MasterData.Departments.DTOs;
 
 public record DepartmentDto(
     Guid Id,
-    Guid BranchId,
+    Guid CompanyId,
+    string? CompanyName,
+    Guid? BranchId,
     string? BranchName,
     string Code,
     string Name,

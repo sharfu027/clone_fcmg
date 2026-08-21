@@ -4,7 +4,7 @@ public record ProductDto(
     Guid Id,
     Guid CompanyId,
     string? CompanyName,
-    Guid CategoryId,
+    Guid? CategoryId,
     string? CategoryName,
     Guid? ParentCategoryId,
     string? ParentCategoryName,

@@ -32,6 +32,7 @@ import { adminService } from '../../../services/adminService';
 import { RoleDto, RoleStatsDto, PermissionCategoryDto, RoleUserDto } from '../../../types/admin';
 import { StatCard } from '../../../components/ui/StatCard';
 import { Badge } from '../../../components/ui/Badge';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface RoleSecurityProfilesModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
@@ -633,79 +634,91 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
                       <div className="flex items-center justify-end gap-1">
                         
                         {/* View Drawer */}
-                        <button
-                          onClick={() => handleOpenDrawer(role.id)}
-                          className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition cursor-pointer"
-                          title="View Role Details & Assigned Users"
-                        >
-                          <Eye size={14} />
-                        </button>
+                        <Tooltip content="View Role Details">
+                          <button
+                            onClick={() => handleOpenDrawer(role.id)}
+                            aria-label="View Role Details"
+                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition cursor-pointer"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </Tooltip>
 
                         {/* Permission Matrix */}
-                        <button
-                          onClick={() => handleOpenPermissionMatrix(role)}
-                          className="p-1.5 text-brand-primary hover:text-blue-800 hover:bg-blue-50 rounded transition cursor-pointer"
-                          title="Configure Permission Matrix"
-                        >
-                          <Grid size={14} />
-                        </button>
+                        <Tooltip content="Configure Permission Matrix">
+                          <button
+                            onClick={() => handleOpenPermissionMatrix(role)}
+                            aria-label="Configure Permission Matrix"
+                            className="p-1.5 text-brand-primary hover:text-blue-800 hover:bg-blue-50 rounded transition cursor-pointer"
+                          >
+                            <Grid size={14} />
+                          </button>
+                        </Tooltip>
 
                         {/* Edit Role */}
-                        <button
-                          onClick={() => {
-                            setRoleFormData({
-                              id: role.id,
-                              name: role.name,
-                              code: role.code,
-                              description: role.description,
-                              priority: role.priority,
-                              isActive: role.isActive
-                            });
-                            setIsEditModalOpen(true);
-                          }}
-                          className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition cursor-pointer"
-                          title="Edit Role Metadata"
-                        >
-                          <Edit3 size={14} />
-                        </button>
+                        <Tooltip content="Edit Role">
+                          <button
+                            onClick={() => {
+                              setRoleFormData({
+                                id: role.id,
+                                name: role.name,
+                                code: role.code,
+                                description: role.description,
+                                priority: role.priority,
+                                isActive: role.isActive
+                              });
+                              setIsEditModalOpen(true);
+                            }}
+                            aria-label="Edit Role"
+                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition cursor-pointer"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        </Tooltip>
 
                         {/* Clone Role */}
-                        <button
-                          onClick={() => {
-                            setCloneFormData({
-                              sourceRoleId: role.id,
-                              newName: `${role.name} (Copy)`,
-                              newCode: `${role.code}_COPY`,
-                              description: role.description
-                            });
-                            setIsCloneModalOpen(true);
-                          }}
-                          className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition cursor-pointer"
-                          title="Clone Role Profile"
-                        >
-                          <Copy size={14} />
-                        </button>
+                        <Tooltip content="Clone Role">
+                          <button
+                            onClick={() => {
+                              setCloneFormData({
+                                sourceRoleId: role.id,
+                                newName: `${role.name} (Copy)`,
+                                newCode: `${role.code}_COPY`,
+                                description: role.description
+                              });
+                              setIsCloneModalOpen(true);
+                            }}
+                            aria-label="Clone Role"
+                            className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition cursor-pointer"
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </Tooltip>
 
                         {/* Activate / Deactivate Toggle */}
-                        <button
-                          onClick={() => handleToggleActivate(role)}
-                          className={`p-1.5 rounded transition cursor-pointer ${
-                            role.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                          title={role.isActive ? 'Deactivate Role' : 'Activate Role'}
-                        >
-                          {role.isActive ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
-                        </button>
+                        <Tooltip content={role.isActive ? 'Deactivate Role' : 'Activate Role'}>
+                          <button
+                            onClick={() => handleToggleActivate(role)}
+                            aria-label={role.isActive ? 'Deactivate Role' : 'Activate Role'}
+                            className={`p-1.5 rounded transition cursor-pointer ${
+                              role.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {role.isActive ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                          </button>
+                        </Tooltip>
 
                         {/* Delete Role */}
-                        <button
-                          onClick={() => handleDeleteRole(role)}
-                          disabled={role.isSystem}
-                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                          title={role.isSystem ? 'System roles cannot be deleted' : 'Soft Delete Role'}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <Tooltip content={role.isSystem ? 'System roles cannot be deleted' : 'Delete Role'}>
+                          <button
+                            onClick={() => handleDeleteRole(role)}
+                            disabled={role.isSystem}
+                            aria-label="Delete Role"
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </Tooltip>
 
                       </div>
                     </td>
@@ -749,9 +762,11 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
               <h3 className="text-base font-bold text-brand-text-primary flex items-center gap-2">
                 <Shield className="text-brand-primary" size={18} /> Create New Security Role
               </h3>
-              <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
-                <X size={18} />
-              </button>
+              <Tooltip content="Close">
+                <button onClick={() => setIsCreateModalOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+                  <X size={18} />
+                </button>
+              </Tooltip>
             </div>
             <form onSubmit={handleCreateSubmit} className="space-y-3.5 text-xs">
               <div>
@@ -818,9 +833,11 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
               <h3 className="text-base font-bold text-brand-text-primary flex items-center gap-2">
                 <Edit3 className="text-brand-primary" size={18} /> Edit Security Role Metadata
               </h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
-                <X size={18} />
-              </button>
+              <Tooltip content="Close">
+                <button onClick={() => setIsEditModalOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+                  <X size={18} />
+                </button>
+              </Tooltip>
             </div>
             <form onSubmit={handleEditSubmit} className="space-y-3.5 text-xs">
               <div>
@@ -895,9 +912,11 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
               <h3 className="text-base font-bold text-brand-text-primary flex items-center gap-2">
                 <Copy className="text-purple-600" size={18} /> Clone Existing Security Role
               </h3>
-              <button onClick={() => setIsCloneModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
-                <X size={18} />
-              </button>
+              <Tooltip content="Close">
+                <button onClick={() => setIsCloneModalOpen(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+                  <X size={18} />
+                </button>
+              </Tooltip>
             </div>
             <form onSubmit={handleCloneSubmit} className="space-y-3.5 text-xs">
               <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-purple-800 font-medium">
@@ -963,9 +982,11 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
                   <p className="text-xs text-slate-400">Configure module action authorization bounds. Changes persist immediately to PostgreSQL.</p>
                 </div>
               </div>
-              <button onClick={() => setIsMatrixModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
-                <X size={20} />
-              </button>
+              <Tooltip content="Close">
+                <button onClick={() => setIsMatrixModalOpen(false)} aria-label="Close" className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                  <X size={20} />
+                </button>
+              </Tooltip>
             </div>
 
             {/* Matrix Toolbar */}
@@ -1133,9 +1154,11 @@ export const RoleSecurityProfilesModule: React.FC<RoleSecurityProfilesModuleProp
                   <span className="text-xs text-slate-400 font-mono">Code: {selectedRoleDetail.code}</span>
                 </div>
               </div>
-              <button onClick={() => setIsDrawerOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
-                <X size={20} />
-              </button>
+              <Tooltip content="Close">
+                <button onClick={() => setIsDrawerOpen(false)} aria-label="Close" className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                  <X size={20} />
+                </button>
+              </Tooltip>
             </div>
 
             {/* Drawer Sub-Tabs */}

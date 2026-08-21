@@ -30,6 +30,7 @@ import {
 import { UserRole, NavItem, UserProfile } from '../types';
 import { NAVIGATION_MENU, ROLES } from '../constants';
 import { useAuth } from '../context/AuthContext';
+import { Tooltip } from './ui/Tooltip';
 
 const IconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   TrendingUp,
@@ -346,13 +347,15 @@ export default function EnterpriseLayout({
               <span className="text-xs font-semibold text-brand-text-primary">Delhi Central [HQ]</span>
             </div>
           )}
-          <button 
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 border border-brand-border rounded bg-white hover:bg-brand-bg-secondary text-brand-text-secondary transition ml-auto cursor-pointer"
-            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            <ChevronRight size={14} className={`transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`} />
-          </button>
+          <Tooltip content={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
+            <button 
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              className="p-1.5 border border-brand-border rounded bg-white hover:bg-brand-bg-secondary text-brand-text-secondary transition ml-auto cursor-pointer"
+            >
+              <ChevronRight size={14} className={`transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`} />
+            </button>
+          </Tooltip>
         </div>
       </aside>
 
@@ -380,12 +383,15 @@ export default function EnterpriseLayout({
                 )}
                 <span className="font-bold text-sm text-brand-text-primary truncate">{user?.companyName || 'INK FMCG ERP'}</span>
               </div>
-              <button 
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-secondary"
-              >
-                <X size={16} />
-              </button>
+              <Tooltip content="Close Navigation Menu">
+                <button 
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close Navigation Menu"
+                  className="p-1.5 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-secondary cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </Tooltip>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4">
@@ -471,12 +477,15 @@ export default function EnterpriseLayout({
           
           {/* Mobile Sidebar Trigger & Breadcrumbs */}
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-1.5 border border-brand-border rounded lg:hidden hover:bg-brand-bg-secondary text-brand-text-secondary transition"
-            >
-              <Menu size={18} />
-            </button>
+            <Tooltip content="Open Navigation Menu">
+              <button 
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Open Navigation Menu"
+                className="p-1.5 border border-brand-border rounded lg:hidden hover:bg-brand-bg-secondary text-brand-text-secondary transition cursor-pointer"
+              >
+                <Menu size={18} />
+              </button>
+            </Tooltip>
             
             {/* Dynamic Breadcrumbs */}
             <nav className="hidden md:flex items-center gap-1.5 text-xs text-brand-text-secondary font-medium">
@@ -484,7 +493,7 @@ export default function EnterpriseLayout({
                 <React.Fragment key={bIdx}>
                   <button 
                     onClick={() => onNavigate(b.href)}
-                    className="hover:text-brand-text-primary font-semibold transition"
+                    className="hover:text-brand-text-primary font-semibold transition cursor-pointer"
                   >
                     {b.label}
                   </button>
@@ -505,12 +514,15 @@ export default function EnterpriseLayout({
               className="w-full pl-9 pr-8 py-1.5 text-xs border border-brand-border bg-brand-bg-secondary/50 rounded focus:outline-none focus:border-brand-primary focus:bg-white transition"
             />
             {searchQuery ? (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2 text-brand-text-secondary hover:text-brand-text-primary"
-              >
-                <X size={14} />
-              </button>
+              <Tooltip content="Clear Search">
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear Search"
+                  className="absolute right-3 top-2 text-brand-text-secondary hover:text-brand-text-primary cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </Tooltip>
             ) : (
               <span className="absolute right-3 top-1.5 px-1.5 py-0.5 bg-brand-border rounded text-[9px] font-mono text-brand-text-secondary">
                 ⌘K
@@ -598,17 +610,20 @@ export default function EnterpriseLayout({
 
             {/* Notification Center Trigger */}
             <div className="relative">
-              <button 
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowProfileMenu(false);
-                  setShowQuickActions(false);
-                }}
-                className="p-2 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-secondary transition relative cursor-pointer"
-              >
-                <Bell size={16} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-danger rounded-full" />
-              </button>
+              <Tooltip content="Notifications">
+                <button 
+                  onClick={() => {
+                    setShowNotifications(!showNotifications);
+                    setShowProfileMenu(false);
+                    setShowQuickActions(false);
+                  }}
+                  aria-label="Notifications"
+                  className="p-2 border border-brand-border rounded hover:bg-brand-bg-secondary text-brand-text-secondary transition relative cursor-pointer"
+                >
+                  <Bell size={16} />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-danger rounded-full" />
+                </button>
+              </Tooltip>
 
               {showNotifications && (
                 <div className="absolute z-50 right-0 mt-1 bg-white border border-brand-border rounded shadow-md-flat w-80 p-2">

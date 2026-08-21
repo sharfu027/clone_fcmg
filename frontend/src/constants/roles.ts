@@ -81,18 +81,72 @@ export const MASTER_DATA_SUBMODULES = MASTER_DATA_SUBMODULE_GROUPS.flatMap(g => 
 })));
 
 export const BRANCH_PARENT_PERMISSION = 'masters:branch';
-export const BRANCH_DEPENDENT_PERMISSIONS = ['masters:department', 'masters:warehouse'];
+export const BRANCH_PERMISSION = 'masters:branch';
+export const WAREHOUSE_PERMISSION = 'masters:warehouse';
+export const DEPARTMENT_PERMISSION = 'masters:department';
+export const BRANCH_DEPENDENT_PERMISSIONS = ['masters:warehouse', 'masters:department'];
+
+export const CATEGORY_PERMISSION = 'masters:category';
+export const BRAND_PERMISSION = 'masters:brand';
+export const UNIT_PERMISSION = 'masters:unit';
+export const PRODUCT_PERMISSION = 'masters:product';
+export const PRODUCT_PARENT_PERMISSIONS = ['masters:category', 'masters:brand', 'masters:unit'];
+
+export const resolveCascadingPermissions = (explicitPermissions: string[] | Set<string>): {
+  resolved: string[];
+  inherited: Set<string>;
+  explicit: Set<string>;
+  inheritedSources: Record<string, string[]>;
+} => {
+  const explicitSet = new Set(explicitPermissions);
+  const resolvedSet = new Set(explicitPermissions);
+  const inheritedSet = new Set<string>();
+  const inheritedSources: Record<string, string[]> = {};
+
+  // 1. Company Master cascading hierarchy: Branch -> Warehouse -> Department
+  if (explicitSet.has(BRANCH_PERMISSION)) {
+    if (!explicitSet.has(WAREHOUSE_PERMISSION)) {
+      inheritedSet.add(WAREHOUSE_PERMISSION);
+      inheritedSources[WAREHOUSE_PERMISSION] = ['Branch'];
+    }
+    if (!explicitSet.has(DEPARTMENT_PERMISSION)) {
+      inheritedSet.add(DEPARTMENT_PERMISSION);
+      inheritedSources[DEPARTMENT_PERMISSION] = ['Branch'];
+    }
+    resolvedSet.add(WAREHOUSE_PERMISSION);
+    resolvedSet.add(DEPARTMENT_PERMISSION);
+  } else if (explicitSet.has(WAREHOUSE_PERMISSION)) {
+    if (!explicitSet.has(DEPARTMENT_PERMISSION)) {
+      inheritedSet.add(DEPARTMENT_PERMISSION);
+      inheritedSources[DEPARTMENT_PERMISSION] = ['Warehouse / Stockist'];
+    }
+    resolvedSet.add(DEPARTMENT_PERMISSION);
+  }
+
+  // 2. Product Master cascading dependency: Category/Brand/UOM -> Products
+  const productParents: string[] = [];
+  if (explicitSet.has(CATEGORY_PERMISSION)) productParents.push('Category');
+  if (explicitSet.has(BRAND_PERMISSION)) productParents.push('Brand');
+  if (explicitSet.has(UNIT_PERMISSION) || explicitSet.has('masters:uom')) productParents.push('UOM');
+
+  if (productParents.length > 0) {
+    if (!explicitSet.has(PRODUCT_PERMISSION)) {
+      inheritedSet.add(PRODUCT_PERMISSION);
+    }
+    inheritedSources[PRODUCT_PERMISSION] = productParents;
+    resolvedSet.add(PRODUCT_PERMISSION);
+  }
+
+  return {
+    resolved: Array.from(resolvedSet),
+    inherited: inheritedSet,
+    explicit: explicitSet,
+    inheritedSources
+  };
+};
 
 export const normalizePermissionDependencies = (permissions: string[]): string[] => {
-  let next = [...permissions];
-  if (next.includes(BRANCH_PARENT_PERMISSION)) {
-    BRANCH_DEPENDENT_PERMISSIONS.forEach(dep => {
-      if (!next.includes(dep)) next.push(dep);
-    });
-  } else {
-    next = next.filter(p => !BRANCH_DEPENDENT_PERMISSIONS.includes(p));
-  }
-  return next;
+  return resolveCascadingPermissions(permissions).resolved;
 };
 
 export const CANONICAL_MODULE_PERMISSIONS: FMCGModulePermission[] = [

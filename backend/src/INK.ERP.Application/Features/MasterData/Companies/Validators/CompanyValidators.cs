@@ -9,9 +9,9 @@ public class CreateCompanyCommandValidator : AbstractValidator<CreateCompanyComm
     public CreateCompanyCommandValidator()
     {
         RuleFor(x => x.Code)
-            .NotEmpty().WithMessage("Company Code is required.")
             .MaximumLength(20).WithMessage("Company Code must not exceed 20 characters.")
-            .Matches(@"^[A-Za-z0-9\-_]+$").WithMessage("Company Code can only contain letters, numbers, hyphens, and underscores.");
+            .Matches(@"^[A-Za-z0-9\-_]+$").When(x => !string.IsNullOrWhiteSpace(x.Code))
+            .WithMessage("Company Code can only contain letters, numbers, hyphens, and underscores.");
 
         RuleFor(x => x.LegalName)
             .NotEmpty().WithMessage("Legal Name is required.")

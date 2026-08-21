@@ -37,4 +37,25 @@ public class CompanyRepository : GenericRepository<Company>, ICompanyRepository
         return await _dbContext.Companies.IgnoreQueryFilters()
             .AnyAsync(c => c.LegalName.ToLower() == normalized && (!excludeId.HasValue || c.Id != excludeId.Value), cancellationToken);
     }
+
+    public async Task<string> GetNextCompanyCodeAsync(CancellationToken cancellationToken = default)
+    {
+        var existingCodes = await _dbContext.Companies
+            .IgnoreQueryFilters()
+            .Select(c => c.Code.ToUpper())
+            .ToListAsync(cancellationToken);
+
+        var codeSet = new System.Collections.Generic.HashSet<string>(existingCodes);
+        int counter = 1;
+        while (counter < 10000)
+        {
+            var candidate = $"COM-{counter:D3}";
+            if (!codeSet.Contains(candidate))
+            {
+                return candidate;
+            }
+            counter++;
+        }
+        return $"COM-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+    }
 }

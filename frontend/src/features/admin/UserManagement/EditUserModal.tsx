@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Edit3, MapPin, Camera, ShieldCheck, Sliders, CheckCircle, Building, Upload } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
-import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS, normalizePermissionDependencies } from '../../../constants/roles';
+import { CANONICAL_MODULE_PERMISSIONS, MASTER_DATA_SUBMODULES, MASTER_DATA_SUBMODULE_GROUPS, normalizePermissionDependencies, resolveCascadingPermissions } from '../../../constants/roles';
 import { saveUserRoleAndPermissions, getUserAccessSettings } from '../../../services/userPermissionsService';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -119,7 +120,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [enableLocationAuth, setEnableLocationAuth] = useState(true);
   const [enableFaceAuth, setEnableFaceAuth] = useState(true);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [explicitPermissions, setExplicitPermissions] = useState<string[]>([]);
+
+  const { resolved: selectedPermissions, inherited: inheritedPermissions, explicit: explicitPermissionsSet, inheritedSources } = useMemo(() => {
+    return resolveCascadingPermissions(explicitPermissions);
+  }, [explicitPermissions]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -141,52 +147,44 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       const policy = getUserSecurityPolicy(user.id);
       setEnableLocationAuth(policy.enableLocationAuth);
       setEnableFaceAuth(policy.enableFaceAuth);
-      setSelectedPermissions(getUserPermissions(user.id, (user as any).email));
+      setExplicitPermissions(getUserPermissions(user.id, (user as any).email));
     }
   }, [user]);
 
   if (!isOpen || !user) return null;
 
   const togglePermission = (code: string) => {
-    setSelectedPermissions((prev) => {
-      const isCurrentlySelected = prev.includes(code);
-      let next = isCurrentlySelected ? prev.filter((p) => p !== code) : [...prev, code];
+    setExplicitPermissions((prev) => {
+      const explicitSet = new Set(prev);
+      const isCurrentlyExplicit = explicitSet.has(code);
 
       if (code === 'masters:manage') {
         const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
-        if (isCurrentlySelected) {
-          next = next.filter(p => !subCodes.includes(p));
+        const hasAll = subCodes.every(c => explicitSet.has(c));
+        if (hasAll) {
+          subCodes.forEach(c => explicitSet.delete(c));
+          explicitSet.delete('masters:manage');
         } else {
-          next = Array.from(new Set([...next, ...subCodes]));
+          subCodes.forEach(c => explicitSet.add(c));
+          explicitSet.add('masters:manage');
         }
-      } else if (code === 'masters:branch') {
-        if (isCurrentlySelected) {
-          // If Branch is disabled, Departments and Warehouse/Stockist MUST automatically be disabled
-          next = next.filter(p => p !== 'masters:branch' && p !== 'masters:department' && p !== 'masters:warehouse');
+      } else {
+        if (isCurrentlyExplicit) {
+          explicitSet.delete(code);
         } else {
-          // If Branch is enabled, Departments and Warehouse/Stockist MUST automatically be enabled
-          next = Array.from(new Set([...next, 'masters:branch', 'masters:department', 'masters:warehouse']));
-        }
-      } else if (code === 'masters:department' || code === 'masters:warehouse') {
-        // Child permissions cannot be independently toggled:
-        // Reverse inheritance is not allowed (cannot enable branch by clicking department/warehouse alone)
-        // Nor can child permissions be independently unselected when branch is active
-        return prev;
-      }
-
-      if (MASTER_DATA_SUBMODULES.some(s => s.code === code) || code === 'masters:manage') {
-        const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
-        const hasAnySub = subCodes.some(s => next.includes(s));
-        if (hasAnySub) {
-          if (!next.includes('masters:manage')) {
-            next.push('masters:manage');
-          }
-        } else {
-          next = next.filter(p => p !== 'masters:manage');
+          explicitSet.add(code);
         }
       }
 
-      return normalizePermissionDependencies(next);
+      const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
+      const hasAnySub = subCodes.some(s => explicitSet.has(s));
+      if (hasAnySub) {
+        explicitSet.add('masters:manage');
+      } else if (!isCurrentlyExplicit && code !== 'masters:manage') {
+        explicitSet.delete('masters:manage');
+      }
+
+      return Array.from(explicitSet);
     });
   };
 
@@ -287,12 +285,15 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               <p className="text-xs text-brand-text-secondary">Update personal info, authentication policies, and module access.</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-brand-text-secondary hover:text-brand-text-primary rounded-lg hover:bg-brand-bg-secondary transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1 text-brand-text-secondary hover:text-brand-text-primary rounded-lg hover:bg-brand-bg-secondary transition cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[calc(90vh-140px)] text-xs">
@@ -570,9 +571,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                               const subCodes = MASTER_DATA_SUBMODULES.map(s => s.code);
                               const hasAll = subCodes.every(c => selectedPermissions.includes(c));
                               if (hasAll) {
-                                setSelectedPermissions(prev => prev.filter(p => !subCodes.includes(p)));
+                                setExplicitPermissions(prev => prev.filter(p => !subCodes.includes(p)));
                               } else {
-                                setSelectedPermissions(prev => normalizePermissionDependencies(Array.from(new Set([...prev, ...subCodes]))));
+                                setExplicitPermissions(prev => Array.from(new Set([...prev, ...subCodes])));
                               }
                             }}
                             className="text-[9px] font-bold text-brand-primary hover:underline cursor-pointer"
@@ -595,9 +596,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                                       checked={isAllGroupChecked}
                                       onChange={() => {
                                         if (isAllGroupChecked) {
-                                          setSelectedPermissions(prev => prev.filter(p => !groupSubCodes.includes(p)));
+                                          setExplicitPermissions(prev => prev.filter(p => !groupSubCodes.includes(p)));
                                         } else {
-                                          setSelectedPermissions(prev => normalizePermissionDependencies(Array.from(new Set([...prev, ...groupSubCodes]))));
+                                          setExplicitPermissions(prev => Array.from(new Set([...prev, ...groupSubCodes])));
                                         }
                                       }}
                                       className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
@@ -625,8 +626,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                                       <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">Independent</span>
                                     </div>
 
-                                    {/* Branches - Parent Permission */}
+                                    {/* Cascading Hierarchy: Branches -> Warehouse / Stockist -> Departments */}
                                     <div className="p-2 bg-blue-50/50 border border-blue-200 rounded-md space-y-2">
+                                      {/* Level 1: Branches (Parent Permission) */}
                                       <div className="flex items-center justify-between">
                                         <label className="flex items-center gap-2 text-[11px] font-bold text-brand-primary cursor-pointer">
                                           <input
@@ -642,55 +644,169 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                                         </span>
                                       </div>
 
-                                      {/* Children: Departments and Warehouse / Stockist */}
-                                      <div className="ml-4 pl-3 border-l-2 border-blue-200 space-y-1.5">
-                                        {/* Departments */}
+                                      {/* Level 2: Warehouse / Stockist */}
+                                      <div className="ml-4 pl-3 border-l-2 border-blue-200 space-y-2">
                                         <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
-                                          <div className="flex items-center gap-2">
-                                            <input
-                                              type="checkbox"
-                                              checked={selectedPermissions.includes('masters:department')}
-                                              disabled
-                                              className="rounded border-slate-300 text-brand-primary w-3.5 h-3.5 opacity-80 cursor-not-allowed accent-brand-primary"
-                                            />
-                                            <span className={selectedPermissions.includes('masters:branch') ? 'font-semibold text-slate-800' : 'text-slate-400'}>
-                                              Departments
-                                            </span>
-                                          </div>
-                                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
-                                            selectedPermissions.includes('masters:branch')
-                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                              : 'bg-slate-100 text-slate-400 border-slate-200'
-                                          }`}>
-                                            {selectedPermissions.includes('masters:branch') ? 'Inherited from Branch access' : 'Requires Branch access'}
-                                          </span>
-                                        </div>
-
-                                        {/* Warehouse / Stockist */}
-                                        <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
-                                          <div className="flex items-center gap-2">
+                                          <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                               type="checkbox"
                                               checked={selectedPermissions.includes('masters:warehouse')}
-                                              disabled
-                                              className="rounded border-slate-300 text-brand-primary w-3.5 h-3.5 opacity-80 cursor-not-allowed accent-brand-primary"
+                                              disabled={selectedPermissions.includes('masters:branch')}
+                                              onChange={() => togglePermission('masters:warehouse')}
+                                              className={`rounded border-slate-300 text-brand-primary w-3.5 h-3.5 accent-brand-primary ${
+                                                selectedPermissions.includes('masters:branch') ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                                              }`}
                                             />
-                                            <span className={selectedPermissions.includes('masters:branch') ? 'font-semibold text-slate-800' : 'text-slate-400'}>
+                                            <span className={selectedPermissions.includes('masters:warehouse') ? 'font-semibold text-slate-800' : 'text-slate-500'}>
                                               Warehouse / Stockist
                                             </span>
-                                          </div>
+                                          </label>
                                           <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
                                             selectedPermissions.includes('masters:branch')
-                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                              : 'bg-slate-100 text-slate-400 border-slate-200'
+                                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                              : explicitPermissionsSet.has('masters:warehouse')
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : 'bg-slate-100 text-slate-400 border-slate-200'
                                           }`}>
-                                            {selectedPermissions.includes('masters:branch') ? 'Inherited from Branch access' : 'Requires Branch access'}
+                                            {selectedPermissions.includes('masters:branch')
+                                              ? 'Inherited from Branch access'
+                                              : explicitPermissionsSet.has('masters:warehouse')
+                                                ? 'Independent'
+                                                : 'Requires / Controlled by Branch'}
                                           </span>
+                                        </div>
+
+                                        {/* Level 3: Departments */}
+                                        <div className="ml-4 pl-3 border-l-2 border-slate-200 space-y-1.5">
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:department')}
+                                                disabled={selectedPermissions.includes('masters:branch') || selectedPermissions.includes('masters:warehouse')}
+                                                onChange={() => togglePermission('masters:department')}
+                                                className={`rounded border-slate-300 text-brand-primary w-3.5 h-3.5 accent-brand-primary ${
+                                                  selectedPermissions.includes('masters:branch') || selectedPermissions.includes('masters:warehouse')
+                                                    ? 'opacity-80 cursor-not-allowed'
+                                                    : 'cursor-pointer'
+                                                }`}
+                                              />
+                                              <span className={selectedPermissions.includes('masters:department') ? 'font-semibold text-slate-800' : 'text-slate-500'}>
+                                                Departments
+                                              </span>
+                                            </label>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                              selectedPermissions.includes('masters:branch')
+                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                : selectedPermissions.includes('masters:warehouse')
+                                                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                  : explicitPermissionsSet.has('masters:department')
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                    : 'bg-slate-100 text-slate-400 border-slate-200'
+                                            }`}>
+                                              {selectedPermissions.includes('masters:branch')
+                                                ? 'Inherited from Branch access'
+                                                : selectedPermissions.includes('masters:warehouse')
+                                                  ? 'Inherited from Warehouse access'
+                                                  : explicitPermissionsSet.has('masters:department')
+                                                    ? 'Independent'
+                                                    : 'Can be independently enabled'}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
-                                ) : (
+                                  ) : group.groupKey === 'product' ? (
+                                    <div className="space-y-2 pt-1">
+                                      {/* Cascading Dependency Group: Category / Brands / Units (UOM) -> Products (SKUs) */}
+                                      <div className="p-2 bg-blue-50/50 border border-blue-200 rounded-md space-y-2">
+                                        {/* Level 1: Parent Masters Header & Rows */}
+                                        <div className="space-y-1.5">
+                                          {/* Category (Parent Permission) */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 font-bold text-brand-primary cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:category')}
+                                                onChange={() => togglePermission('masters:category')}
+                                                className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                              />
+                                              <span>Category</span>
+                                            </label>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                              Parent Permission
+                                            </span>
+                                          </div>
+
+                                          {/* Brands (Parent Permission) */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 font-bold text-brand-primary cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:brand')}
+                                                onChange={() => togglePermission('masters:brand')}
+                                                className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                              />
+                                              <span>Brands</span>
+                                            </label>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                              Parent Permission
+                                            </span>
+                                          </div>
+
+                                          {/* Units (UOM) (Parent Permission) */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 font-bold text-brand-primary cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:unit')}
+                                                onChange={() => togglePermission('masters:unit')}
+                                                className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                              />
+                                              <span>Units (UOM)</span>
+                                            </label>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                              Parent Permission
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        {/* Level 2: Shared Dependent Child — Products (SKUs) */}
+                                        <div className="ml-4 pl-3 border-l-2 border-blue-200 space-y-1.5">
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:product')}
+                                                disabled={inheritedPermissions.has('masters:product')}
+                                                onChange={() => togglePermission('masters:product')}
+                                                className={`rounded border-slate-300 text-brand-primary w-3.5 h-3.5 accent-brand-primary ${
+                                                  inheritedPermissions.has('masters:product') ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'
+                                                }`}
+                                              />
+                                              <span className={selectedPermissions.includes('masters:product') ? 'font-semibold text-slate-800' : 'text-slate-500'}>
+                                                Products (SKUs)
+                                              </span>
+                                            </label>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                              inheritedPermissions.has('masters:product')
+                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                : explicitPermissionsSet.has('masters:product')
+                                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                  : 'bg-slate-100 text-slate-400 border-slate-200'
+                                            }`}>
+                                              {inheritedPermissions.has('masters:product')
+                                                ? `Inherited from ${(inheritedSources?.['masters:product'] || []).join(' + ')}`
+                                                : explicitPermissionsSet.has('masters:product')
+                                                  ? 'Independent'
+                                                  : 'Can be independently enabled'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
                                   <div className="flex flex-wrap gap-1.5 pt-1">
                                     {group.items.map((sub) => {
                                       const isSubChecked = selectedPermissions.includes(sub.code);

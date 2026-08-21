@@ -174,3 +174,21 @@ public class GetActiveCompaniesQueryHandler : IRequestHandler<GetActiveCompanies
         return Result.Success<IReadOnlyList<CompanyDto>>(items);
     }
 }
+
+public record GetNextCompanyCodeQuery() : IRequest<Result<string>>;
+
+public class GetNextCompanyCodeQueryHandler : IRequestHandler<GetNextCompanyCodeQuery, Result<string>>
+{
+    private readonly ICompanyRepository _companyRepository;
+
+    public GetNextCompanyCodeQueryHandler(ICompanyRepository companyRepository)
+    {
+        _companyRepository = companyRepository;
+    }
+
+    public async Task<Result<string>> Handle(GetNextCompanyCodeQuery request, CancellationToken cancellationToken)
+    {
+        var nextCode = await _companyRepository.GetNextCompanyCodeAsync(cancellationToken);
+        return Result.Success(nextCode);
+    }
+}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SupplierDto } from '../../../../types/masterData';
 import { X, Save, Loader2, AlertTriangle, Building, MapPin, FileText, CheckCircle2 } from 'lucide-react';
 import * as masterDataService from '../../../../services/masterDataService';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 
 interface Props {
   onClose: () => void;
@@ -215,9 +216,11 @@ export function SupplierWizardView({
               : 'Register an official FMCG supplier master record'}
           </p>
         </div>
-        <button onClick={onClose} className="text-brand-text-secondary hover:text-brand-text-primary cursor-pointer p-1">
-          <X size={18} />
-        </button>
+        <Tooltip content="Close">
+          <button onClick={onClose} aria-label="Close" className="text-brand-text-secondary hover:text-brand-text-primary cursor-pointer p-1">
+            <X size={18} />
+          </button>
+        </Tooltip>
       </div>
 
       {/* API Error Banner */}

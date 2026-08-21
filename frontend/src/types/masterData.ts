@@ -76,15 +76,22 @@ export interface Department {
   id: string;
   code: string;
   name: string;
-  branchId: string;
-  manager: string;
-  employeeCount: number;
-  status: 'Active' | 'Inactive';
+  companyId?: string;
+  companyName?: string;
+  branchId?: string | null;
+  branchName?: string;
+  description?: string;
+  manager?: string;
+  employeeCount?: number;
+  status: 'Active' | 'Inactive' | string;
+  isActive?: boolean;
 }
 
 export interface DepartmentDto {
   id: string;
-  branchId: string;
+  companyId: string;
+  companyName?: string;
+  branchId?: string | null;
   branchName?: string;
   code: string;
   name: string;
@@ -405,7 +412,9 @@ export interface Warehouse {
 export interface WarehouseDto {
   id: string;
   companyId: string;
-  branchId: string;
+  companyName?: string;
+  branchId?: string | null;
+  branchName?: string;
   code: string;
   name: string;
   warehouseType: string;

@@ -3,7 +3,7 @@ namespace INK.ERP.Application.Features.MasterData.Warehouses.DTOs;
 public record WarehouseDto(
     Guid Id,
     Guid CompanyId,
-    Guid BranchId,
+    Guid? BranchId,
     string Code,
     string Name,
     string WarehouseType,

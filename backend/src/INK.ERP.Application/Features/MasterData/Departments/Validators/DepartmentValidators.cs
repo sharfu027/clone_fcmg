@@ -7,8 +7,8 @@ public class CreateDepartmentCommandValidator : AbstractValidator<CreateDepartme
 {
     public CreateDepartmentCommandValidator()
     {
-        RuleFor(x => x.BranchId)
-            .NotEmpty().WithMessage("Branch ID is required.");
+        RuleFor(x => x.CompanyId)
+            .NotEmpty().WithMessage("Company ID is required.");
 
         RuleFor(x => x.Code)
             .NotEmpty().WithMessage("Department Code is required.")
@@ -27,8 +27,8 @@ public class UpdateDepartmentCommandValidator : AbstractValidator<UpdateDepartme
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Department ID is required.");
 
-        RuleFor(x => x.BranchId)
-            .NotEmpty().WithMessage("Branch ID is required.");
+        RuleFor(x => x.CompanyId)
+            .NotEmpty().WithMessage("Company ID is required.");
 
         RuleFor(x => x.Code)
             .NotEmpty().WithMessage("Department Code is required.")

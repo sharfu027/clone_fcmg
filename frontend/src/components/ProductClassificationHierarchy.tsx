@@ -22,6 +22,7 @@ import {
   XCircle,
   Barcode
 } from 'lucide-react';
+import { Tooltip } from './ui/Tooltip';
 
 export interface ProductClassificationHierarchyProps {
   products: any[];
@@ -543,22 +544,26 @@ export default function ProductClassificationHierarchy({
             </div>
 
             <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
-              <button
-                type="button"
-                onClick={handleExpandAll}
-                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50 transition flex items-center gap-1 cursor-pointer"
-                title="Expand All Nodes"
-              >
-                <Maximize2 size={11} /> Expand All
-              </button>
-              <button
-                type="button"
-                onClick={handleCollapseAll}
-                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50 transition flex items-center gap-1 cursor-pointer"
-                title="Collapse All Nodes"
-              >
-                <Minimize2 size={11} /> Collapse All
-              </button>
+              <Tooltip content="Expand All Nodes">
+                <button
+                  type="button"
+                  onClick={handleExpandAll}
+                  aria-label="Expand All Nodes"
+                  className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50 transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Maximize2 size={11} /> Expand All
+                </button>
+              </Tooltip>
+              <Tooltip content="Collapse All Nodes">
+                <button
+                  type="button"
+                  onClick={handleCollapseAll}
+                  aria-label="Collapse All Nodes"
+                  className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50 transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Minimize2 size={11} /> Collapse All
+                </button>
+              </Tooltip>
             </div>
           </div>
 
@@ -580,13 +585,16 @@ export default function ProductClassificationHierarchy({
                   </p>
                 </div>
                 {treeSearch ? (
-                  <button
-                    type="button"
-                    onClick={() => setTreeSearch('')}
-                    className="px-3 py-1 bg-brand-primary text-white font-bold rounded text-xs hover:bg-blue-700 transition"
-                  >
-                    Clear Filter
-                  </button>
+                  <Tooltip content="Reset search query">
+                    <button
+                      type="button"
+                      onClick={() => setTreeSearch('')}
+                      aria-label="Clear Filter"
+                      className="px-3 py-1 bg-brand-primary text-white font-bold rounded text-xs hover:bg-blue-700 transition"
+                    >
+                      Clear Filter
+                    </button>
+                  </Tooltip>
                 ) : onCreateCategory ? (
                   <div className="pt-2">
                     <button
@@ -602,6 +610,42 @@ export default function ProductClassificationHierarchy({
             ) : (
               filteredTree.map(node => renderCategoryNode(node))
             )}
+            {/* UNCLASSIFIED PRODUCTS VIRTUAL GROUP */}
+            {(() => {
+              const unclassified = products.filter(p => {
+                const cId = normalizeId(p.categoryId);
+                return !cId || cId === 'null' || cId === 'undefined';
+              });
+              if (unclassified.length === 0) return null;
+              const q = treeSearch.trim().toLowerCase();
+              const filtered = q
+                ? unclassified.filter(p =>
+                    (p.name && p.name.toLowerCase().includes(q)) ||
+                    (p.code && p.code.toLowerCase().includes(q)) ||
+                    (p.sku && p.sku.toLowerCase().includes(q))
+                  )
+                : unclassified;
+              if (filtered.length === 0) return null;
+              return (
+                <div className="border border-dashed border-slate-300 rounded-lg overflow-hidden bg-slate-50/60">
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 border bg-slate-100 text-slate-500 border-slate-300">
+                        <Package size={13} />
+                      </div>
+                      <span className="font-bold text-xs text-slate-600">Unclassified Products</span>
+                      <span className="text-[10px] italic text-slate-400">(no category assigned)</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600 border border-slate-300">
+                      {filtered.length} {filtered.length === 1 ? 'SKU' : 'SKUs'}
+                    </span>
+                  </div>
+                  <div className="p-2.5 space-y-1 bg-white">
+                    {filtered.map(prod => renderProductItem(prod))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -645,13 +689,16 @@ export default function ProductClassificationHierarchy({
                   >
                     <Edit2 size={13} /> Edit Product
                   </button>
-                  <button
-                    type="button"
-                    onClick={onViewFullRegistry}
-                    className="px-3 py-1.5 border border-brand-border text-slate-700 hover:bg-slate-100 rounded text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Table size={13} /> View in Table
-                  </button>
+                  <Tooltip content="Switch to Master Registry Table view">
+                    <button
+                      type="button"
+                      onClick={onViewFullRegistry}
+                      aria-label="View in Table"
+                      className="px-3 py-1.5 border border-brand-border text-slate-700 hover:bg-slate-100 rounded text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Table size={13} /> View in Table
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
 

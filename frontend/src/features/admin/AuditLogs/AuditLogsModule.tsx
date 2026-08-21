@@ -28,6 +28,7 @@ import {
 import { adminService } from '../../../services/adminService';
 import { AuditLogDto, AuditLogStatsDto } from '../../../types/admin';
 import { StatCard } from '../../../components/ui/StatCard';
+import { Tooltip } from '../../../components/ui/Tooltip';
 import { Badge } from '../../../components/ui/Badge';
 
 interface AuditLogsModuleProps {
@@ -575,9 +576,11 @@ export const AuditLogsModule: React.FC<AuditLogsModuleProps> = ({ onTriggerToast
                   <span className="text-xs text-slate-400 font-mono">ID: {selectedLog.id}</span>
                 </div>
               </div>
-              <button onClick={() => setIsDrawerOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
-                <X size={20} />
-              </button>
+              <Tooltip content="Close">
+                <button onClick={() => setIsDrawerOpen(false)} aria-label="Close" className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                  <X size={20} />
+                </button>
+              </Tooltip>
             </div>
 
             {/* Drawer Tabs */}

@@ -3,6 +3,7 @@ import { SupplierDto } from '../../../../types/masterData';
 import { SearchInput } from '../../../../components/ui/SearchInput';
 import { Download, Plus, Filter, Eye, Edit2, Trash2, Loader2, Building, Mail, Phone, RefreshCw } from 'lucide-react';
 import { Badge } from '../../../../components/ui/Badge';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 import { useSupplierPermissions } from '../../hooks/useSupplierPermissions';
 import { exportSuppliersToCSV } from '../../utils/supplierUtils';
 import { formatINR } from '../../../../utils/formatters';
@@ -196,30 +197,36 @@ export function SupplierListView({
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button
-                        onClick={() => onView(s.id)}
-                        className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer"
-                        title="View Details"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      {permissions.canEdit && (
+                      <Tooltip content="View Details">
                         <button
-                          onClick={() => onEdit(s.id)}
+                          onClick={() => onView(s.id)}
+                          aria-label="View Details"
                           className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer"
-                          title="Edit Supplier"
                         >
-                          <Edit2 size={13} />
+                          <Eye size={13} />
                         </button>
+                      </Tooltip>
+                      {permissions.canEdit && (
+                        <Tooltip content="Edit Supplier">
+                          <button
+                            onClick={() => onEdit(s.id)}
+                            aria-label="Edit Supplier"
+                            className="p-1.5 border rounded text-brand-text-primary hover:bg-brand-bg-secondary cursor-pointer"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                        </Tooltip>
                       )}
                       {permissions.canArchive && (
-                        <button
-                          onClick={() => onDelete(s.id)}
-                          className="p-1.5 border border-red-200 rounded text-brand-danger hover:bg-red-50 cursor-pointer"
-                          title="Deactivate Supplier"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <Tooltip content="Deactivate Supplier">
+                          <button
+                            onClick={() => onDelete(s.id)}
+                            aria-label="Deactivate Supplier"
+                            className="p-1.5 border border-red-200 rounded text-brand-danger hover:bg-red-50 cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </Tooltip>
                       )}
                     </div>
                   </td>

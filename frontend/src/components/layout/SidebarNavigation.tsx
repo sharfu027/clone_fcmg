@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { NavItem, UserProfile } from '../../types';
 import { NAVIGATION_MENU } from '../../constants/navigation';
+import { Tooltip } from '../ui/Tooltip';
 
 const IconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   TrendingUp,
@@ -137,28 +138,31 @@ export default function SidebarNavigation({
 
         return (
           <div key={item.href} className="space-y-0.5">
-            <button
-              onClick={() => {
-                if (hasChildren) {
-                  toggleSubMenu(item.title);
-                } else {
-                  onNavigate(item.href);
-                }
-              }}
-              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-semibold transition cursor-pointer ${
-                isActive ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <NavIcon name={item.icon} size={15} />
-                {!collapsed && <span className="truncate">{item.title}</span>}
-              </div>
-              {!collapsed && hasChildren && (
-                <span className="text-slate-400">
-                  {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </span>
-              )}
-            </button>
+            <Tooltip content={item.title} position="right" disabled={!collapsed}>
+              <button
+                onClick={() => {
+                  if (hasChildren) {
+                    toggleSubMenu(item.title);
+                  } else {
+                    onNavigate(item.href);
+                  }
+                }}
+                aria-label={item.title}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-semibold transition cursor-pointer ${
+                  isActive ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <NavIcon name={item.icon} size={15} />
+                  {!collapsed && <span className="truncate">{item.title}</span>}
+                </div>
+                {!collapsed && hasChildren && (
+                  <span className="text-slate-400">
+                    {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </span>
+                )}
+              </button>
+            </Tooltip>
 
             {!collapsed && hasChildren && isOpen && (
               <div className="pl-4 space-y-1 pt-0.5">

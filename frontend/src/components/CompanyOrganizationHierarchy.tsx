@@ -20,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Tooltip } from './ui/Tooltip';
 
 export interface CompanyOrganizationHierarchyProps {
   companies: any[];
@@ -29,7 +30,9 @@ export interface CompanyOrganizationHierarchyProps {
   selectedCompanyId: string | null;
   onSelectCompany: (companyId: string) => void;
   onEditCompany: (companyId: string) => void;
-  onAddNewBranch: (companyId: string) => void;
+  onAddNewBranch?: (companyId: string) => void;
+  onAddNewWarehouse?: (companyId: string) => void;
+  onAddNewDepartment?: (companyId: string) => void;
   onViewFullRegistry: () => void;
   isLoading?: boolean;
 }
@@ -49,6 +52,8 @@ export default function CompanyOrganizationHierarchy({
   onSelectCompany,
   onEditCompany,
   onAddNewBranch,
+  onAddNewWarehouse,
+  onAddNewDepartment,
   onViewFullRegistry,
   isLoading = false
 }: CompanyOrganizationHierarchyProps) {
@@ -58,7 +63,10 @@ export default function CompanyOrganizationHierarchy({
                   userPerms.includes('manage:all') ||
                   (user?.email && user.email.toLowerCase().includes('superadmin'));
   const hasMasterParent = userPerms.includes('masters:manage');
+  const canAccessCompany = isSuper || (hasMasterParent && userPerms.includes('masters:company'));
   const canAccessBranch = isSuper || (hasMasterParent && userPerms.includes('masters:branch'));
+  const canAccessWarehouse = isSuper || (hasMasterParent && userPerms.includes('masters:warehouse'));
+  const canAccessDepartment = isSuper || (hasMasterParent && userPerms.includes('masters:department'));
 
   const [treeSearch, setTreeSearch] = useState('');
   const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
@@ -153,11 +161,11 @@ export default function CompanyOrganizationHierarchy({
         const brCity = (branch.city || '').toLowerCase();
         const branchSelfMatches = !q || brName.includes(q) || brCode.includes(q) || brCity.includes(q);
 
-        // Find warehouses for this branch (or company-level warehouse attached to HQ/company)
+        // Find warehouses for this branch
         const branchWarehouses = warehouses.filter(w => {
           const wBranchId = normalizeId(w.branchId);
           const wCompanyId = normalizeId(w.companyId);
-          return wBranchId === brId || (!wBranchId && wCompanyId === compId && branch.isHeadquarters);
+          return wCompanyId === compId && wBranchId === brId;
         });
 
         // Filter warehouses matching query
@@ -171,7 +179,11 @@ export default function CompanyOrganizationHierarchy({
         });
 
         // Find departments for this branch
-        const branchDepartments = departments.filter(d => normalizeId(d.branchId) === brId);
+        const branchDepartments = departments.filter(d => {
+          const dBranchId = normalizeId(d.branchId);
+          const dCompanyId = normalizeId(d.companyId);
+          return dCompanyId === compId && dBranchId === brId;
+        });
 
         // Filter departments matching query
         const matchingDepartments = branchDepartments.filter(d => {
@@ -211,18 +223,49 @@ export default function CompanyOrganizationHierarchy({
         return whName.includes(q) || whCode.includes(q) || whType.includes(q) || whCity.includes(q);
       });
 
+      // Find direct departments belonging to this company with no branch or unmatched branch
+      const directDepartments = departments.filter(d => {
+        const dCompId = normalizeId(d.companyId);
+        const dBranchId = normalizeId(d.branchId);
+        return dCompId === compId && (!dBranchId || !branchIdsSet.has(dBranchId));
+      });
+
+      const matchingDirectDepartments = directDepartments.filter(d => {
+        if (!q) return true;
+        const dpName = (d.name || '').toLowerCase();
+        const dpCode = (d.code || '').toLowerCase();
+        const dpDesc = (d.description || '').toLowerCase();
+        return dpName.includes(q) || dpCode.includes(q) || dpDesc.includes(q);
+      });
+
       const companyHasMatchingBranches = branchNodes.length > 0;
       const companyHasMatchingDirectWarehouses = matchingDirectWarehouses.length > 0;
-      const isCompanyVisible = companySelfMatches || companyHasMatchingBranches || companyHasMatchingDirectWarehouses;
+      const companyHasMatchingDirectDepartments = matchingDirectDepartments.length > 0;
+      const isCompanyVisible = companySelfMatches || companyHasMatchingBranches || companyHasMatchingDirectWarehouses || companyHasMatchingDirectDepartments;
 
       return {
         company,
         branches: branchNodes,
         directWarehouses: (q && !companySelfMatches) ? matchingDirectWarehouses : directWarehouses,
+        directDepartments: (q && !companySelfMatches) ? matchingDirectDepartments : directDepartments,
         isVisible: isCompanyVisible
       };
     }).filter(c => c.isVisible);
   }, [companies, branches, warehouses, departments, treeSearch]);
+
+  // Dynamic empty-state message based on available child permissions
+  const getEmptyChildMessage = () => {
+    if (canAccessBranch && !canAccessWarehouse && !canAccessDepartment) {
+      return 'No branches registered under this entity.';
+    }
+    if (!canAccessBranch && canAccessWarehouse && !canAccessDepartment) {
+      return 'No warehouses / stockists registered under this entity.';
+    }
+    if (!canAccessBranch && !canAccessWarehouse && canAccessDepartment) {
+      return 'No departments registered under this entity.';
+    }
+    return 'No organizational records registered under this entity.';
+  };
 
   // Active company's branches for inspector
   const activeCompanyBranches = useMemo(() => {
@@ -230,6 +273,20 @@ export default function CompanyOrganizationHierarchy({
     const compId = normalizeId(activeCompany.id);
     return branches.filter(b => normalizeId(b.companyId) === compId);
   }, [activeCompany, branches]);
+
+  // Active company's warehouses for inspector
+  const activeCompanyWarehouses = useMemo(() => {
+    if (!activeCompany) return [];
+    const compId = normalizeId(activeCompany.id);
+    return warehouses.filter(w => normalizeId(w.companyId) === compId);
+  }, [activeCompany, warehouses]);
+
+  // Active company's departments for inspector
+  const activeCompanyDepartments = useMemo(() => {
+    if (!activeCompany) return [];
+    const compId = normalizeId(activeCompany.id);
+    return departments.filter(d => normalizeId(d.companyId) === compId);
+  }, [activeCompany, departments]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -252,20 +309,24 @@ export default function CompanyOrganizationHierarchy({
           </div>
 
           <div className="flex items-center gap-1.5 text-xs">
-            <button
-              onClick={handleExpandAll}
-              title="Expand All Nodes (Companies and Branches)"
-              className="px-2 py-1 bg-white hover:bg-brand-bg-secondary border border-brand-border rounded text-[11px] font-semibold text-brand-text-primary flex items-center gap-1 transition cursor-pointer shadow-2xs"
-            >
-              <Maximize2 size={11} /> Expand All
-            </button>
-            <button
-              onClick={handleCollapseAll}
-              title="Collapse All Nodes"
-              className="px-2 py-1 bg-white hover:bg-brand-bg-secondary border border-brand-border rounded text-[11px] font-semibold text-brand-text-secondary hover:text-brand-text-primary flex items-center gap-1 transition cursor-pointer shadow-2xs"
-            >
-              <Minimize2 size={11} /> Collapse
-            </button>
+            <Tooltip content="Expand All Nodes (Companies and Branches)">
+              <button
+                onClick={handleExpandAll}
+                aria-label="Expand All Nodes"
+                className="px-2 py-1 bg-white hover:bg-brand-bg-secondary border border-brand-border rounded text-[11px] font-semibold text-brand-text-primary flex items-center gap-1 transition cursor-pointer shadow-2xs"
+              >
+                <Maximize2 size={11} /> Expand All
+              </button>
+            </Tooltip>
+            <Tooltip content="Collapse All Nodes">
+              <button
+                onClick={handleCollapseAll}
+                aria-label="Collapse All Nodes"
+                className="px-2 py-1 bg-white hover:bg-brand-bg-secondary border border-brand-border rounded text-[11px] font-semibold text-brand-text-secondary hover:text-brand-text-primary flex items-center gap-1 transition cursor-pointer shadow-2xs"
+              >
+                <Minimize2 size={11} /> Collapse
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -281,12 +342,15 @@ export default function CompanyOrganizationHierarchy({
               className="w-full pl-8.5 pr-3 py-1.5 text-xs bg-brand-bg-secondary/20 border border-brand-border rounded-md focus:outline-none focus:border-brand-primary text-brand-text-primary"
             />
             {treeSearch && (
-              <button
-                onClick={() => setTreeSearch('')}
-                className="absolute right-2.5 top-2 text-[10px] text-brand-text-secondary hover:text-brand-text-primary font-bold cursor-pointer"
-              >
-                ✕
-              </button>
+              <Tooltip content="Clear search query">
+                <button
+                  onClick={() => setTreeSearch('')}
+                  aria-label="Clear Search Filter"
+                  className="absolute right-2.5 top-2 text-[10px] text-brand-text-secondary hover:text-brand-text-primary font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -305,12 +369,13 @@ export default function CompanyOrganizationHierarchy({
               <p className="text-[11px]">No companies match "{treeSearch}"</p>
             </div>
           ) : (
-            filteredTreeData.map(({ company, branches: companyBranches, directWarehouses = [] }) => {
+            filteredTreeData.map(({ company, branches: companyBranches, directWarehouses = [], directDepartments = [] }) => {
               const compKey = normalizeId(company.id);
               const isSelected = activeCompany && normalizeId(activeCompany.id) === compKey;
               const isExpanded = expandedCompanyIds.has(compKey) || Boolean(treeSearch);
               const branchCount = companyBranches.length;
               const directWhCount = directWarehouses.length;
+              const directDeptCount = directDepartments.length;
 
               return (
                 <div
@@ -371,18 +436,25 @@ export default function CompanyOrganizationHierarchy({
                           {directWhCount} {directWhCount === 1 ? 'Warehouse' : 'Warehouses'}
                         </span>
                       )}
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                        {branchCount} {branchCount === 1 ? 'Branch' : 'Branches'}
-                      </span>
+                      {directDeptCount > 0 && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          {directDeptCount} {directDeptCount === 1 ? 'Dept' : 'Depts'}
+                        </span>
+                      )}
+                      {branchCount > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          {branchCount} {branchCount === 1 ? 'Branch' : 'Branches'}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* BRANCHES & DIRECT WAREHOUSES SUB-TREE */}
+                  {/* BRANCHES & DIRECT FACILITIES SUB-TREE */}
                   {isExpanded && (
                     <div className="border-t border-slate-100 bg-slate-50/50 p-2.5 pl-6 space-y-2 text-xs">
-                      {companyBranches.length === 0 && directWarehouses.length === 0 ? (
+                      {companyBranches.length === 0 && directWarehouses.length === 0 && directDepartments.length === 0 ? (
                         <div className="py-2 px-3 text-[11px] text-slate-400 italic">
-                          No branches or facilities registered under this entity.
+                          {getEmptyChildMessage()}
                         </div>
                       ) : (
                         <>
@@ -404,6 +476,28 @@ export default function CompanyOrganizationHierarchy({
                               </div>
                               <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                                 {wh.warehouseType || 'Warehouse / Stockist'}
+                              </span>
+                            </div>
+                          ))}
+
+                          {/* Direct Standalone Departments */}
+                          {directDepartments.map(dept => (
+                            <div key={dept.id} className="bg-white border border-slate-200/80 rounded-md p-2 flex items-center justify-between gap-2 shadow-2xs">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-5 h-5 rounded bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+                                  <Users size={12} />
+                                </div>
+                                <span className="font-bold text-slate-800 text-xs truncate">
+                                  {dept.name}
+                                </span>
+                                {dept.code && (
+                                  <span className="font-mono text-[10px] font-semibold text-slate-600 px-1 rounded bg-slate-100 border border-slate-200">
+                                    {dept.code}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                                Department
                               </span>
                             </div>
                           ))}
@@ -576,7 +670,7 @@ export default function CompanyOrganizationHierarchy({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+              <div className="flex items-center gap-2 self-start sm:self-center shrink-0 flex-wrap">
                 {isSuper && (
                   <button
                     type="button"
@@ -587,13 +681,35 @@ export default function CompanyOrganizationHierarchy({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => onAddNewBranch(activeCompany.id)}
-                  className="px-3.5 py-1.5 bg-brand-primary hover:bg-blue-700 text-white rounded text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                >
-                  <Plus size={13} /> Add New Branch
-                </button>
+                {canAccessBranch && onAddNewBranch && (
+                  <button
+                    type="button"
+                    onClick={() => onAddNewBranch(activeCompany.id)}
+                    className="px-3.5 py-1.5 bg-brand-primary hover:bg-blue-700 text-white rounded text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <Plus size={13} /> Add New Branch
+                  </button>
+                )}
+
+                {canAccessWarehouse && onAddNewWarehouse && (
+                  <button
+                    type="button"
+                    onClick={() => onAddNewWarehouse(activeCompany.id)}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <Plus size={13} /> Add New Warehouse / Stockist
+                  </button>
+                )}
+
+                {canAccessDepartment && onAddNewDepartment && (
+                  <button
+                    type="button"
+                    onClick={() => onAddNewDepartment(activeCompany.id)}
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <Plus size={13} /> Add New Department
+                  </button>
+                )}
               </div>
             </div>
 
@@ -676,82 +792,227 @@ export default function CompanyOrganizationHierarchy({
               </div>
 
               {/* Section 4: Operating Branches Table inside Inspector */}
-              <div>
-                <div className="flex items-center justify-between mb-2.5">
-                  <h3 className="text-[10px] font-bold text-brand-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <GitFork size={12} className="text-brand-primary rotate-90" /> Registered Operating Branches ({activeCompanyBranches.length})
-                  </h3>
-                  {canAccessBranch && (
-                    <button
-                      type="button"
-                      onClick={() => onAddNewBranch(activeCompany.id)}
-                      className="text-[11px] font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus size={11} /> Add Branch to Entity
-                    </button>
-                  )}
-                </div>
+              {canAccessBranch && (
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[10px] font-bold text-brand-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      <GitFork size={12} className="text-brand-primary rotate-90" /> Registered Operating Branches ({activeCompanyBranches.length})
+                    </h3>
+                    {canAccessBranch && onAddNewBranch && (
+                      <button
+                        type="button"
+                        onClick={() => onAddNewBranch(activeCompany.id)}
+                        className="text-[11px] font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={11} /> Add Branch to Entity
+                      </button>
+                    )}
+                  </div>
 
-                <div className="border border-brand-border rounded-lg overflow-hidden">
-                  {activeCompanyBranches.length === 0 ? (
-                    <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 space-y-2">
-                      <p>No operational branches currently linked to {activeCompany.legalName}.</p>
-                      {canAccessBranch && (
-                        <button
-                          type="button"
-                          onClick={() => onAddNewBranch(activeCompany.id)}
-                          className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded hover:bg-blue-700 cursor-pointer shadow-2xs inline-flex items-center gap-1"
-                        >
-                          <Plus size={12} /> Create First Branch
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-brand-bg-secondary/50 border-b border-brand-border text-[10px] font-bold text-brand-text-secondary uppercase">
-                        <tr>
-                          <th className="p-2.5">Branch Code</th>
-                          <th className="p-2.5">Branch Name</th>
-                          <th className="p-2.5">Location</th>
-                          <th className="p-2.5 text-center">Type</th>
-                          <th className="p-2.5 text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-brand-border bg-white">
-                        {activeCompanyBranches.map((br) => (
-                          <tr key={br.id} className="hover:bg-slate-50 transition">
-                            <td className="p-2.5 font-mono font-bold text-brand-text-primary text-[11px]">
-                              {br.code}
-                            </td>
-                            <td className="p-2.5 font-semibold text-brand-text-primary">
-                              {br.name}
-                            </td>
-                            <td className="p-2.5 text-brand-text-secondary text-[11px]">
-                              {br.city ? `${br.city}, ${br.state || ''}` : 'Regional Depot'}
-                            </td>
-                            <td className="p-2.5 text-center">
-                              {br.isHeadquarters ? (
-                                <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
-                                  Headquarters
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium">
-                                  Regional Branch
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2.5 text-center">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-brand-success border border-green-200">
-                                {br.status || 'Active'}
-                              </span>
-                            </td>
+                  <div className="border border-brand-border rounded-lg overflow-hidden">
+                    {activeCompanyBranches.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 space-y-2">
+                        <p>No operational branches currently linked to {activeCompany.legalName}.</p>
+                        {canAccessBranch && onAddNewBranch && (
+                          <button
+                            type="button"
+                            onClick={() => onAddNewBranch(activeCompany.id)}
+                            className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded hover:bg-blue-700 cursor-pointer shadow-2xs inline-flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Create First Branch
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-brand-bg-secondary/50 border-b border-brand-border text-[10px] font-bold text-brand-text-secondary uppercase">
+                          <tr>
+                            <th className="p-2.5">Branch Code</th>
+                            <th className="p-2.5">Branch Name</th>
+                            <th className="p-2.5">Location</th>
+                            <th className="p-2.5 text-center">Type</th>
+                            <th className="p-2.5 text-center">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
+                        </thead>
+                        <tbody className="divide-y divide-brand-border bg-white">
+                          {activeCompanyBranches.map((br) => (
+                            <tr key={br.id} className="hover:bg-slate-50 transition">
+                              <td className="p-2.5 font-mono font-bold text-brand-text-primary text-[11px]">
+                                {br.code}
+                              </td>
+                              <td className="p-2.5 font-semibold text-brand-text-primary">
+                                {br.name}
+                              </td>
+                              <td className="p-2.5 text-brand-text-secondary text-[11px]">
+                                {br.city ? `${br.city}, ${br.state || ''}` : 'Regional Depot'}
+                              </td>
+                              <td className="p-2.5 text-center">
+                                {br.isHeadquarters ? (
+                                  <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                                    Headquarters
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium">
+                                    Regional Branch
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-2.5 text-center">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-brand-success border border-green-200">
+                                  {br.status || 'Active'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Section 5: Warehouses / Stockists Table inside Inspector */}
+              {canAccessWarehouse && (
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[10px] font-bold text-brand-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      <WarehouseIcon size={12} className="text-emerald-600" /> Registered Warehouses / Facilities ({activeCompanyWarehouses.length})
+                    </h3>
+                    {canAccessWarehouse && onAddNewWarehouse && (
+                      <button
+                        type="button"
+                        onClick={() => onAddNewWarehouse(activeCompany.id)}
+                        className="text-[11px] font-bold text-emerald-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={11} /> Add Warehouse to Entity
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="border border-brand-border rounded-lg overflow-hidden">
+                    {activeCompanyWarehouses.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 space-y-2">
+                        <p>No warehouses or stockist facilities currently linked to {activeCompany.legalName}.</p>
+                        {canAccessWarehouse && onAddNewWarehouse && (
+                          <button
+                            type="button"
+                            onClick={() => onAddNewWarehouse(activeCompany.id)}
+                            className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 cursor-pointer shadow-2xs inline-flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Create First Warehouse
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-brand-bg-secondary/50 border-b border-brand-border text-[10px] font-bold text-brand-text-secondary uppercase">
+                          <tr>
+                            <th className="p-2.5">Warehouse Code</th>
+                            <th className="p-2.5">Facility Name</th>
+                            <th className="p-2.5">Type</th>
+                            <th className="p-2.5">Location</th>
+                            <th className="p-2.5 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-border bg-white">
+                          {activeCompanyWarehouses.map((wh) => (
+                            <tr key={wh.id} className="hover:bg-slate-50 transition">
+                              <td className="p-2.5 font-mono font-bold text-brand-text-primary text-[11px]">
+                                {wh.code}
+                              </td>
+                              <td className="p-2.5 font-semibold text-brand-text-primary">
+                                {wh.name}
+                              </td>
+                              <td className="p-2.5 text-brand-text-secondary text-[11px]">
+                                {wh.warehouseType || 'Standard Warehouse'}
+                              </td>
+                              <td className="p-2.5 text-brand-text-secondary text-[11px]">
+                                {wh.city ? `${wh.city}, ${wh.state || ''}` : 'Location on File'}
+                              </td>
+                              <td className="p-2.5 text-center">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-brand-success border border-green-200">
+                                  {wh.status || 'Active'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Section 6: Operating Departments Table inside Inspector */}
+              {canAccessDepartment && (
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[10px] font-bold text-brand-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      <Users size={12} className="text-indigo-600" /> Registered Operating Departments ({activeCompanyDepartments.length})
+                    </h3>
+                    {canAccessDepartment && onAddNewDepartment && (
+                      <button
+                        type="button"
+                        onClick={() => onAddNewDepartment(activeCompany.id)}
+                        className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={11} /> Add Department to Entity
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="border border-brand-border rounded-lg overflow-hidden">
+                    {activeCompanyDepartments.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 text-xs bg-slate-50/50 space-y-2">
+                        <p>No operational departments currently linked to {activeCompany.legalName}.</p>
+                        {canAccessDepartment && onAddNewDepartment && (
+                          <button
+                            type="button"
+                            onClick={() => onAddNewDepartment(activeCompany.id)}
+                            className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 cursor-pointer shadow-2xs inline-flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Create First Department
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-brand-bg-secondary/50 border-b border-brand-border text-[10px] font-bold text-brand-text-secondary uppercase">
+                          <tr>
+                            <th className="p-2.5">Dept Code</th>
+                            <th className="p-2.5">Department Name</th>
+                            <th className="p-2.5">Parent Branch / Unit</th>
+                            <th className="p-2.5 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-border bg-white">
+                          {activeCompanyDepartments.map((dept) => {
+                            const parentBr = branches.find(b => normalizeId(b.id) === normalizeId(dept.branchId));
+                            return (
+                              <tr key={dept.id} className="hover:bg-slate-50 transition">
+                                <td className="p-2.5 font-mono font-bold text-brand-text-primary text-[11px]">
+                                  {dept.code}
+                                </td>
+                                <td className="p-2.5 font-semibold text-brand-text-primary">
+                                  {dept.name}
+                                </td>
+                                <td className="p-2.5 text-brand-text-secondary text-[11px]">
+                                  {parentBr?.name || 'Direct Company Unit'}
+                                </td>
+                                <td className="p-2.5 text-center">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-brand-success border border-green-200">
+                                    {dept.status || 'Active'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              )}
 
             </div>
 

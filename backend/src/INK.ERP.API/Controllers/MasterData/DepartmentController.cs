@@ -14,14 +14,14 @@ namespace INK.ERP.API.Controllers.MasterData;
 public class DepartmentController : BaseApiController
 {
     /// <summary>
-    /// Retrieves a paged list of departments with optional branch filter, search, and status.
+    /// Retrieves a paged list of departments with optional company and branch filters, search, and status.
     /// </summary>
     [HttpGet]
     [Authorize(Policy = "IAM.Users.Read")]
     [ProducesResponseType(typeof(IReadOnlyList<DepartmentDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetDepartments([FromQuery] Guid? branchId, [FromQuery] SecurityFilterParameters filter, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetDepartments([FromQuery] Guid? companyId, [FromQuery] Guid? branchId, [FromQuery] SecurityFilterParameters filter, CancellationToken cancellationToken)
     {
-        var query = new GetDepartmentsPagedQuery(branchId, filter.Page, filter.PageSize, filter.Search, filter.Status);
+        var query = new GetDepartmentsPagedQuery(companyId, branchId, filter.Page, filter.PageSize, filter.Search, filter.Status);
         var result = await Mediator.Send(query, cancellationToken);
         return HandleResult(result);
     }

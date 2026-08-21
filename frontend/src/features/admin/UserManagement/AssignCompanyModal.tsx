@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Building, Check, Loader2, AlertCircle } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { apiClient } from '../../../api/apiClient';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface AssignCompanyModalProps {
   isOpen: boolean;
@@ -124,12 +125,15 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
               <p className="text-[11px] text-slate-400">One-Company Scoping Enforcement</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
-          >
-            <X size={16} />
-          </button>
+          <Tooltip content="Close">
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Content */}

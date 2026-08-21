@@ -10,9 +10,6 @@ public class CreateWarehouseCommandValidator : AbstractValidator<CreateWarehouse
         RuleFor(x => x.CompanyId)
             .NotEmpty().WithMessage("Company ID is required.");
 
-        RuleFor(x => x.BranchId)
-            .NotEmpty().WithMessage("Branch Link is required.");
-
         RuleFor(x => x.Code)
             .NotEmpty().WithMessage("Warehouse Code is required.")
             .MaximumLength(20).WithMessage("Warehouse Code cannot exceed 20 characters.");
@@ -88,9 +85,6 @@ public class UpdateWarehouseCommandValidator : AbstractValidator<UpdateWarehouse
 
         RuleFor(x => x.CompanyId)
             .NotEmpty().WithMessage("Company ID is required.");
-
-        RuleFor(x => x.BranchId)
-            .NotEmpty().WithMessage("Branch Link is required.");
 
         RuleFor(x => x.Code)
             .NotEmpty().WithMessage("Warehouse Code is required.")

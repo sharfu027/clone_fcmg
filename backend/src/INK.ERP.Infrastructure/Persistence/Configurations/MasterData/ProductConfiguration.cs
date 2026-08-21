@@ -58,6 +58,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasOne(p => p.Category)
             .WithMany()
             .HasForeignKey(p => p.CategoryId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(p => p.Brand)

@@ -34,6 +34,7 @@ import { authService } from '../../../services/authService';
 import { Badge } from '../../../components/ui/Badge';
 import { SearchInput } from '../../../components/ui/SearchInput';
 import { StatCard } from '../../../components/ui/StatCard';
+import { Tooltip } from '../../../components/ui/Tooltip';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import AssignRoleModal from './AssignRoleModal';
@@ -543,14 +544,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => loadUsers()}
-              disabled={isLoading}
-              className="p-2 border border-brand-border rounded-lg text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary transition cursor-pointer"
-              title="Refresh Grid"
-            >
-              <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
-            </button>
+            <Tooltip content="Refresh Data">
+              <button
+                onClick={() => loadUsers()}
+                disabled={isLoading}
+                aria-label="Refresh Data"
+                className="p-2 border border-brand-border rounded-lg text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary transition cursor-pointer"
+              >
+                <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+              </button>
+            </Tooltip>
 
             <button
               onClick={() => setIsCreateModalOpen(true)}
@@ -687,18 +690,20 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                         
                         {/* Chevron Accordion Expand Button */}
                         <td className="p-3 text-center w-8">
-                          <button
-                            type="button"
-                            onClick={() => toggleAdminExpand(u.id)}
-                            className="p-1 hover:bg-blue-50 rounded text-slate-400 hover:text-brand-primary transition cursor-pointer"
-                            title={isExpanded ? "Collapse users under this Admin" : "Expand users working under this Admin"}
-                          >
-                            {isExpanded ? (
-                              <ChevronDown size={16} className="text-brand-primary font-bold" />
-                            ) : (
-                              <ChevronRight size={16} />
-                            )}
-                          </button>
+                          <Tooltip content={isExpanded ? "Hide Users Under Administrator" : "Show Users Under Administrator"}>
+                            <button
+                              type="button"
+                              onClick={() => toggleAdminExpand(u.id)}
+                              aria-label={isExpanded ? "Hide Users Under Administrator" : "Show Users Under Administrator"}
+                              className="p-1 hover:bg-blue-50 rounded text-slate-400 hover:text-brand-primary transition cursor-pointer"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown size={16} className="text-brand-primary font-bold" />
+                              ) : (
+                                <ChevronRight size={16} />
+                              )}
+                            </button>
+                          </Tooltip>
                         </td>
 
                         {/* Admin User / Profile (Avatar + Name + Username + Email) */}
@@ -739,14 +744,16 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
                         {/* Role Badge (Admin) */}
                         <td className="p-3">
-                          <button
-                            type="button"
-                            onClick={() => toggleAdminExpand(u.id)}
-                            className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
-                            title="Click to view users & employees working under this Admin"
-                          >
-                            Admin
-                          </button>
+                          <Tooltip content={isExpanded ? "Hide Users Under Administrator" : "Show Users Under Administrator"}>
+                            <button
+                              type="button"
+                              onClick={() => toggleAdminExpand(u.id)}
+                              aria-label="Toggle subordinate users list"
+                              className="px-2.5 py-1 bg-blue-50 text-brand-primary font-bold text-xs rounded-lg border border-blue-200 hover:bg-blue-100 hover:scale-105 transition cursor-pointer shadow-2xs"
+                            >
+                              Admin
+                            </button>
+                          </Tooltip>
                         </td>
 
                         {/* Assigned Company */}
@@ -769,62 +776,74 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
                         {/* Status */}
                         <td className="p-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
-                            title={u.isActive ? 'Click to Deactivate Account' : 'Click to Activate Account'}
-                            className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
-                          >
-                            {u.isLocked ? (
-                              <Badge variant="danger">Locked</Badge>
-                            ) : u.isActive ? (
-                              <Badge variant="success">Active</Badge>
-                            ) : (
-                              <Badge variant="warning">Inactive</Badge>
-                            )}
-                          </button>
+                          <Tooltip content={u.isActive ? 'Deactivate Account' : 'Activate Account'}>
+                            <button
+                              type="button"
+                              onClick={() => (u.isActive ? handleDeactivate(u) : handleActivate(u))}
+                              aria-label={u.isActive ? 'Deactivate Account' : 'Activate Account'}
+                              className="cursor-pointer transition transform hover:scale-105 active:scale-95 inline-block"
+                            >
+                              {u.isLocked ? (
+                                <Badge variant="danger">Locked</Badge>
+                              ) : u.isActive ? (
+                                <Badge variant="success">Active</Badge>
+                              ) : (
+                                <Badge variant="warning">Inactive</Badge>
+                              )}
+                            </button>
+                          </Tooltip>
                         </td>
 
                         {/* Actions */}
                         <td className="p-3 text-right">
                           <div className="flex justify-end items-center gap-1">
                             {(currentUser?.role === 'Super Administrator' || isSuperUser(currentUser)) && (
-                              <button
-                                onClick={() => setAssignCompanyTarget(u)}
-                                title="Assign / Reassign Company to Administrator"
-                                className="p-1.5 border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
-                              >
-                                <Building size={14} />
-                              </button>
+                              <Tooltip content="Assign / Reassign Company">
+                                <button
+                                  onClick={() => setAssignCompanyTarget(u)}
+                                  aria-label="Assign / Reassign Company"
+                                  className="p-1.5 border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
+                                >
+                                  <Building size={14} />
+                                </button>
+                              </Tooltip>
                             )}
-                            <button
-                              onClick={() => handleViewDetails(u)}
-                              title="View Security Details & Audit Logs"
-                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              onClick={() => setEditUserTarget(u)}
-                              title="Edit Profile & Security Clearances"
-                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
-                            >
-                              <Edit3 size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleResetPassword(u)}
-                              title="Reset User Password"
-                              className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
-                            >
-                              <Key size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(u)}
-                              title="Soft Delete User Account"
-                              className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <Tooltip content="View Administrator">
+                              <button
+                                onClick={() => handleViewDetails(u)}
+                                aria-label="View Administrator"
+                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-text-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                              >
+                                <Eye size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Edit Profile & Security Clearances">
+                              <button
+                                onClick={() => setEditUserTarget(u)}
+                                aria-label="Edit Profile & Security Clearances"
+                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-brand-primary rounded-md hover:bg-brand-bg-secondary transition cursor-pointer"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Reset Password">
+                              <button
+                                onClick={() => handleResetPassword(u)}
+                                aria-label="Reset Password"
+                                className="p-1.5 border border-brand-border text-brand-text-secondary hover:text-amber-600 rounded-md hover:bg-amber-50 transition cursor-pointer"
+                              >
+                                <Key size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Archive Administrator">
+                              <button
+                                onClick={() => handleDelete(u)}
+                                aria-label="Archive Administrator"
+                                className="p-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </Tooltip>
                           </div>
                         </td>
                       </tr>

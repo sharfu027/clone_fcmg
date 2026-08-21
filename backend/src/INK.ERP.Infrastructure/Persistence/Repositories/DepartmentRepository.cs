@@ -11,9 +11,9 @@ public class DepartmentRepository : GenericRepository<Department>, IDepartmentRe
     {
     }
 
-    public async Task<bool> IsCodeUniqueAsync(Guid branchId, string code, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> IsCodeUniqueAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
         var normalizedCode = code.ToUpperInvariant().Trim();
-        return !await _dbSet.AnyAsync(d => d.BranchId == branchId && d.Code == normalizedCode && (!excludeId.HasValue || d.Id != excludeId.Value), cancellationToken);
+        return !await _dbSet.AnyAsync(d => d.CompanyId == companyId && d.Code == normalizedCode && (!excludeId.HasValue || d.Id != excludeId.Value), cancellationToken);
     }
 }

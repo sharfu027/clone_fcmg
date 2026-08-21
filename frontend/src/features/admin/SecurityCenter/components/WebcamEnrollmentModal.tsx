@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, RefreshCw, CheckCircle2, AlertTriangle, X, ShieldCheck, Zap, Loader2, Trash2, ShieldAlert } from 'lucide-react';
 import { authService } from '../../../../services/authService';
 import { Badge } from '../../../../components/ui/Badge';
+import { Tooltip } from '../../../../components/ui/Tooltip';
 
 interface WebcamEnrollmentModalProps {
   isOpen: boolean;
@@ -411,9 +412,11 @@ export const WebcamEnrollmentModal: React.FC<WebcamEnrollmentModalProps> = ({
               Employee: <span className="font-semibold text-brand-primary">{employee.fullName}</span> ({employee.employeeCode})
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer p-1">
-            <X size={18} />
-          </button>
+          <Tooltip content="Close">
+            <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 cursor-pointer p-1">
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* ── PHASE: Checking Existing Registration ── */}
