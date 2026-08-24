@@ -55,14 +55,16 @@ public sealed class CreateAdminWithCompanyCommandHandler : IRequestHandler<Creat
         var userRoleRepo = _unitOfWork.Repository<UserRole>();
         var assignmentRepo = _unitOfWork.Repository<AdminCompanyAssignment>();
 
-        // Validate CompanyId if provided
-        if (request.CompanyId.HasValue && request.CompanyId.Value != Guid.Empty)
+        // Validate CompanyId is required and exists
+        if (!request.CompanyId.HasValue || request.CompanyId.Value == Guid.Empty)
         {
-            var company = await companyRepo.GetByIdAsync(request.CompanyId.Value, cancellationToken);
-            if (company == null || company.IsDeleted)
-            {
-                return Result.Failure<Guid>(Error.NotFound("Company.NotFound", "The selected company does not exist or is inactive."));
-            }
+            return Result.Failure<Guid>(Error.Validation("Company.Required", "Please select an Assigned Company."));
+        }
+
+        var company = await companyRepo.GetByIdAsync(request.CompanyId.Value, cancellationToken);
+        if (company == null || company.IsDeleted)
+        {
+            return Result.Failure<Guid>(Error.NotFound("Company.NotFound", "The selected company does not exist or is inactive."));
         }
 
         var normalizedUser = request.Username.ToUpperInvariant();
@@ -115,20 +117,17 @@ public sealed class CreateAdminWithCompanyCommandHandler : IRequestHandler<Creat
             };
             await userRoleRepo.AddAsync(userRole, cancellationToken);
 
-            if (request.CompanyId.HasValue && request.CompanyId.Value != Guid.Empty)
+            var assignment = new AdminCompanyAssignment
             {
-                var assignment = new AdminCompanyAssignment
-                {
-                    Id = Guid.NewGuid(),
-                    AdminUserId = newUser.Id,
-                    CompanyId = request.CompanyId.Value,
-                    IsActive = true,
-                    AssignedAtUtc = _dateTime.UtcNow,
-                    AssignedByUserId = superAdminId,
-                    CreatedAtUtc = _dateTime.UtcNow
-                };
-                await assignmentRepo.AddAsync(assignment, cancellationToken);
-            }
+                Id = Guid.NewGuid(),
+                AdminUserId = newUser.Id,
+                CompanyId = request.CompanyId.Value,
+                IsActive = true,
+                AssignedAtUtc = _dateTime.UtcNow,
+                AssignedByUserId = superAdminId,
+                CreatedAtUtc = _dateTime.UtcNow
+            };
+            await assignmentRepo.AddAsync(assignment, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
@@ -154,6 +153,9 @@ public sealed class CreateAdminWithCompanyCommandValidator : AbstractValidator<C
         RuleFor(x => x.Username).NotEmpty().MinimumLength(3).MaximumLength(100);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(255);
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
+        RuleFor(x => x.CompanyId)
+            .NotEmpty().WithMessage("Please select an Assigned Company.")
+            .Must(id => id.HasValue && id.Value != Guid.Empty).WithMessage("Please select an Assigned Company.");
     }
 }
 

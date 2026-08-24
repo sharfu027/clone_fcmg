@@ -1403,12 +1403,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.code = 'Customer Code cannot exceed 20 characters.';
       }
       if (!custLegalName.trim()) {
-        errors.custLegalName = 'Legal Business Name is required. Example: Apex Retail Distributors';
+        errors.custLegalName = 'Customer Name is required. Example: Apex Retail Distributors';
       } else if (custLegalName.trim().length > 150) {
-        errors.custLegalName = 'Legal Business Name cannot exceed 150 characters.';
+        errors.custLegalName = 'Customer Name cannot exceed 150 characters.';
       }
       if (custTradeName && custTradeName.trim().length > 150) {
-        errors.custTradeName = 'Trade Name cannot exceed 150 characters.';
+        errors.custTradeName = 'Customer / Store Name cannot exceed 150 characters.';
       }
       if (!custEmail.trim()) {
         errors.custEmail = 'Email address is required.';
@@ -1472,12 +1472,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.code = 'Supplier Code cannot exceed 20 characters.';
       }
       if (!suppLegalName.trim()) {
-        errors.suppLegalName = 'Supplier Legal Name is required. Example: Hindustan Unilever Ltd';
+        errors.suppLegalName = 'Supplier Name is required. Example: Hindustan Unilever Ltd';
       } else if (suppLegalName.trim().length > 150) {
-        errors.suppLegalName = 'Legal Name cannot exceed 150 characters.';
+        errors.suppLegalName = 'Supplier Name cannot exceed 150 characters.';
       }
       if (suppTradeName && suppTradeName.trim().length > 150) {
-        errors.suppTradeName = 'Trade Name cannot exceed 150 characters.';
+        errors.suppTradeName = 'Supplier / Business Name cannot exceed 150 characters.';
       }
       if (!suppGstin.trim()) {
         errors.suppGstin = 'GSTIN is required.';
@@ -2841,12 +2841,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           <span className="font-mono text-sm font-bold text-brand-primary">{formCode || 'N/A'}</span>
                         </div>
                         <div>
-                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Legal Business Name</span>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Customer Name</span>
                           <span className="font-semibold text-brand-text-primary text-sm">{custLegalName || 'N/A'}</span>
                         </div>
                         {custTradeName && (
                           <div>
-                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Trade / Store Name</span>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Customer / Store Name</span>
                             <span className="font-medium text-brand-text-primary">{custTradeName}</span>
                           </div>
                         )}
@@ -2963,12 +2963,12 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           <span className="font-mono text-sm font-bold text-brand-primary">{formCode || 'N/A'}</span>
                         </div>
                         <div>
-                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Legal Business Name</span>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Supplier Name</span>
                           <span className="font-semibold text-brand-text-primary text-sm">{suppLegalName || 'N/A'}</span>
                         </div>
                         {suppTradeName && (
                           <div>
-                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Trade / Business Name</span>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Supplier / Business Name</span>
                             <span className="font-medium text-brand-text-primary">{suppTradeName}</span>
                           </div>
                         )}
@@ -4356,14 +4356,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 11. CUSTOMER FORM */}
               {(module === 'customers' || module === 'masters/customers') && (
                 <div className="space-y-6 text-xs">
-                  {/* Row 1: Identity & Channel */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Row 1: Company, Code, Customer Name */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
                       <select
                         value={custCompanyId}
                         onChange={e => { setCustCompanyId(e.target.value); setFormErrors(p => ({ ...p, custCompanyId: '' })); }}
-                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.custCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        disabled={!isSuper}
+                        className={`w-full p-2 border rounded bg-white font-medium ${!isSuper ? 'bg-gray-100/80 cursor-not-allowed' : ''} ${formErrors.custCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
                         <option value="">-- Select Company --</option>
                         {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
@@ -4376,7 +4377,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>
+                      <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Customer Name <span className="text-red-500">*</span></label>
                       <input
                         id="custLegalName"
                         type="text"
@@ -4386,16 +4387,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         placeholder="Apex Retail Distributors Pvt Ltd"
                       />
                       {formErrors.custLegalName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custLegalName}</p>}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Trade / Store Name</label>
-                      <input
-                        type="text"
-                        value={custTradeName}
-                        onChange={e => { setCustTradeName(e.target.value); setFormErrors(p => ({ ...p, custTradeName: '' })); }}
-                        className="w-full p-2 border border-brand-border rounded"
-                        placeholder="Apex Superstore"
-                      />
                     </div>
                   </div>
 
@@ -4493,6 +4484,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     <h4 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider">
                       Business & Delivery Address Specifications
                     </h4>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Customer / Store Name</label>
+                      <input
+                        type="text"
+                        value={custTradeName}
+                        onChange={e => { setCustTradeName(e.target.value); setFormErrors(p => ({ ...p, custTradeName: '' })); }}
+                        className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                        placeholder="Apex Superstore"
+                      />
+                      {formErrors.custTradeName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.custTradeName}</p>}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="font-bold text-brand-text-primary">Address Line 1 <span className="text-red-500">*</span></label>
@@ -4570,8 +4572,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 13. SUPPLIER MASTER FORM */}
               {(module === 'partners' || module === 'masters/partners' || module === 'suppliers' || module === 'masters/suppliers') && (
                 <div className="space-y-6 text-xs">
-                  {/* Row 1: Company, Code, Legal Name & Trade Name */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Row 1: Company, Code, Supplier Name */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
                       <select
@@ -4591,7 +4593,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label htmlFor="suppLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>
+                      <label htmlFor="suppLegalName" className="font-bold text-brand-text-primary">Supplier Name <span className="text-red-500">*</span></label>
                       <input
                         id="suppLegalName"
                         type="text"
@@ -4601,16 +4603,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         placeholder="Hindustan Unilever Ltd"
                       />
                       {formErrors.suppLegalName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppLegalName}</p>}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Trade / Business Name</label>
-                      <input
-                        type="text"
-                        value={suppTradeName}
-                        onChange={e => { setSuppTradeName(e.target.value); setFormErrors(p => ({ ...p, suppTradeName: '' })); }}
-                        className="w-full p-2 border border-brand-border rounded"
-                        placeholder="HUL FMCG Division"
-                      />
                     </div>
                   </div>
 
@@ -4703,6 +4695,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     <h4 className="font-bold text-brand-text-primary uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b pb-2">
                       <MapPin size={13} className="text-brand-primary" /> Registered Vendor Address
                     </h4>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Supplier / Business Name</label>
+                      <input
+                        type="text"
+                        value={suppTradeName}
+                        onChange={e => { setSuppTradeName(e.target.value); setFormErrors(p => ({ ...p, suppTradeName: '' })); }}
+                        className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                        placeholder="HUL FMCG Division"
+                      />
+                      {formErrors.suppTradeName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppTradeName}</p>}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="font-bold text-brand-text-primary">Address Line 1</label>

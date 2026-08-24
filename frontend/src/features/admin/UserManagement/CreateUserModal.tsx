@@ -51,7 +51,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     password: '',
     employeeId: '',
     companyId: '',
-    companyName: 'INK FMCG India Pvt Ltd',
+    companyName: '',
     companyLogo: '',
     selectedRoleCode: 'ADMIN',
     preferredLanguage: 'en',
@@ -140,6 +140,23 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setFieldErrors({});
+      setFormData({
+        username: '',
+        email: '',
+        phoneNumber: '',
+        firstName: '',
+        lastName: '',
+        displayName: '',
+        password: '',
+        employeeId: '',
+        companyId: '',
+        companyName: '',
+        companyLogo: '',
+        selectedRoleCode: 'ADMIN',
+        preferredLanguage: 'en',
+        timeZone: 'Asia/Kolkata',
+      });
+      setExplicitPermissions([]);
       getNextAutoAdminCode().then((code) => {
         setFormData((prev) => ({ ...prev, employeeId: code }));
       });
@@ -151,9 +168,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       apiClient.get<any[]>('/api/v1/masters/company/lookup').then((res) => {
         if (Array.isArray(res)) {
           setAvailableCompanies(res);
-          if (res.length > 0 && !formData.companyId) {
-            setFormData((prev) => ({ ...prev, companyId: res[0].id, companyName: res[0].legalName || res[0].name }));
-          }
         }
       }).catch(() => {});
     }
@@ -258,6 +272,17 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     // 5. Last Name
     if (!formData.lastName.trim()) {
       errors.lastName = '⚠️ Last Name is required. Example: "Sharma"';
+    }
+
+    // 6. Assigned Company / Business Name
+    if (formData.selectedRoleCode === 'ADMIN') {
+      if (!formData.companyId || !formData.companyId.trim()) {
+        errors.companyName = '⚠️ Please select an Assigned Company.';
+      }
+    } else {
+      if (!formData.companyName.trim()) {
+        errors.companyName = '⚠️ Company / Business Name is required.';
+      }
     }
 
     setFieldErrors(errors);
@@ -601,10 +626,17 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                       setFormData(prev => ({
                         ...prev,
                         companyId: compId,
-                        companyName: matched ? (matched.legalName || matched.name) : prev.companyName
+                        companyName: matched ? (matched.legalName || matched.name) : ''
                       }));
+                      if (fieldErrors.companyName) {
+                        setFieldErrors(prev => ({ ...prev, companyName: '' }));
+                      }
                     }}
-                    className="w-full p-2 border rounded-md border-brand-border bg-white text-xs font-semibold text-brand-text-primary focus:ring-1 focus:ring-brand-primary outline-none"
+                    className={`w-full p-2 border rounded-md bg-white text-xs font-semibold text-brand-text-primary focus:ring-1 focus:ring-brand-primary outline-none ${
+                      fieldErrors.companyName
+                        ? 'border-rose-500 bg-rose-50/20 text-rose-900 focus:ring-1 focus:ring-rose-500'
+                        : 'border-brand-border'
+                    }`}
                   >
                     <option value="">-- Select Company --</option>
                     {availableCompanies.map((c) => (
