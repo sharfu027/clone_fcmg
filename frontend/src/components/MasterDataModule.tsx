@@ -3108,14 +3108,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           <span className="font-medium text-brand-text-primary">{dbBranches.find(b => b.id === empBranchId)?.name || dbEmployees.find(e => e.id === selectedId)?.branchName || 'N/A'}</span>
                         </div>
                         <div>
-                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Department</span>
-                          <span className="font-medium text-brand-text-primary">{dbDepartments.find(d => d.id === empDepartmentId)?.name || dbEmployees.find(e => e.id === selectedId)?.departmentName || 'N/A'}</span>
-                        </div>
-                        <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Warehouse / Stockist</span>
                           <span className="font-medium text-brand-text-primary">
                             {dbWarehouses.find(w => w.id === empWarehouseId)?.name || dbEmployees.find(e => e.id === selectedId)?.warehouseName || <span className="text-slate-400 italic">None (Company Direct)</span>}
                           </span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Department</span>
+                          <span className="font-medium text-brand-text-primary">{dbDepartments.find(d => d.id === empDepartmentId)?.name || dbEmployees.find(e => e.id === selectedId)?.departmentName || 'N/A'}</span>
                         </div>
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Employee Role</span>
@@ -3698,22 +3698,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       {formErrors.empBranchId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empBranchId}</p>}
                     </div>
 
-                    {/* Department */}
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Department <span className="text-red-500">*</span></label>
-                      <select
-                        value={empDepartmentId}
-                        onChange={e => { setEmpDepartmentId(e.target.value); setFormErrors(p => ({ ...p, empDepartmentId: '' })); }}
-                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empDepartmentId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
-                      >
-                        <option value="">-- Select Department --</option>
-                        {dbDepartments
-                          .filter(d => (!empBranchId || !d.branchId || d.branchId === empBranchId) && (!empCompanyId || d.companyId === empCompanyId))
-                          .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                      {formErrors.empDepartmentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDepartmentId}</p>}
-                    </div>
-
                     {/* Warehouse / Stockist (optional) */}
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Warehouse / Stockist <span className="text-xs font-normal text-slate-500">(optional)</span></label>
@@ -3731,6 +3715,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                             </option>
                           ))}
                       </select>
+                    </div>
+
+                    {/* Department */}
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Department <span className="text-red-500">*</span></label>
+                      <select
+                        value={empDepartmentId}
+                        onChange={e => { setEmpDepartmentId(e.target.value); setFormErrors(p => ({ ...p, empDepartmentId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empDepartmentId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Department --</option>
+                        {dbDepartments
+                          .filter(d => (!empBranchId || !d.branchId || d.branchId === empBranchId) && (!empCompanyId || d.companyId === empCompanyId))
+                          .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                      {formErrors.empDepartmentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDepartmentId}</p>}
                     </div>
 
                     {/* Employee Role */}
