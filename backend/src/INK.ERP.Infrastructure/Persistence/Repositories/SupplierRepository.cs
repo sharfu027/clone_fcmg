@@ -55,4 +55,19 @@ public class SupplierRepository : GenericRepository<Supplier>, ISupplierReposito
 
         return candidateCode;
     }
+
+    public async Task<Supplier?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(s => s.Company)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Supplier>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(s => s.Company)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
 }

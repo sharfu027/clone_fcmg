@@ -15,6 +15,7 @@ public record CreateSupplierCommand(
     string? Code,
     string LegalName,
     string? TradeName,
+    string? SupplierType,
     string? Gstin,
     string? Pan,
     string Email,
@@ -78,6 +79,7 @@ public class CreateSupplierCommandHandler : IRequestHandler<CreateSupplierComman
             Code = code,
             LegalName = request.LegalName.Trim(),
             TradeName = request.TradeName?.Trim(),
+            SupplierType = string.IsNullOrWhiteSpace(request.SupplierType) ? "Distributor" : request.SupplierType.Trim(),
             Gstin = request.Gstin?.ToUpperInvariant().Trim() ?? string.Empty,
             Pan = request.Pan?.ToUpperInvariant().Trim() ?? string.Empty,
             Email = request.Email.Trim(),
@@ -98,6 +100,7 @@ public class CreateSupplierCommandHandler : IRequestHandler<CreateSupplierComman
             supplier.Code,
             supplier.LegalName,
             supplier.TradeName,
+            supplier.SupplierType,
             supplier.Gstin,
             supplier.Pan,
             supplier.Email,
@@ -123,6 +126,7 @@ public record UpdateSupplierCommand(
     string Code,
     string LegalName,
     string? TradeName,
+    string? SupplierType,
     string? Gstin,
     string? Pan,
     string Email,
@@ -184,6 +188,7 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
         supplier.Code = request.Code.ToUpperInvariant().Trim();
         supplier.LegalName = request.LegalName.Trim();
         supplier.TradeName = request.TradeName?.Trim();
+        supplier.SupplierType = string.IsNullOrWhiteSpace(request.SupplierType) ? supplier.SupplierType : request.SupplierType.Trim();
         supplier.Gstin = request.Gstin?.ToUpperInvariant().Trim() ?? string.Empty;
         supplier.Pan = request.Pan?.ToUpperInvariant().Trim() ?? string.Empty;
         supplier.Email = request.Email.Trim();
@@ -203,6 +208,7 @@ public class UpdateSupplierCommandHandler : IRequestHandler<UpdateSupplierComman
             supplier.Code,
             supplier.LegalName,
             supplier.TradeName,
+            supplier.SupplierType,
             supplier.Gstin,
             supplier.Pan,
             supplier.Email,

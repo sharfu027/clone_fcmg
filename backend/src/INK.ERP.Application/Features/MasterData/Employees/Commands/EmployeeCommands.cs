@@ -13,7 +13,9 @@ public record CreateEmployeeCommand(
     Guid CompanyId,
     Guid BranchId,
     Guid DepartmentId,
+    Guid? WarehouseId,
     Guid DesignationId,
+    Guid EmployeeRoleId,
     string EmployeeCode,
     string FirstName,
     string LastName,
@@ -28,7 +30,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly IWarehouseRepository _warehouseRepository;
     private readonly IDesignationRepository _designationRepository;
+    private readonly IEmployeeRoleRepository _employeeRoleRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
@@ -37,7 +41,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
         IDepartmentRepository departmentRepository,
+        IWarehouseRepository warehouseRepository,
         IDesignationRepository designationRepository,
+        IEmployeeRoleRepository employeeRoleRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
@@ -45,7 +51,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
         _departmentRepository = departmentRepository;
+        _warehouseRepository = warehouseRepository;
         _designationRepository = designationRepository;
+        _employeeRoleRepository = employeeRoleRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -78,10 +86,39 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company/branch."));
         }
 
+        INK.ERP.Domain.Entities.Warehouse? warehouse = null;
+        if (request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty)
+        {
+            warehouse = await _warehouseRepository.GetByIdAsync(request.WarehouseId.Value, cancellationToken);
+            if (warehouse == null || !warehouse.IsActive || warehouse.CompanyId != targetCompanyId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidWarehouse", "The selected warehouse/stockist does not exist, is inactive, or does not belong to the authorized company."));
+            }
+
+            // Branch Compatibility Rules:
+            // 1. Employee has no branch (Guid.Empty) but Warehouse is branch-linked -> REJECT
+            if (request.BranchId == Guid.Empty && warehouse.BranchId.HasValue)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "A branch-linked warehouse cannot be assigned to an employee without a branch location."));
+            }
+
+            // 2. Both populated and mismatched -> REJECT
+            if (request.BranchId != Guid.Empty && warehouse.BranchId.HasValue && warehouse.BranchId.Value != request.BranchId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "The selected warehouse is assigned to a different branch than the employee's branch location."));
+            }
+        }
+
         var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
         if (designation == null || !designation.IsActive || designation.CompanyId != targetCompanyId)
         {
             return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDesignation", "The selected designation does not exist or does not belong to the authorized company."));
+        }
+
+        var employeeRole = await _employeeRoleRepository.GetByIdAsync(request.EmployeeRoleId, cancellationToken);
+        if (employeeRole == null || !employeeRole.IsActive || employeeRole.CompanyId != targetCompanyId)
+        {
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidEmployeeRole", "The selected employee role does not exist, is inactive, or does not belong to the authorized company."));
         }
 
         if (!await _employeeRepository.IsEmployeeCodeUniqueAsync(targetCompanyId, request.EmployeeCode, null, cancellationToken))
@@ -99,7 +136,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             CompanyId = targetCompanyId,
             BranchId = request.BranchId,
             DepartmentId = request.DepartmentId,
+            WarehouseId = request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty ? request.WarehouseId.Value : null,
             DesignationId = request.DesignationId,
+            EmployeeRoleId = request.EmployeeRoleId,
             EmployeeCode = request.EmployeeCode.ToUpperInvariant().Trim(),
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
@@ -121,8 +160,13 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             branch.Name,
             employee.DepartmentId,
             department.Name,
+            employee.WarehouseId,
+            warehouse?.Name,
+            warehouse?.Code,
             employee.DesignationId,
             designation.Title,
+            employee.EmployeeRoleId,
+            employeeRole.Name,
             employee.EmployeeCode,
             employee.FirstName,
             employee.LastName,
@@ -143,7 +187,9 @@ public record UpdateEmployeeCommand(
     Guid CompanyId,
     Guid BranchId,
     Guid DepartmentId,
+    Guid? WarehouseId,
     Guid DesignationId,
+    Guid? EmployeeRoleId,
     string EmployeeCode,
     string FirstName,
     string LastName,
@@ -159,7 +205,9 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly IWarehouseRepository _warehouseRepository;
     private readonly IDesignationRepository _designationRepository;
+    private readonly IEmployeeRoleRepository _employeeRoleRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
@@ -168,7 +216,9 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
         IDepartmentRepository departmentRepository,
+        IWarehouseRepository warehouseRepository,
         IDesignationRepository designationRepository,
+        IEmployeeRoleRepository employeeRoleRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
@@ -176,7 +226,9 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
         _departmentRepository = departmentRepository;
+        _warehouseRepository = warehouseRepository;
         _designationRepository = designationRepository;
+        _employeeRoleRepository = employeeRoleRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -213,10 +265,47 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company/branch."));
         }
 
+        INK.ERP.Domain.Entities.Warehouse? warehouse = null;
+        if (request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty)
+        {
+            warehouse = await _warehouseRepository.GetByIdAsync(request.WarehouseId.Value, cancellationToken);
+            if (warehouse == null || !warehouse.IsActive || warehouse.CompanyId != employee.CompanyId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidWarehouse", "The selected warehouse/stockist does not exist, is inactive, or does not belong to the authorized company."));
+            }
+
+            // Branch Compatibility Rules:
+            // 1. Employee has no branch (Guid.Empty) but Warehouse is branch-linked -> REJECT
+            if (request.BranchId == Guid.Empty && warehouse.BranchId.HasValue)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "A branch-linked warehouse cannot be assigned to an employee without a branch location."));
+            }
+
+            // 2. Both populated and mismatched -> REJECT
+            if (request.BranchId != Guid.Empty && warehouse.BranchId.HasValue && warehouse.BranchId.Value != request.BranchId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "The selected warehouse is assigned to a different branch than the employee's branch location."));
+            }
+        }
+
         var designation = await _designationRepository.GetByIdAsync(request.DesignationId, cancellationToken);
         if (designation == null || !designation.IsActive || designation.CompanyId != employee.CompanyId)
         {
             return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDesignation", "The selected designation does not exist or does not belong to the authorized company."));
+        }
+
+        EmployeeRole? employeeRole = null;
+        if (request.EmployeeRoleId.HasValue)
+        {
+            employeeRole = await _employeeRoleRepository.GetByIdAsync(request.EmployeeRoleId.Value, cancellationToken);
+            if (employeeRole == null || !employeeRole.IsActive || employeeRole.CompanyId != employee.CompanyId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidEmployeeRole", "The selected employee role does not exist, is inactive, or does not belong to the authorized company."));
+            }
+        }
+        else if (employee.EmployeeRoleId.HasValue)
+        {
+            employeeRole = await _employeeRoleRepository.GetByIdAsync(employee.EmployeeRoleId.Value, cancellationToken);
         }
 
         if (!await _employeeRepository.IsEmployeeCodeUniqueAsync(employee.CompanyId, request.EmployeeCode, request.Id, cancellationToken))
@@ -231,7 +320,9 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
 
         employee.BranchId = request.BranchId;
         employee.DepartmentId = request.DepartmentId;
+        employee.WarehouseId = request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty ? request.WarehouseId.Value : null;
         employee.DesignationId = request.DesignationId;
+        employee.EmployeeRoleId = request.EmployeeRoleId;
         employee.EmployeeCode = request.EmployeeCode.ToUpperInvariant().Trim();
         employee.FirstName = request.FirstName.Trim();
         employee.LastName = request.LastName.Trim();
@@ -252,8 +343,13 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             branch.Name,
             employee.DepartmentId,
             department.Name,
+            employee.WarehouseId,
+            warehouse?.Name,
+            warehouse?.Code,
             employee.DesignationId,
             designation.Title,
+            employee.EmployeeRoleId,
+            employeeRole?.Name,
             employee.EmployeeCode,
             employee.FirstName,
             employee.LastName,

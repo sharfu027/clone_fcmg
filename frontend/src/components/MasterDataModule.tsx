@@ -26,7 +26,8 @@ import {
   Layers,
   GitFork,
   Building2,
-  Mail
+  Mail,
+  UserCheck
 } from 'lucide-react';
 
 import { 
@@ -87,6 +88,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       case 'masters/employees':
         return { name: 'Employee Roster', singular: 'Employee', icon: User, endpoint: 'employee' };
 
+      case 'employee-roles':
+      case 'masters/employee-roles':
+        return { name: 'Employee Roles Master', singular: 'Employee Role', icon: UserCheck, endpoint: 'employee-role' };
+
       case 'designations':
       case 'masters/designations':
         return { name: 'Designations Master', singular: 'Designation', icon: Briefcase, endpoint: 'designation' };
@@ -108,8 +113,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
 
   const { user } = useAuth();
   const userPerms = user?.permissions || [];
-  const isSuper = user?.role === 'Super Administrator' ||
-                  userPerms.includes('manage:all') ||
+  const isSuper = user?.role === 'Super Administrator' || 
+                  userPerms.includes('manage:all') || 
                   (user?.email && user.email.toLowerCase().includes('superadmin'));
 
   const hasMasterParent = userPerms.includes('masters:manage');
@@ -125,6 +130,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const canAccessUnit = isSuper || (hasMasterParent && userPerms.includes('masters:unit'));
 
   const canAccessEmployee = isSuper || (hasMasterParent && userPerms.includes('masters:employee'));
+  const canAccessEmployeeRole = isSuper || (hasMasterParent && userPerms.includes('masters:employee_role'));
   const canAccessDesignation = isSuper || (hasMasterParent && userPerms.includes('masters:designation'));
   const canAccessCustomer = isSuper || (hasMasterParent && userPerms.includes('masters:customer'));
   const canAccessSupplier = isSuper || (hasMasterParent && userPerms.includes('masters:supplier'));
@@ -158,6 +164,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     if (module === 'employees' || module === 'masters/employees') {
       return canAccessEmployee;
     }
+    if (module === 'employee-roles' || module === 'masters/employee-roles') {
+      return canAccessEmployeeRole;
+    }
     if (module === 'designations' || module === 'masters/designations') {
       return canAccessDesignation;
     }
@@ -175,6 +184,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [dbBranches, setDbBranches] = useState<any[]>([]);
   const [dbDepartments, setDbDepartments] = useState<any[]>([]);
   const [dbDesignations, setDbDesignations] = useState<any[]>([]);
+  const [dbEmployeeRoles, setDbEmployeeRoles] = useState<any[]>([]);
   const [dbEmployees, setDbEmployees] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
@@ -241,6 +251,11 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [desigTitle, setDesigTitle] = useState('');
   const [desigLevel, setDesigLevel] = useState<number>(1);
   const [desigApprovalLimit, setDesigApprovalLimit] = useState<number>(0);
+
+  // 4.1 Employee Role
+  const [roleCompanyId, setRoleCompanyId] = useState('');
+  const [roleName, setRoleName] = useState('');
+  const [roleDesc, setRoleDesc] = useState('');
 
   // 5. UOM
   const [uomCompanyId, setUomCompanyId] = useState('1');
@@ -322,16 +337,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [partnerRole, setPartnerRole] = useState<'Customer' | 'Supplier' | 'Both'>('Customer');
 
   // 10. Supplier
-  const [suppCompanyId, setSuppCompanyId] = useState('1');
+  const [suppCompanyId, setSuppCompanyId] = useState('');
   const [suppLegalName, setSuppLegalName] = useState('');
   const [suppTradeName, setSuppTradeName] = useState('');
+  const [suppType, setSuppType] = useState('Distributor / Stockist');
   const [suppContactPerson, setSuppContactPerson] = useState('');
   const [suppEmail, setSuppEmail] = useState('');
   const [suppPhone, setSuppPhone] = useState('');
   const [suppGstin, setSuppGstin] = useState('');
   const [suppPan, setSuppPan] = useState('');
-  const [suppCreditLimit, setSuppCreditLimit] = useState<number>(1000000);
   const [suppPaymentTermsDays, setSuppPaymentTermsDays] = useState<number>(30);
+  const [suppAddrLine1, setSuppAddrLine1] = useState('');
+  const [suppAddrLine2, setSuppAddrLine2] = useState('');
+  const [suppCity, setSuppCity] = useState('');
+  const [suppState, setSuppState] = useState('');
+  const [suppPostalCode, setSuppPostalCode] = useState('');
+  const [suppCountry, setSuppCountry] = useState('India');
 
   // 11. Customer
   const [custCompanyId, setCustCompanyId] = useState('');
@@ -356,6 +377,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [empCompanyId, setEmpCompanyId] = useState('');
   const [empBranchId, setEmpBranchId] = useState('');
   const [empDepartmentId, setEmpDepartmentId] = useState('');
+  const [empWarehouseId, setEmpWarehouseId] = useState('');
+  const [empRoleId, setEmpRoleId] = useState('');
   const [empDesignationId, setEmpDesignationId] = useState('');
   const [empFirstName, setEmpFirstName] = useState('');
   const [empLastName, setEmpLastName] = useState('');
@@ -422,7 +445,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           const brRes = await masterDataService.fetchBranches({});
           const brItems = Array.isArray(brRes) ? brRes : (brRes && Array.isArray(brRes.items) ? brRes.items : []);
           const mappedBranches = brItems.map((x: any) => ({
-            id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+            id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || '',
             gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
             addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
             status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
@@ -479,7 +502,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             const dpList = extractList(dpRes);
 
             setDbBranches(brList.map((x: any) => ({
-              id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+              id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || '',
               gstin: x.taxRegistrationNumber || x.gstin || '', phone: x.phone || '', email: x.email || '', isHeadquarters: x.isHeadquarters || false,
               addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
               status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
@@ -515,7 +538,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchBranches(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbBranches(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+            id: x.id, code: x.code, name: x.name, companyId: x.companyId, companyName: x.companyName || '',
             gstin: x.taxRegistrationNumber || '', phone: x.phone, email: x.email, isHeadquarters: x.isHeadquarters || false,
             addressLine1: x.addressLine1 || '', city: x.city || '', state: x.state || '', postalCode: x.postalCode || '', country: x.country || 'India',
             status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
@@ -558,14 +581,60 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               setDeptCompanyId(compList[0].id);
             }
           } catch (e) {}
+        } else if (module === 'employee-roles' || module === 'masters/employee-roles') {
+          apiData = await masterDataService.fetchEmployeeRoles(queryParams);
+          const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
+          setDbEmployeeRoles(items.map((x: any) => ({
+            id: x.id,
+            code: x.code,
+            name: x.name,
+            description: x.description || '',
+            companyId: x.companyId,
+            companyName: x.companyName || '',
+            isActive: x.isActive ?? (x.status === 'Active' || x.status === 1),
+            status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || (x.isActive === false ? 'Archived' : 'Active')),
+            createdAtUtc: x.createdAtUtc
+          })));
+          setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          try {
+            const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
+            const extractList = (res: any): any[] => {
+              if (!res) return [];
+              if (Array.isArray(res)) return res;
+              if (Array.isArray(res.items)) return res.items;
+              if (Array.isArray(res.data)) return res.data;
+              if (Array.isArray(res.value)) return res.value;
+              return [];
+            };
+            const compList = extractList(compRes);
+            setDbCompanies(compList);
+            if (compList[0]?.id && !isGuid(roleCompanyId)) {
+              setRoleCompanyId(compList[0].id);
+            }
+          } catch (e) {}
         } else if (module === 'designations' || module === 'masters/designations') {
           apiData = await masterDataService.fetchDesignations(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbDesignations(items.map((x: any) => ({
-            id: x.id, code: x.code, title: x.title, level: x.level, approvalLimit: x.approvalLimit, companyId: x.companyId, companyName: x.companyName || 'INK FMCG',
+            id: x.id, code: x.code, title: x.title, level: x.level, approvalLimit: x.approvalLimit, companyId: x.companyId, companyName: x.companyName || dbCompanies.find(c => c.id === x.companyId)?.legalName || dbCompanies.find(c => c.id === x.companyId)?.name || '',
             status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          try {
+            const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
+            const extractList = (res: any): any[] => {
+              if (!res) return [];
+              if (Array.isArray(res)) return res;
+              if (Array.isArray(res.items)) return res.items;
+              if (Array.isArray(res.data)) return res.data;
+              if (Array.isArray(res.value)) return res.value;
+              return [];
+            };
+            const compList = extractList(compRes);
+            setDbCompanies(compList);
+          } catch (e) {}
         } else if (module === 'employees' || module === 'masters/employees') {
           apiData = await masterDataService.fetchEmployees(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
@@ -577,8 +646,13 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             branchName: x.branchName || dbBranches.find(b => b.id === x.branchId)?.name || '',
             departmentId: x.departmentId,
             departmentName: x.departmentName || dbDepartments.find(d => d.id === x.departmentId)?.name || '',
+            warehouseId: x.warehouseId,
+            warehouseName: x.warehouseName || dbWarehouses.find(w => w.id === x.warehouseId)?.name || '',
+            warehouseCode: x.warehouseCode || '',
             designationId: x.designationId,
             designationTitle: x.designationTitle || dbDesignations.find(d => d.id === x.designationId)?.title || '',
+            employeeRoleId: x.employeeRoleId,
+            employeeRoleName: x.employeeRoleName || dbEmployeeRoles.find(r => r.id === x.employeeRoleId)?.name || '',
             employeeCode: x.employeeCode || x.code,
             code: x.employeeCode || x.code,
             firstName: x.firstName || '',
@@ -596,11 +670,13 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
 
           try {
-            const [compRes, brRes, dpRes, desRes] = await Promise.all([
+            const [compRes, brRes, dpRes, desRes, roleRes, whRes] = await Promise.all([
               masterDataService.fetchCompanies({ pageSize: 100 }),
               masterDataService.fetchBranches({ pageSize: 100 }),
               masterDataService.fetchDepartments({ pageSize: 100 }),
-              masterDataService.fetchDesignations({ pageSize: 100 })
+              masterDataService.fetchDesignations({ pageSize: 100 }),
+              masterDataService.fetchEmployeeRoles({ pageSize: 100 }),
+              masterDataService.fetchWarehouses({ pageSize: 100 })
             ]);
             const extractList = (res: any): any[] => {
               if (!res) return [];
@@ -614,11 +690,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
             const brList = extractList(brRes);
             const dpList = extractList(dpRes);
             const desList = extractList(desRes);
+            const roleList = extractList(roleRes);
+            const whList = extractList(whRes);
 
             setDbCompanies(compList);
             setDbBranches(brList);
             setDbDepartments(dpList);
             setDbDesignations(desList);
+            setDbEmployeeRoles(roleList);
+            setDbWarehouses(whList);
           } catch (e) {}
         } else if (module === 'products' || module === 'masters/products') {
           apiData = await masterDataService.fetchProducts(queryParams);
@@ -813,10 +893,47 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           apiData = await masterDataService.fetchSuppliers(queryParams);
           const items = Array.isArray(apiData) ? apiData : (apiData && Array.isArray(apiData.items) ? apiData.items : []);
           setDbSuppliers(items.map((x: any) => ({
-            id: x.id, code: x.code, name: x.legalName || x.name, contact: x.phone || x.contact || '', email: x.email || '', balance: x.creditLimit || x.balance || 0,
+            id: x.id,
+            companyId: x.companyId,
+            companyName: x.companyName || dbCompanies.find(c => c.id === x.companyId)?.legalName || '',
+            code: x.code,
+            name: x.legalName || x.name || '',
+            legalName: x.legalName || x.name || '',
+            tradeName: x.tradeName || '',
+            supplierType: x.supplierType || 'Distributor / Stockist',
+            gstin: x.gstin || '',
+            pan: x.pan || '',
+            contact: x.phone || x.contact || '',
+            phone: x.phone || x.contact || '',
+            email: x.email || '',
+            paymentTermsDays: x.paymentTermsDays ?? 30,
+            balance: x.creditLimit || x.balance || 0,
+            addressLine1: x.addressLine1 || '',
+            addressLine2: x.addressLine2 || '',
+            city: x.city || '',
+            state: x.state || '',
+            postalCode: x.postalCode || '',
+            country: x.country || 'India',
             status: typeof x.status === 'number' ? (x.status === 1 ? 'Active' : x.status === 2 ? 'Archived' : 'Draft') : (x.status || 'Active')
           })));
           setSimulatedState(items.length === 0 ? 'empty' : 'normal');
+
+          try {
+            const compRes = await masterDataService.fetchCompanies({ pageSize: 100 });
+            const extractList = (res: any): any[] => {
+              if (!res) return [];
+              if (Array.isArray(res)) return res;
+              if (Array.isArray(res.items)) return res.items;
+              if (Array.isArray(res.data)) return res.data;
+              if (Array.isArray(res.value)) return res.value;
+              return [];
+            };
+            const compList = extractList(compRes);
+            setDbCompanies(compList);
+            if (compList[0]?.id && !isGuid(suppCompanyId)) {
+              setSuppCompanyId(compList[0].id);
+            }
+          } catch (e) {}
         } else {
            setSimulatedState('normal');
         }
@@ -876,6 +993,16 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         setFormStatus(x.status as any);
         setFormErrors({});
       }
+    } else if (module === 'employee-roles' || module === 'masters/employee-roles') {
+      const x = dbEmployeeRoles.find(r => r.id === id);
+      if (x) {
+        setFormCode(x.code);
+        setRoleName(x.name);
+        setRoleDesc(x.description || '');
+        setRoleCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setFormStatus(x.status as any);
+        setFormErrors({});
+      }
     } else if (module === 'designations' || module === 'masters/designations') {
       const x = dbDesignations.find(d => d.id === id);
       if (x) {
@@ -888,6 +1015,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         setEmpCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
         setEmpBranchId(x.branchId || '');
         setEmpDepartmentId(x.departmentId || '');
+        setEmpWarehouseId(x.warehouseId || '');
+        setEmpRoleId(x.employeeRoleId || '');
         setEmpDesignationId(x.designationId || '');
         setEmpFirstName(x.firstName || '');
         setEmpLastName(x.lastName || '');
@@ -998,7 +1127,24 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'suppliers' || module === 'masters/suppliers') {
       const x = dbSuppliers.find(s => s.id === id);
       if (x) {
-        setFormCode(x.code); setSuppLegalName(x.name); setSuppPhone(x.contact); setSuppEmail(x.email); setSuppCreditLimit(x.balance); setFormStatus(x.status as any);
+        setFormCode(x.code);
+        setSuppCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
+        setSuppLegalName(x.legalName || x.name || '');
+        setSuppTradeName(x.tradeName || '');
+        setSuppType(x.supplierType || 'Distributor / Stockist');
+        setSuppGstin(x.gstin || '');
+        setSuppPan(x.pan || '');
+        setSuppPhone(x.phone || x.contact || '');
+        setSuppEmail(x.email || '');
+        setSuppPaymentTermsDays(x.paymentTermsDays ?? 30);
+        setSuppAddrLine1(x.addressLine1 || '');
+        setSuppAddrLine2(x.addressLine2 || '');
+        setSuppCity(x.city || '');
+        setSuppState(x.state || '');
+        setSuppPostalCode(x.postalCode || '');
+        setSuppCountry(x.country || 'India');
+        setFormStatus((x.status as any) || 'Active');
+        setFormErrors({});
       }
     }
   };
@@ -1103,6 +1249,23 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.deptCompanyId = 'Company is required. Please select a valid Company.';
       }
       if (!deptName.trim()) errors.deptName = 'Department Name is required. Example: Supply Chain & Logistics';
+    } else if (module === 'employee-roles' || module === 'masters/employee-roles') {
+      if (!roleCompanyId || !isGuid(roleCompanyId)) {
+        errors.roleCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!roleName.trim()) {
+        errors.roleName = 'Employee Role Name is required. Example: Sales Representative';
+      } else if (roleName.trim().length > 100) {
+        errors.roleName = 'Employee Role Name cannot exceed 100 characters.';
+      }
+      if (!formCode.trim()) {
+        errors.code = 'Employee Role Code is required.';
+      } else if (formCode.trim().length > 30) {
+        errors.code = 'Employee Role Code cannot exceed 30 characters.';
+      }
+      if (roleDesc.trim().length > 255) {
+        errors.roleDesc = 'Description cannot exceed 255 characters.';
+      }
     } else if (module === 'designations' || module === 'masters/designations') {
       if (!desigTitle.trim()) errors.desigTitle = 'Designation Title is required. Example: Regional Sales Manager';
     } else if (module === 'employees' || module === 'masters/employees') {
@@ -1114,6 +1277,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       }
       if (!empDepartmentId || !isGuid(empDepartmentId)) {
         errors.empDepartmentId = 'Department is required. Please select a Department.';
+      }
+      if (!empRoleId || !isGuid(empRoleId)) {
+        errors.empRoleId = 'Employee Role is required. Please select an Employee Role.';
       }
       if (!empDesignationId || !isGuid(empDesignationId)) {
         errors.empDesignationId = 'Designation is required. Please select a Designation.';
@@ -1297,7 +1463,47 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         errors.custCreditDays = 'Credit Days cannot be negative.';
       }
     } else if (module === 'suppliers' || module === 'masters/suppliers') {
-      if (!suppLegalName.trim()) errors.suppLegalName = 'Supplier Legal Name is required. Example: Hindustan Unilever Ltd';
+      if (!suppCompanyId || !isGuid(suppCompanyId)) {
+        errors.suppCompanyId = 'Company is required. Please select a valid Company.';
+      }
+      if (!formCode.trim()) {
+        errors.code = 'Supplier Code is required.';
+      } else if (formCode.trim().length > 20) {
+        errors.code = 'Supplier Code cannot exceed 20 characters.';
+      }
+      if (!suppLegalName.trim()) {
+        errors.suppLegalName = 'Supplier Legal Name is required. Example: Hindustan Unilever Ltd';
+      } else if (suppLegalName.trim().length > 150) {
+        errors.suppLegalName = 'Legal Name cannot exceed 150 characters.';
+      }
+      if (suppTradeName && suppTradeName.trim().length > 150) {
+        errors.suppTradeName = 'Trade Name cannot exceed 150 characters.';
+      }
+      if (!suppGstin.trim()) {
+        errors.suppGstin = 'GSTIN is required.';
+      } else if (suppGstin.trim().length !== 15) {
+        errors.suppGstin = 'GSTIN must be exactly 15 characters.';
+      }
+      if (!suppPan.trim()) {
+        errors.suppPan = 'PAN is required.';
+      } else if (suppPan.trim().length !== 10) {
+        errors.suppPan = 'PAN must be exactly 10 characters.';
+      }
+      if (!suppEmail.trim()) {
+        errors.suppEmail = 'Email address is required.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppEmail.trim())) {
+        errors.suppEmail = 'Email address is not in a valid format.';
+      } else if (suppEmail.trim().length > 100) {
+        errors.suppEmail = 'Email cannot exceed 100 characters.';
+      }
+      if (!suppPhone.trim()) {
+        errors.suppPhone = 'Phone number is required.';
+      } else if (suppPhone.trim().length > 20) {
+        errors.suppPhone = 'Phone number cannot exceed 20 characters.';
+      }
+      if (suppPaymentTermsDays !== '' && typeof suppPaymentTermsDays === 'number' && suppPaymentTermsDays < 0) {
+        errors.suppPaymentTermsDays = 'Payment Terms Days cannot be negative.';
+      }
     }
 
     if (Object.keys(errors).length > 0) {
@@ -1400,6 +1606,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            await masterDataService.updateDepartment(selectedId!, { ...payload, id: selectedId! });
            onTriggerToast('success', 'Department Updated', 'Department record configured.');
         }
+      } else if (module === 'employee-roles' || module === 'masters/employee-roles') {
+        const validCompId = isGuid(roleCompanyId) ? roleCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
+        const payload = {
+          companyId: validCompId,
+          code: formCode.toUpperCase().trim(),
+          name: roleName.trim(),
+          description: (roleDesc || '').trim() || null,
+          isActive: formStatus === 'Active'
+        };
+        if (isNew) {
+          await masterDataService.createEmployeeRole(payload);
+          onTriggerToast('success', 'Employee Role Saved', 'Employee functional job role configured.');
+        } else {
+          await masterDataService.updateEmployeeRole(selectedId!, { ...payload, id: selectedId! });
+          onTriggerToast('success', 'Employee Role Updated', 'Employee functional job role updated.');
+        }
       } else if (module === 'designations' || module === 'masters/designations') {
         const validCompId = isGuid(desigCompanyId) ? desigCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
         const payload = { 
@@ -1421,7 +1643,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           companyId: empCompanyId, 
           branchId: empBranchId, 
           departmentId: empDepartmentId, 
+          warehouseId: isGuid(empWarehouseId) ? empWarehouseId : null,
           designationId: empDesignationId, 
+          employeeRoleId: empRoleId,
           employeeCode: formCode.toUpperCase().trim(), 
           firstName: empFirstName.trim(), 
           lastName: empLastName.trim(), 
@@ -1583,31 +1807,32 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
            onTriggerToast('success', 'Customer Updated', 'Customer master account updated successfully.');
         }
       } else if (module === 'suppliers' || module === 'masters/suppliers') {
-        const validCompId = isGuid(suppCompanyId) ? suppCompanyId : (dbCompanies.find(c => isGuid(c.id))?.id || '76b29511-ea74-422a-928f-f5ef3abd8d80');
         const payload = { 
-          companyId: validCompId,
+          companyId: suppCompanyId,
           code: formCode.toUpperCase().trim(), 
           legalName: suppLegalName.trim(), 
-          tradeName: (suppTradeName || suppLegalName).trim(),
-          gstin: (suppGstin || '07AAAAA0000A1Z5').toUpperCase().trim(),
-          pan: (suppPan || 'AAAAA0000A').toUpperCase().trim(),
-          phone: (suppPhone || '+91 98100 12345').trim(), 
-          email: (suppEmail || 'supp@vendor.com').trim(), 
-          paymentTermsDays: typeof suppPaymentTermsDays === 'number' ? suppPaymentTermsDays : (parseInt(suppPaymentTermsDays) || 30),
-          creditLimit: typeof suppCreditLimit === 'number' ? suppCreditLimit : (parseFloat(suppCreditLimit) || 100000), 
+          tradeName: suppTradeName.trim() ? suppTradeName.trim() : undefined,
+          supplierType: suppType || 'Distributor / Stockist',
+          gstin: suppGstin.toUpperCase().trim(),
+          pan: suppPan.toUpperCase().trim(),
+          phone: suppPhone.trim(), 
+          email: suppEmail.trim(), 
+          paymentTermsDays: typeof suppPaymentTermsDays === 'number' ? suppPaymentTermsDays : (parseInt(String(suppPaymentTermsDays), 10) || 30),
+          creditLimit: 0, 
           isActive: formStatus === 'Active', 
-          addressLine1: (addrLine1 || 'Supplier Address').trim(), 
-          city: (addrCity || 'Mumbai').trim(), 
-          state: (addrState || 'Maharashtra').trim(), 
-          postalCode: (addrPostalCode || '400001').trim(), 
-          country: (addrCountry || 'India').trim() 
+          addressLine1: (suppAddrLine1 || 'Registered Office').trim(), 
+          addressLine2: suppAddrLine2.trim() ? suppAddrLine2.trim() : undefined,
+          city: (suppCity || 'Mumbai').trim(), 
+          state: (suppState || 'Maharashtra').trim(), 
+          postalCode: (suppPostalCode || '400001').trim(), 
+          country: (suppCountry || 'India').trim() 
         };
         if (isNew) {
            await masterDataService.createSupplier(payload);
-           onTriggerToast('success', 'Supplier Saved', 'Supplier configured.');
+           onTriggerToast('success', 'Supplier Saved', 'Supplier master account configured successfully.');
         } else {
            await masterDataService.updateSupplier(selectedId!, { ...payload, id: selectedId! });
-           onTriggerToast('success', 'Supplier Updated', 'Supplier configured.');
+           onTriggerToast('success', 'Supplier Updated', 'Supplier master account updated successfully.');
         }
       }
 
@@ -1661,6 +1886,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       }
       else if (module === 'branches' || module === 'masters/branches') await masterDataService.deleteBranch(deleteId);
       else if (module === 'departments' || module === 'masters/departments') await masterDataService.deleteDepartment(deleteId);
+      else if (module === 'employee-roles' || module === 'masters/employee-roles') await masterDataService.deleteEmployeeRole(deleteId);
       else if (module === 'designations' || module === 'masters/designations') await masterDataService.deleteDesignation(deleteId);
       else if (module === 'employees' || module === 'masters/employees') await masterDataService.deleteEmployee(deleteId);
       else if (module === 'products' || module === 'masters/products') await masterDataService.deleteProduct(deleteId);
@@ -1678,6 +1904,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       if (module === 'companies' || module === 'masters/companies') setDbCompanies(dbCompanies.filter(x => x.id !== deleteId));
       else if (module === 'branches' || module === 'masters/branches') setDbBranches(dbBranches.filter(x => x.id !== deleteId));
       else if (module === 'departments' || module === 'masters/departments') setDbDepartments(dbDepartments.filter(x => x.id !== deleteId));
+      else if (module === 'employee-roles' || module === 'masters/employee-roles') setDbEmployeeRoles(dbEmployeeRoles.filter(x => x.id !== deleteId));
       else if (module === 'designations' || module === 'masters/designations') setDbDesignations(dbDesignations.filter(x => x.id !== deleteId));
       else if (module === 'employees' || module === 'masters/employees') setDbEmployees(dbEmployees.filter(x => x.id !== deleteId));
       else if (module === 'products' || module === 'masters/products') setDbProducts(dbProducts.filter(x => x.id !== deleteId));
@@ -1715,13 +1942,22 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     });
     if (module === 'branches' || module === 'masters/branches') return dbBranches.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.companyName, detail2: b.city, numericText: b.isHeadquarters ? 'Headquarters' : 'Depot', status: b.status }));
     if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => ({ id: d.id, code: d.code, name: d.name, detail1: d.branchName ? `Branch: ${d.branchName}` : (d.companyName ? `Company: ${d.companyName}` : 'Company Level'), detail2: d.description || 'Department', numericText: 'Dept', status: d.status }));
-    if (module === 'designations' || module === 'masters/designations') return dbDesignations.map(d => ({ id: d.id, code: d.code, name: d.title, detail1: d.companyName, detail2: `Level ${d.level}`, numericText: `Limit: ₹${d.approvalLimit.toLocaleString()}`, status: d.status }));
+    if (module === 'employee-roles' || module === 'masters/employee-roles') return dbEmployeeRoles.map(r => ({
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      detail1: r.companyName || 'Company Scoped',
+      detail2: r.description || 'Employee Functional Role',
+      numericText: r.companyName ? r.companyName.split(' ')[0] : 'Role',
+      status: r.status || (r.isActive !== false ? 'Active' : 'Archived')
+    }));
+    if (module === 'designations' || module === 'masters/designations') return dbDesignations.map(d => ({ id: d.id, code: d.code, name: d.title, detail1: d.companyName || dbCompanies.find(c => c.id === d.companyId)?.legalName || '', detail2: `Level ${d.level}`, numericText: `Limit: ₹${(d.approvalLimit ?? 0).toLocaleString()}`, status: d.status }));
     if (module === 'employees' || module === 'masters/employees') return dbEmployees.map(e => ({
       id: e.id,
       code: e.employeeCode || e.code,
       name: e.fullName || `${e.firstName} ${e.lastName}`.trim(),
-      detail1: e.email,
-      detail2: e.phone || 'N/A',
+      detail1: e.employeeRoleName ? `Role: ${e.employeeRoleName}` : (e.email || '—'),
+      detail2: `${e.designationTitle || '—'}${e.warehouseName ? ` | WH: ${e.warehouseName}` : (e.branchName ? ` | ${e.branchName}` : '')}`,
       numericText: e.salary !== undefined && e.salary !== null && e.salary !== '' ? `₹${Number(e.salary).toLocaleString('en-IN')}` : '—',
       status: e.status
     }));
@@ -1747,7 +1983,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       numericText: `Limit: ₹${(c.creditLimit ?? c.balance ?? 0).toLocaleString('en-IN')}`,
       status: c.status
     }));
-    if (module === 'suppliers' || module === 'masters/suppliers') return dbSuppliers.map(s => ({ id: s.id, code: s.code, name: s.name, detail1: s.contact, detail2: s.email, numericText: `Limit: ₹${s.balance.toLocaleString()}`, status: s.status }));
+    if (module === 'suppliers' || module === 'masters/suppliers') return dbSuppliers.map(s => ({
+      id: s.id,
+      code: s.code,
+      name: s.legalName || s.name,
+      detail1: `${s.supplierType || 'Distributor / Stockist'}${s.companyName ? ` | ${s.companyName}` : ''}`,
+      detail2: `Terms: Net ${s.paymentTermsDays ?? 30} Days | ${s.phone || s.contact || s.email || '—'}`,
+      numericText: `Net ${s.paymentTermsDays ?? 30}D`,
+      status: s.status
+    }));
     return dbCompanies.map(c => ({ id: c.id, code: c.code, name: c.legalName, detail1: c.taxRegistrationNumber || c.gstin || 'N/A', detail2: c.city || 'HQ', numericText: c.currencyCode || c.currency || 'INR', status: typeof c.status === 'number' ? (c.status === 1 ? 'Active' : c.status === 2 ? 'Archived' : 'Draft') : (c.status || 'Active') }));
   };
 
@@ -1969,12 +2213,17 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         </div>
       )}
 
-      {(canAccessEmployee || canAccessDesignation) && (module.includes('employees') || module.includes('designations')) && (
+      {(canAccessEmployee || canAccessEmployeeRole || canAccessDesignation) && (module.includes('employees') || module.includes('employee-roles') || module.includes('designations')) && (
         <div className="bg-white px-4 py-2.5 rounded-lg border border-brand-border shadow-xs flex items-center gap-2 overflow-x-auto">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Employee Sub-Menus:</span>
           {canAccessEmployee && (
-            <a href="/masters/employees" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employees') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+            <a href="/masters/employees" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employees') && !module.includes('employee-roles') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
               <User size={13} /> Employees Roster
+            </a>
+          )}
+          {canAccessEmployeeRole && (
+            <a href="/masters/employee-roles" className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${module.includes('employee-roles') ? 'bg-brand-primary text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'}`}>
+              <UserCheck size={13} /> Employee Roles
             </a>
           )}
           {canAccessDesignation && (
@@ -2191,14 +2440,64 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                               }
                             } else if (module === 'suppliers' || module === 'masters/suppliers') {
                               setPartnerRole('Supplier');
+                              if (dbCompanies[0]?.id) setSuppCompanyId(dbCompanies[0].id);
+                              setSuppLegalName('');
+                              setSuppTradeName('');
+                              setSuppType('Distributor / Stockist');
+                              setSuppContactPerson('');
+                              setSuppEmail('');
+                              setSuppPhone('');
+                              setSuppGstin('');
+                              setSuppPan('');
+                              setSuppPaymentTermsDays(30);
+                              setSuppAddrLine1('');
+                              setSuppAddrLine2('');
+                              setSuppCity('');
+                              setSuppState('');
+                              setSuppPostalCode('');
+                              setSuppCountry('India');
+                              try {
+                                const nextCode = await masterDataService.fetchNextSupplierCode(dbCompanies[0]?.id);
+                                if (nextCode) setFormCode(nextCode);
+                              } catch {}
                             } else if (module === 'customers' || module === 'masters/customers') {
                               setPartnerRole('Customer');
+                              if (dbCompanies[0]?.id) setCustCompanyId(dbCompanies[0].id);
+                              setCustLegalName('');
+                              setCustTradeName('');
+                              setCustType('Retailer');
+                              setCustEmail('');
+                              setCustPhone('');
+                              setCustGstin('');
+                              setCustPan('');
+                              setCustAddrLine1('');
+                              setCustAddrLine2('');
+                              setCustCity('');
+                              setCustState('');
+                              setCustPostalCode('');
+                              setCustCountry('India');
+                              setCustCreditLimit(50000);
+                              setCustCreditDays(30);
+                              setCustSalesRouteId('');
                             } else if (module === 'branches' || module === 'masters/branches') {
                               const parent = dbCompanies.find(c => c.id === branchCompanyId) || dbCompanies[0];
                               if (parent) {
                                 setBranchCompanyId(parent.id);
                                 if (parent.gstin) setBranchGstin(parent.gstin);
                               }
+                            } else if (module === 'employees' || module === 'masters/employees') {
+                              if (dbCompanies[0]?.id) setEmpCompanyId(dbCompanies[0].id);
+                              setEmpBranchId('');
+                              setEmpDepartmentId('');
+                              setEmpWarehouseId('');
+                              setEmpRoleId('');
+                              setEmpDesignationId('');
+                              setEmpFirstName('');
+                              setEmpLastName('');
+                              setEmpEmail('');
+                              setEmpPhone('');
+                              setEmpSalary('');
+                              setEmpJoiningDate(new Date().toISOString().split('T')[0]);
                             }
                             setMode('create');
                           }}
@@ -2649,6 +2948,124 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
                 </div>
+              ) : (module === 'suppliers' || module === 'masters/suppliers') ? (
+                /* SUPPLIER-SPECIFIC READ-ONLY VIEW */
+                <div className="space-y-6 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Card 1: Identity & Classification */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <Building size={14} className="text-brand-primary" /> Identity & Classification
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Supplier Code</span>
+                          <span className="font-mono text-sm font-bold text-brand-primary">{formCode || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Legal Business Name</span>
+                          <span className="font-semibold text-brand-text-primary text-sm">{suppLegalName || 'N/A'}</span>
+                        </div>
+                        {suppTradeName && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Trade / Business Name</span>
+                            <span className="font-medium text-brand-text-primary">{suppTradeName}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Supplier Type</span>
+                          <span className="font-semibold text-brand-text-primary">{suppType || 'Distributor / Stockist'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${formStatus === 'Active' ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
+                            {formStatus}
+                          </span>
+                        </div>
+                        {dbSuppliers.find(s => s.id === selectedId)?.companyName && (
+                          <div>
+                            <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Parent Company</span>
+                            <span className="font-medium text-brand-text-primary">{dbSuppliers.find(s => s.id === selectedId)?.companyName}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card 2: Tax & Compliance */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <ShieldCheck size={14} className="text-brand-primary" /> Tax & Compliance
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">GSTIN (Tax ID)</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{suppGstin || 'Not Registered'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">PAN Number</span>
+                          <span className="font-mono font-bold text-brand-text-primary">{suppPan || 'Not Registered'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Currency</span>
+                          <span className="font-mono font-bold text-brand-primary">INR (₹)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Commercial & Payment Terms */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <CreditCard size={14} className="text-brand-primary" /> Commercial & Payment Terms
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Payment Terms</span>
+                          <span className="font-mono text-base font-bold text-brand-primary">Net {suppPaymentTermsDays ?? 30} Days</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Payment Policy</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {(suppPaymentTermsDays === 0 || suppPaymentTermsDays === '0') ? 'Immediate / Advance' : `Credit window: ${suppPaymentTermsDays} days from invoice`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Contact & Registered Office */}
+                    <div className="bg-brand-bg-secondary/30 p-4 rounded-lg border border-brand-border space-y-3">
+                      <h3 className="font-bold text-brand-text-primary text-[11px] uppercase tracking-wider flex items-center gap-1.5 border-b pb-2">
+                        <MapPin size={14} className="text-brand-primary" /> Contact & Registered Office
+                      </h3>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Official Email</span>
+                          <span className="font-medium text-brand-text-primary break-all">{suppEmail || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Phone Number</span>
+                          <span className="font-mono font-medium text-brand-text-primary">{suppPhone || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Registered Address</span>
+                          <span className="font-medium text-brand-text-primary block leading-relaxed">
+                            {suppAddrLine1 ? (
+                              <>
+                                {suppAddrLine1}
+                                {suppAddrLine2 && <>, {suppAddrLine2}</>}
+                                <br />
+                                {suppCity}, {suppState} {suppPostalCode}
+                                <br />
+                                {suppCountry || 'India'}
+                              </>
+                            ) : (
+                              'N/A'
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (module === 'employees' || module === 'masters/employees') ? (
                 /* EMPLOYEE-SPECIFIC READ-ONLY VIEW */
                 <div className="space-y-6 text-xs">
@@ -2693,6 +3110,18 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Department</span>
                           <span className="font-medium text-brand-text-primary">{dbDepartments.find(d => d.id === empDepartmentId)?.name || dbEmployees.find(e => e.id === selectedId)?.departmentName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Warehouse / Stockist</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {dbWarehouses.find(w => w.id === empWarehouseId)?.name || dbEmployees.find(e => e.id === selectedId)?.warehouseName || <span className="text-slate-400 italic">None (Company Direct)</span>}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Employee Role</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {dbEmployeeRoles.find(r => r.id === empRoleId)?.name || dbEmployees.find(e => e.id === selectedId)?.employeeRoleName || <span className="text-slate-400 italic">Not Assigned</span>}
+                          </span>
                         </div>
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Designation</span>
@@ -3101,6 +3530,76 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 </div>
               )}
 
+              {/* 4.1. EMPLOYEE ROLE FORM */}
+              {(module === 'employee-roles' || module === 'masters/employee-roles') && (
+                <div className="space-y-6 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select
+                        value={roleCompanyId}
+                        onChange={e => { setRoleCompanyId(e.target.value); setFormErrors(p => ({ ...p, roleCompanyId: '' })); }}
+                        disabled={!isSuper}
+                        className={`w-full p-2 border rounded font-semibold ${!isSuper ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${formErrors.roleCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
+                      </select>
+                      {formErrors.roleCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.roleCompanyId}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="code" className="font-bold text-brand-text-primary">Employee Role Code <span className="text-red-500">*</span></label>
+                      <input
+                        id="code"
+                        type="text"
+                        value={formCode}
+                        onChange={e => { setFormCode(e.target.value); setFormErrors(p => ({ ...p, code: '' })); }}
+                        className={`w-full p-2 border rounded font-mono font-bold bg-white uppercase ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="ROL-001"
+                      />
+                      {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="roleName" className="font-bold text-brand-text-primary">Employee Role Name <span className="text-red-500">*</span></label>
+                      <input
+                        id="roleName"
+                        type="text"
+                        value={roleName}
+                        onChange={e => { setRoleName(e.target.value); setFormErrors(p => ({ ...p, roleName: '' })); }}
+                        className={`w-full p-2 border rounded bg-white ${formErrors.roleName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="Sales Representative"
+                      />
+                      {formErrors.roleName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.roleName}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Description (Optional)</label>
+                      <input
+                        type="text"
+                        value={roleDesc}
+                        onChange={e => { setRoleDesc(e.target.value); setFormErrors(p => ({ ...p, roleDesc: '' })); }}
+                        className="w-full p-2 border border-brand-border rounded bg-white"
+                        placeholder="Handles customer order acquisition and retail field visits"
+                      />
+                      {formErrors.roleDesc && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.roleDesc}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Status</label>
+                      <select
+                        value={formStatus}
+                        onChange={e => setFormStatus(e.target.value as any)}
+                        className="w-full p-2 border border-brand-border rounded bg-white font-semibold"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Archived / Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* 5. EMPLOYEE FORM */}
               {(module === 'employees' || module === 'masters/employees') && (
                 <div className="space-y-6 text-xs">
@@ -3118,6 +3617,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           if (empBranchId && !dbBranches.some(b => b.id === empBranchId && b.companyId === newCompId)) {
                             setEmpBranchId('');
                             setEmpDepartmentId('');
+                          }
+                          // Clear warehouse if incompatible
+                          if (empWarehouseId && !dbWarehouses.some(w => w.id === empWarehouseId && w.companyId === newCompId)) {
+                            setEmpWarehouseId('');
+                          }
+                          // Clear role if incompatible
+                          if (empRoleId && !dbEmployeeRoles.some(r => r.id === empRoleId && r.companyId === newCompId)) {
+                            setEmpRoleId('');
                           }
                         }}
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
@@ -3159,7 +3666,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   </div>
 
                   {/* Row 2: Organization Assignment */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/60 p-4 rounded-lg border border-slate-200">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-slate-50/60 p-4 rounded-lg border border-slate-200">
                     {/* Branch Location */}
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Branch Location <span className="text-red-500">*</span></label>
@@ -3170,8 +3677,15 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           setEmpBranchId(newBranchId);
                           setFormErrors(p => ({ ...p, empBranchId: '' }));
                           // Clear department if incompatible
-                          if (empDepartmentId && !dbDepartments.some(d => d.id === empDepartmentId && d.branchId === newBranchId)) {
+                          if (empDepartmentId && !dbDepartments.some(d => d.id === empDepartmentId && (!d.branchId || d.branchId === newBranchId))) {
                             setEmpDepartmentId('');
+                          }
+                          // Clear warehouse if incompatible with branch
+                          if (empWarehouseId) {
+                            const wh = dbWarehouses.find(w => w.id === empWarehouseId);
+                            if (wh && wh.branchId && wh.branchId !== newBranchId) {
+                              setEmpWarehouseId('');
+                            }
                           }
                         }}
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empBranchId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
@@ -3194,10 +3708,45 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       >
                         <option value="">-- Select Department --</option>
                         {dbDepartments
-                          .filter(d => !empBranchId || d.branchId === empBranchId)
+                          .filter(d => (!empBranchId || !d.branchId || d.branchId === empBranchId) && (!empCompanyId || d.companyId === empCompanyId))
                           .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
                       {formErrors.empDepartmentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDepartmentId}</p>}
+                    </div>
+
+                    {/* Warehouse / Stockist (optional) */}
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Warehouse / Stockist <span className="text-xs font-normal text-slate-500">(optional)</span></label>
+                      <select
+                        value={empWarehouseId}
+                        onChange={e => { setEmpWarehouseId(e.target.value); setFormErrors(p => ({ ...p, empWarehouseId: '' })); }}
+                        className="w-full p-2 border rounded bg-white font-medium border-brand-border"
+                      >
+                        <option value="">-- No Warehouse / Stockist --</option>
+                        {dbWarehouses
+                          .filter(w => (!empCompanyId || w.companyId === empCompanyId) && (!w.branchId || !empBranchId || w.branchId === empBranchId) && w.status !== 'Inactive')
+                          .map(w => (
+                            <option key={w.id} value={w.id}>
+                              {w.name} ({w.code}){w.branchName ? ` — ${w.branchName}` : ' (Company Level)'}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {/* Employee Role */}
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Employee Role <span className="text-red-500">*</span></label>
+                      <select
+                        value={empRoleId}
+                        onChange={e => { setEmpRoleId(e.target.value); setFormErrors(p => ({ ...p, empRoleId: '' })); }}
+                        className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empRoleId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Role --</option>
+                        {dbEmployeeRoles
+                          .filter(r => (!empCompanyId || r.companyId === empCompanyId) && r.isActive !== false)
+                          .map(r => <option key={r.id} value={r.id}>{r.name} ({r.code})</option>)}
+                      </select>
+                      {formErrors.empRoleId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empRoleId}</p>}
                     </div>
 
                     {/* Designation */}
@@ -3209,7 +3758,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empDesignationId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
                         <option value="">-- Select Designation --</option>
-                        {dbDesignations.map(d => <option key={d.id} value={d.id}>{d.title} (Level {d.level || 1})</option>)}
+                        {dbDesignations
+                          .filter(d => !empCompanyId || d.companyId === empCompanyId)
+                          .map(d => <option key={d.id} value={d.id}>{d.title} (Level {d.level || 1})</option>)}
                       </select>
                       {formErrors.empDesignationId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDesignationId}</p>}
                     </div>
@@ -4016,60 +4567,205 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 </div>
               )}
 
-              {/* 13. BUSINESS PARTNER / SUPPLIER MASTER FORM */}
+              {/* 13. SUPPLIER MASTER FORM */}
               {(module === 'partners' || module === 'masters/partners' || module === 'suppliers' || module === 'masters/suppliers') && (
                 <div className="space-y-6 text-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label htmlFor="code" className="font-bold text-brand-text-primary">Partner Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className="w-full p-2 border border-brand-border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed" placeholder="PART-001" />
-                    </div>
-                    <div className="space-y-1">
-                      <label htmlFor="custLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>
-                      <input id="custLegalName" type="text" value={custLegalName} onChange={e => setCustLegalName(e.target.value)} className="w-full p-2 border border-brand-border rounded font-semibold" placeholder="Apex Distribution Pvt Ltd" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Trade / Store Name</label>
-                      <input type="text" value={suppTradeName} onChange={e => setSuppTradeName(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Apex Superstore" />
-                    </div>
-                  </div>
-
+                  {/* Row 1: Company, Code, Legal Name & Trade Name */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">GSTIN (Tax ID)</label>
-                      <input type="text" maxLength={15} value={custGstin} onChange={e => setCustGstin(e.target.value.toUpperCase())} className="w-full p-2 border border-brand-border rounded uppercase font-mono font-bold" placeholder="07AAAAA0000A1Z5" />
+                      <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
+                      <select
+                        value={suppCompanyId}
+                        onChange={e => { setSuppCompanyId(e.target.value); setFormErrors(p => ({ ...p, suppCompanyId: '' })); }}
+                        disabled={!isSuper}
+                        className={`w-full p-2 border rounded bg-white font-medium ${!isSuper ? 'bg-gray-100/80 cursor-not-allowed' : ''} ${formErrors.suppCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                      >
+                        <option value="">-- Select Company --</option>
+                        {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName || c.code}</option>)}
+                      </select>
+                      {formErrors.suppCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppCompanyId}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">PAN Number</label>
-                      <input type="text" maxLength={10} value={custPan} onChange={e => setCustPan(e.target.value.toUpperCase())} className="w-full p-2 border border-brand-border rounded uppercase font-mono font-bold" placeholder="AAAAA0000A" />
+                      <label htmlFor="suppCode" className="font-bold text-brand-text-primary">Supplier Code <span className="text-red-500">*</span></label>
+                      <input id="suppCode" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="SUP-000001" />
+                      {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Contact Phone</label>
-                      <input type="text" value={custPhone} onChange={e => setCustPhone(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="+91 98110 24512" />
+                      <label htmlFor="suppLegalName" className="font-bold text-brand-text-primary">Legal Business Name <span className="text-red-500">*</span></label>
+                      <input
+                        id="suppLegalName"
+                        type="text"
+                        value={suppLegalName}
+                        onChange={e => { setSuppLegalName(e.target.value); setFormErrors(p => ({ ...p, suppLegalName: '' })); }}
+                        className={`w-full p-2 border rounded font-medium ${formErrors.suppLegalName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="Hindustan Unilever Ltd"
+                      />
+                      {formErrors.suppLegalName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppLegalName}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Contact Email</label>
-                      <input type="email" value={custEmail} onChange={e => setCustEmail(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="billing@apex.com" />
+                      <label className="font-bold text-brand-text-primary">Trade / Business Name</label>
+                      <input
+                        type="text"
+                        value={suppTradeName}
+                        onChange={e => { setSuppTradeName(e.target.value); setFormErrors(p => ({ ...p, suppTradeName: '' })); }}
+                        className="w-full p-2 border border-brand-border rounded"
+                        placeholder="HUL FMCG Division"
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-brand-bg-secondary/30 rounded border border-brand-border">
+                  {/* Row 2: Supplier Type, Tax IDs & Payment Terms */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Approved Credit Limit (₹)</label>
-                      <input type="number" value={custCreditLimit} onChange={e => setCustCreditLimit(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono font-bold text-brand-primary" placeholder="500000" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Payment Term Days</label>
-                      <input type="number" value={custCreditDays} onChange={e => setCustCreditDays(Number(e.target.value))} className="w-full p-2 border border-brand-border rounded bg-white font-mono font-bold" placeholder="30" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Channel / Category</label>
-                      <select value={custType} onChange={e => setCustType(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
-                        <option value="Retailer">Kirana / Retailer Store</option>
-                        <option value="Wholesaler">Wholesaler Dealer</option>
-                        <option value="Key Account">Key Account / Supermarket</option>
-                        <option value="National Vendor">National Vendor / Manufacturer</option>
+                      <label className="font-bold text-brand-text-primary">Supplier Type <span className="text-red-500">*</span></label>
+                      <select
+                        value={suppType}
+                        onChange={e => setSuppType(e.target.value)}
+                        className="w-full p-2 border border-brand-border rounded bg-white font-semibold"
+                      >
+                        <option value="Manufacturer">Manufacturer</option>
+                        <option value="Distributor / Stockist">Distributor / Stockist</option>
+                        <option value="Wholesaler">Wholesaler</option>
+                        <option value="Importer">Importer</option>
+                        <option value="Packaging Supplier">Packaging Supplier</option>
+                        <option value="Service Provider">Service Provider</option>
                       </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">GSTIN (Tax ID) <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        maxLength={15}
+                        value={suppGstin}
+                        onChange={e => { setSuppGstin(e.target.value.toUpperCase()); setFormErrors(p => ({ ...p, suppGstin: '' })); }}
+                        className={`w-full p-2 border rounded uppercase font-mono font-bold ${formErrors.suppGstin ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="27AAAAA0000A1Z5"
+                      />
+                      {formErrors.suppGstin && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppGstin}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">PAN Number <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        maxLength={10}
+                        value={suppPan}
+                        onChange={e => { setSuppPan(e.target.value.toUpperCase()); setFormErrors(p => ({ ...p, suppPan: '' })); }}
+                        className={`w-full p-2 border rounded uppercase font-mono font-bold ${formErrors.suppPan ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="AAAAA0000A"
+                      />
+                      {formErrors.suppPan && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppPan}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Payment Terms / Credit Period <span className="text-red-500">*</span></label>
+                      <select
+                        value={suppPaymentTermsDays}
+                        onChange={e => setSuppPaymentTermsDays(Number(e.target.value))}
+                        className="w-full p-2 border border-brand-border rounded bg-white font-semibold"
+                      >
+                        <option value={0}>Immediate / Advance</option>
+                        <option value={15}>Net 15 Days</option>
+                        <option value={30}>Net 30 Days</option>
+                        <option value={45}>Net 45 Days (MSME Standard)</option>
+                        <option value={60}>Net 60 Days</option>
+                        <option value={90}>Net 90 Days</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Contact Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Contact Official Email <span className="text-red-500">*</span></label>
+                      <input
+                        type="email"
+                        value={suppEmail}
+                        onChange={e => { setSuppEmail(e.target.value); setFormErrors(p => ({ ...p, suppEmail: '' })); }}
+                        className={`w-full p-2 border rounded font-medium ${formErrors.suppEmail ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="vendor.billing@hul.com"
+                      />
+                      {formErrors.suppEmail && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppEmail}</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Contact Phone <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={suppPhone}
+                        onChange={e => { setSuppPhone(e.target.value); setFormErrors(p => ({ ...p, suppPhone: '' })); }}
+                        className={`w-full p-2 border rounded font-medium ${formErrors.suppPhone ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder="+91 22 3983 0000"
+                      />
+                      {formErrors.suppPhone && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.suppPhone}</p>}
+                    </div>
+                  </div>
+
+                  {/* Row 4: Registered Office Address */}
+                  <div className="p-4 bg-brand-bg-secondary/30 rounded-lg border border-brand-border space-y-4">
+                    <h4 className="font-bold text-brand-text-primary uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b pb-2">
+                      <MapPin size={13} className="text-brand-primary" /> Registered Vendor Address
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Address Line 1</label>
+                        <input
+                          type="text"
+                          value={suppAddrLine1}
+                          onChange={e => setSuppAddrLine1(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                          placeholder="Unilever House, B.D. Sawant Marg"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Address Line 2 (Optional)</label>
+                        <input
+                          type="text"
+                          value={suppAddrLine2}
+                          onChange={e => setSuppAddrLine2(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                          placeholder="Chakala, Andheri (East)"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">City</label>
+                        <input
+                          type="text"
+                          value={suppCity}
+                          onChange={e => setSuppCity(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                          placeholder="Mumbai"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">State</label>
+                        <input
+                          type="text"
+                          value={suppState}
+                          onChange={e => setSuppState(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                          placeholder="Maharashtra"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Postal / PIN Code</label>
+                        <input
+                          type="text"
+                          value={suppPostalCode}
+                          onChange={e => setSuppPostalCode(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white font-mono font-medium"
+                          placeholder="400099"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-brand-text-primary">Country</label>
+                        <input
+                          type="text"
+                          value={suppCountry}
+                          onChange={e => setSuppCountry(e.target.value)}
+                          className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                          placeholder="India"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

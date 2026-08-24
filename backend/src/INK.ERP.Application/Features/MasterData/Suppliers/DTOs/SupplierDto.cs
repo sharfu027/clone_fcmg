@@ -7,6 +7,7 @@ public record SupplierDto(
     string Code,
     string LegalName,
     string? TradeName,
+    string SupplierType,
     string Gstin,
     string Pan,
     string Email,

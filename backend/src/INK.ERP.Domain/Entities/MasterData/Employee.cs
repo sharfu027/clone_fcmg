@@ -8,6 +8,8 @@ public sealed class Employee : BaseEntity
     public Guid BranchId { get; set; }
     public Guid DepartmentId { get; set; }
     public Guid DesignationId { get; set; }
+    public Guid? EmployeeRoleId { get; set; }
+    public Guid? WarehouseId { get; set; }
     public string EmployeeCode { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
@@ -22,4 +24,6 @@ public sealed class Employee : BaseEntity
     public Branch? Branch { get; set; }
     public Department? Department { get; set; }
     public Designation? Designation { get; set; }
+    public EmployeeRole? EmployeeRole { get; set; }
+    public Warehouse? Warehouse { get; set; }
 }

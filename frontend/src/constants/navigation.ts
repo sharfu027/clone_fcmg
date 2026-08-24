@@ -46,6 +46,7 @@ export const NAVIGATION_MENU: NavItem[] = [
         icon: 'UserCheck',
         requiredPermissions: ['masters:employee'],
         children: [
+          { title: 'Employee Roles', href: 'masters/employee-roles', icon: 'UserCheck', requiredPermissions: ['masters:employee_role'] },
           { title: 'Designation', href: 'masters/designations', icon: 'Briefcase', requiredPermissions: ['masters:designation'] }
         ]
       },

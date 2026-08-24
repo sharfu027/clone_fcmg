@@ -19,6 +19,9 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
         RuleFor(x => x.DesignationId)
             .NotEmpty().WithMessage("Designation ID is required.");
 
+        RuleFor(x => x.EmployeeRoleId)
+            .NotEmpty().WithMessage("Employee Role is required.");
+
         RuleFor(x => x.EmployeeCode)
             .NotEmpty().WithMessage("Employee Code is required.")
             .MaximumLength(20).WithMessage("Employee Code cannot exceed 20 characters.");

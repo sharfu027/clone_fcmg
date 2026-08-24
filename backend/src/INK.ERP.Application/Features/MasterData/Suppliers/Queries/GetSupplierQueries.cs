@@ -42,7 +42,7 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
 
     public async Task<Result<SupplierDto>> Handle(GetSupplierByIdQuery request, CancellationToken cancellationToken)
     {
-        var supplier = await _supplierRepository.GetByIdAsync(request.Id, cancellationToken);
+        var supplier = await _supplierRepository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (supplier == null)
         {
             return Result<SupplierDto>.Failure(Error.NotFound("Supplier.NotFound", $"Supplier with ID '{request.Id}' was not found."));
@@ -60,6 +60,7 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
             supplier.Code,
             supplier.LegalName,
             supplier.TradeName,
+            supplier.SupplierType,
             supplier.Gstin,
             supplier.Pan,
             supplier.Email,
@@ -105,7 +106,7 @@ public class GetSuppliersPagedQueryHandler : IRequestHandler<GetSuppliersPagedQu
             return Result.Success<IReadOnlyList<SupplierDto>>(new List<SupplierDto>());
         }
 
-        var suppliers = await _supplierRepository.GetAllAsync(cancellationToken);
+        var suppliers = await _supplierRepository.GetAllWithDetailsAsync(cancellationToken);
         var query = suppliers.AsQueryable();
 
         var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
@@ -119,6 +120,7 @@ public class GetSuppliersPagedQueryHandler : IRequestHandler<GetSuppliersPagedQu
             var search = request.Search.Trim();
             query = query.Where(s => s.Code.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                      s.LegalName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                                     s.SupplierType.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                      s.Gstin.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -137,6 +139,7 @@ public class GetSuppliersPagedQueryHandler : IRequestHandler<GetSuppliersPagedQu
                 supplier.Code,
                 supplier.LegalName,
                 supplier.TradeName,
+                supplier.SupplierType,
                 supplier.Gstin,
                 supplier.Pan,
                 supplier.Email,

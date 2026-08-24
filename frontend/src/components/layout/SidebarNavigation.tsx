@@ -110,6 +110,7 @@ export default function SidebarNavigation({
         brands: 'masters:brand',
         units: 'masters:unit',
         employees: 'masters:employee',
+        'employee-roles': 'masters:employee_role',
         designations: 'masters:designation',
         customers: 'masters:customer',
         suppliers: 'masters:supplier'

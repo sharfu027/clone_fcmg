@@ -119,6 +119,7 @@ export const ROUTES = {
     BRANCHES: '/masters/branches',
     DEPARTMENTS: '/masters/departments',
     DESIGNATIONS: '/masters/designations',
+    EMPLOYEE_ROLES: '/masters/employee-roles',
     EMPLOYEES: '/masters/employees',
     CUSTOMERS: '/masters/customers',
     SUPPLIERS: '/masters/suppliers',

@@ -806,6 +806,77 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                                         </div>
                                       </div>
                                     </div>
+                                  ) : group.groupKey === 'employee' ? (
+                                    <div className="space-y-2 pt-1">
+                                      {/* Level 1: Core Master — Employees Roster */}
+                                      <div className="flex items-center justify-between p-1.5 bg-slate-50 border border-slate-200 rounded-md">
+                                        <label className="flex items-center gap-2 text-[11px] font-bold text-slate-800 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedPermissions.includes('masters:employee')}
+                                            onChange={() => togglePermission('masters:employee')}
+                                            className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                          />
+                                          <span>Employees Roster</span>
+                                        </label>
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                          selectedPermissions.includes('masters:employee')
+                                            ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                            : 'bg-slate-100 text-slate-400 border-slate-200'
+                                        }`}>
+                                          Core Master
+                                        </span>
+                                      </div>
+
+                                      {/* Level 2: Supporting Masters Hierarchy — Employee Configuration */}
+                                      <div className="p-2 bg-blue-50/50 border border-blue-200 rounded-md space-y-2">
+                                        <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                                          Employee Configuration
+                                        </div>
+
+                                        <div className="ml-2 pl-3 border-l-2 border-blue-200 space-y-1.5">
+                                          {/* Employee Roles */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:employee_role')}
+                                                onChange={() => togglePermission('masters:employee_role')}
+                                                className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                              />
+                                              <span>Employee Roles</span>
+                                            </label>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                              selectedPermissions.includes('masters:employee_role')
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                                            }`}>
+                                              Independent
+                                            </span>
+                                          </div>
+
+                                          {/* Designations */}
+                                          <div className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]">
+                                            <label className="flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedPermissions.includes('masters:designation')}
+                                                onChange={() => togglePermission('masters:designation')}
+                                                className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary w-3.5 h-3.5 cursor-pointer accent-brand-primary"
+                                              />
+                                              <span>Designations</span>
+                                            </label>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                              selectedPermissions.includes('masters:designation')
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                                            }`}>
+                                              Independent
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
                                   ) : (
                                   <div className="flex flex-wrap gap-1.5 pt-1">
                                     {group.items.map((sub) => {

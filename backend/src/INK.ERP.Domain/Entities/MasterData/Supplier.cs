@@ -9,6 +9,7 @@ public sealed class Supplier : BaseEntity
     public string Code { get; set; } = string.Empty;
     public string LegalName { get; set; } = string.Empty;
     public string? TradeName { get; set; }
+    public string SupplierType { get; set; } = "Distributor";
     public string Gstin { get; set; } = string.Empty;
     public string Pan { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

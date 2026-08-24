@@ -16,4 +16,19 @@ public class DesignationRepository : GenericRepository<Designation>, IDesignatio
         var normalizedCode = code.ToUpperInvariant().Trim();
         return !await _dbSet.AnyAsync(d => d.CompanyId == companyId && d.Code == normalizedCode && (!excludeId.HasValue || d.Id != excludeId.Value), cancellationToken);
     }
+
+    public async Task<Designation?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(d => d.Company)
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Designation>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(d => d.Company)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
 }

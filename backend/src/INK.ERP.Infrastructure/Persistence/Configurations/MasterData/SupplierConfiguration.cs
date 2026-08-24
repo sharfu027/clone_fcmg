@@ -23,6 +23,11 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.Property(s => s.TradeName)
             .HasMaxLength(150);
 
+        builder.Property(s => s.SupplierType)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("Distributor");
+
         builder.Property(s => s.Gstin)
             .IsRequired()
             .HasMaxLength(30);

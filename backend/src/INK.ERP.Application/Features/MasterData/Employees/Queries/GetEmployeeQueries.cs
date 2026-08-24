@@ -20,7 +20,7 @@ public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery,
 
     public async Task<Result<EmployeeDto>> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
     {
-        var employee = await _employeeRepository.GetByIdAsync(request.Id, cancellationToken);
+        var employee = await _employeeRepository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (employee == null)
         {
             return Result<EmployeeDto>.Failure(Error.NotFound("Employee.NotFound", $"Employee with ID '{request.Id}' was not found."));
@@ -39,8 +39,13 @@ public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery,
             employee.Branch?.Name,
             employee.DepartmentId,
             employee.Department?.Name,
+            employee.WarehouseId,
+            employee.Warehouse?.Name,
+            employee.Warehouse?.Code,
             employee.DesignationId,
             employee.Designation?.Title,
+            employee.EmployeeRoleId,
+            employee.EmployeeRole?.Name,
             employee.EmployeeCode,
             employee.FirstName,
             employee.LastName,
@@ -84,7 +89,7 @@ public class GetEmployeesPagedQueryHandler : IRequestHandler<GetEmployeesPagedQu
             return Result.Success<IReadOnlyList<EmployeeDto>>(new List<EmployeeDto>());
         }
 
-        var employees = await _employeeRepository.GetAllAsync(cancellationToken);
+        var employees = await _employeeRepository.GetAllWithDetailsAsync(cancellationToken);
         var query = employees.AsQueryable();
 
         var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;
@@ -110,7 +115,9 @@ public class GetEmployeesPagedQueryHandler : IRequestHandler<GetEmployeesPagedQu
                                      e.FirstName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                      e.LastName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                      e.Email.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                     e.Phone.Contains(search, StringComparison.OrdinalIgnoreCase));
+                                     e.Phone.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                                     (e.EmployeeRole != null && e.EmployeeRole.Name.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                                     (e.Warehouse != null && e.Warehouse.Name.Contains(search, StringComparison.OrdinalIgnoreCase)));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status) && !string.Equals(request.Status, "All", StringComparison.OrdinalIgnoreCase))
@@ -129,8 +136,13 @@ public class GetEmployeesPagedQueryHandler : IRequestHandler<GetEmployeesPagedQu
                 employee.Branch != null ? employee.Branch.Name : null,
                 employee.DepartmentId,
                 employee.Department != null ? employee.Department.Name : null,
+                employee.WarehouseId,
+                employee.Warehouse != null ? employee.Warehouse.Name : null,
+                employee.Warehouse != null ? employee.Warehouse.Code : null,
                 employee.DesignationId,
                 employee.Designation != null ? employee.Designation.Title : null,
+                employee.EmployeeRoleId,
+                employee.EmployeeRole != null ? employee.EmployeeRole.Name : null,
                 employee.EmployeeCode,
                 employee.FirstName,
                 employee.LastName,

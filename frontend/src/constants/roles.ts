@@ -54,6 +54,7 @@ export const MASTER_DATA_SUBMODULE_GROUPS: MasterDataSubModuleGroup[] = [
     groupKey: 'employee',
     items: [
       { code: 'masters:employee', name: 'Employees Roster', subRoute: 'masters/employees' },
+      { code: 'masters:employee_role', name: 'Employee Roles', subRoute: 'masters/employee-roles' },
       { code: 'masters:designation', name: 'Designations', subRoute: 'masters/designations' },
     ]
   },

@@ -58,9 +58,23 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .HasForeignKey(e => e.DesignationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(e => e.EmployeeRole)
+            .WithMany()
+            .HasForeignKey(e => e.EmployeeRoleId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(e => e.Warehouse)
+            .WithMany()
+            .HasForeignKey(e => e.WarehouseId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(e => new { e.CompanyId, e.EmployeeCode })
-            .IsUnique()
-            ;
+            .IsUnique();
+
+        builder.HasIndex(e => e.EmployeeRoleId);
+        builder.HasIndex(e => e.WarehouseId);
 
         builder.HasIndex(e => e.Email)
             .IsUnique()

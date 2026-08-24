@@ -121,6 +121,28 @@ export interface DesignationDto {
   createdAtUtc: string;
 }
 
+export interface EmployeeRole {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  companyId?: string;
+  companyName?: string;
+  status: 'Active' | 'Inactive' | string;
+  isActive?: boolean;
+}
+
+export interface EmployeeRoleDto {
+  id: string;
+  companyId: string;
+  companyName?: string;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAtUtc: string;
+}
+
 export interface Employee {
   id: string;
   code: string;
@@ -129,6 +151,8 @@ export interface Employee {
   phone: string;
   department: string;
   designation: string;
+  employeeRole?: string;
+  warehouse?: string;
   branch: string;
   status: 'Active' | 'Inactive';
 }
@@ -141,8 +165,13 @@ export interface EmployeeDto {
   branchName?: string;
   departmentId: string;
   departmentName?: string;
+  warehouseId?: string | null;
+  warehouseName?: string | null;
+  warehouseCode?: string | null;
   designationId: string;
   designationTitle?: string;
+  employeeRoleId?: string | null;
+  employeeRoleName?: string | null;
   employeeCode: string;
   firstName: string;
   lastName: string;
@@ -212,15 +241,28 @@ export interface CustomerDto {
 
 export interface Supplier {
   id: string;
+  companyId?: string;
+  companyName?: string;
   code: string;
   name: string;
-  contact: string;
+  legalName?: string;
+  tradeName?: string;
+  supplierType?: string;
+  gstin?: string;
+  pan?: string;
+  contact?: string;
   phone?: string;
   email: string;
+  paymentTermsDays?: number;
   balance?: number;
-  paymentTerms?: string;
-  category?: string;
-  status: 'Active' | 'Inactive';
+  creditLimit?: number;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  status: 'Active' | 'Inactive' | string;
 }
 
 export interface SupplierDto {
@@ -230,6 +272,7 @@ export interface SupplierDto {
   code: string;
   legalName: string;
   tradeName?: string;
+  supplierType?: string;
   gstin: string;
   pan: string;
   email: string;

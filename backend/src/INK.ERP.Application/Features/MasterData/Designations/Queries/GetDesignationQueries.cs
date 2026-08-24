@@ -20,7 +20,7 @@ public class GetDesignationByIdQueryHandler : IRequestHandler<GetDesignationById
 
     public async Task<Result<DesignationDto>> Handle(GetDesignationByIdQuery request, CancellationToken cancellationToken)
     {
-        var designation = await _designationRepository.GetByIdAsync(request.Id, cancellationToken);
+        var designation = await _designationRepository.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (designation == null)
         {
             return Result<DesignationDto>.Failure(Error.NotFound("Designation.NotFound", $"Designation with ID '{request.Id}' was not found."));
@@ -72,7 +72,7 @@ public class GetDesignationsPagedQueryHandler : IRequestHandler<GetDesignationsP
             return Result.Success<IReadOnlyList<DesignationDto>>(new List<DesignationDto>());
         }
 
-        var designations = await _designationRepository.GetAllAsync(cancellationToken);
+        var designations = await _designationRepository.GetAllWithDetailsAsync(cancellationToken);
         var query = designations.AsQueryable();
 
         var effectiveCompanyId = authorizedCompanyId ?? request.CompanyId;

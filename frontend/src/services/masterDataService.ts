@@ -68,6 +68,20 @@ export async function deleteDesignation(id: string): Promise<void> {
   return apiClient.delete<void>(`${API_BASE_URL}/designation/${id}`);
 }
 
+// 4.1. Employee Roles (Job Roles)
+export async function fetchEmployeeRoles(params?: Record<string, any>): Promise<any> {
+  return apiClient.get<any>(`${API_BASE_URL}/employee-role`, { params });
+}
+export async function createEmployeeRole(data: any): Promise<any> {
+  return apiClient.post<any>(`${API_BASE_URL}/employee-role`, data);
+}
+export async function updateEmployeeRole(id: string, data: any): Promise<any> {
+  return apiClient.put<any>(`${API_BASE_URL}/employee-role/${id}`, data);
+}
+export async function deleteEmployeeRole(id: string): Promise<void> {
+  return apiClient.delete<void>(`${API_BASE_URL}/employee-role/${id}`);
+}
+
 // 5. Units of Measure
 export async function fetchUnitsOfMeasure(params?: Record<string, any>): Promise<any> {
   return apiClient.get<any>(`${API_BASE_URL}/uom`, { params });
