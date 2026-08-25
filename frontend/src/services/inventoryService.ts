@@ -1,5 +1,12 @@
 import { apiClient } from '../api/apiClient';
 import {
+  InventoryLocation,
+  InventoryBalance,
+  InventoryReservation,
+  ReserveStockRequest,
+  InventoryAvailabilityDto,
+  InventoryAlternativeLocationDto,
+  OpeningBalanceRequest,
   StockItem,
   BatchInfo,
   SerialNumber,
@@ -13,6 +20,231 @@ import {
 } from '../types/inventory';
 
 export const inventoryService = {
+  // Inventory Locations (Phase 1 Foundation)
+  async fetchInventoryLocations(params?: {
+    companyId?: string;
+    branchId?: string;
+    warehouseId?: string;
+    departmentId?: string;
+    locationType?: string;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<InventoryLocation[]> {
+    return apiClient.get<InventoryLocation[]>('/api/v1/inventory/locations', { params });
+  },
+
+  async fetchInventoryLocationById(id: string): Promise<InventoryLocation> {
+    return apiClient.get<InventoryLocation>(`/api/v1/inventory/locations/${id}`);
+  },
+
+  async createInventoryLocation(payload: {
+    companyId?: string;
+    branchId?: string | null;
+    warehouseId?: string | null;
+    departmentId?: string | null;
+    code: string;
+    name: string;
+    locationType?: string;
+  }): Promise<InventoryLocation> {
+    return apiClient.post<InventoryLocation>('/api/v1/inventory/locations', payload);
+  },
+
+  async updateInventoryLocation(id: string, payload: {
+    id: string;
+    branchId?: string | null;
+    warehouseId?: string | null;
+    departmentId?: string | null;
+    code: string;
+    name: string;
+    locationType?: string;
+    isActive: boolean;
+  }): Promise<InventoryLocation> {
+    return apiClient.put<InventoryLocation>(`/api/v1/inventory/locations/${id}`, payload);
+  },
+
+  async deleteInventoryLocation(id: string): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/inventory/locations/${id}`);
+  },
+
+  // Inventory Balances (Phase 1 Foundation - Read Only Snapshots)
+  async fetchInventoryBalances(params?: {
+    companyId?: string;
+    inventoryLocationId?: string;
+    productId?: string;
+    search?: string;
+    isActiveLocation?: boolean;
+    page?: number;
+    pageSize?: number;
+  }): Promise<InventoryBalance[]> {
+    return apiClient.get<InventoryBalance[]>('/api/v1/inventory/balances', { params });
+  },
+
+  async fetchInventoryBalanceById(id: string): Promise<InventoryBalance> {
+    return apiClient.get<InventoryBalance>(`/api/v1/inventory/balances/${id}`);
+  },
+
+  // Inventory Transactions Ledger (Phase 1 Foundation - Stock Ledger)
+  async postInventoryTransaction(payload: PostInventoryTransactionRequest): Promise<InventoryTransaction> {
+    return apiClient.post<InventoryTransaction>('/api/v1/inventory/transactions', payload);
+  },
+
+  async fetchInventoryTransactions(params?: {
+    companyId?: string;
+    inventoryLocationId?: string;
+    productId?: string;
+    transactionType?: string;
+    referenceDocumentType?: string;
+    referenceDocumentNumber?: string;
+    performedByEmployeeId?: string;
+    fromDate?: string;
+    toDate?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<InventoryTransaction[]> {
+    return apiClient.get<InventoryTransaction[]>('/api/v1/inventory/transactions', { params });
+  },
+
+  async fetchInventoryTransactionById(id: string): Promise<InventoryTransaction> {
+    return apiClient.get<InventoryTransaction>(`/api/v1/inventory/transactions/${id}`);
+  },
+
+  async fetchLatestInventoryTransaction(params: {
+    companyId: string;
+    inventoryLocationId: string;
+    productId: string;
+  }): Promise<InventoryTransaction | null> {
+    return apiClient.get<InventoryTransaction | null>('/api/v1/inventory/transactions/latest', { params });
+  },
+
+  async fetchTransactionsByReference(referenceDocumentType: string, referenceDocumentId: string, companyId?: string): Promise<InventoryTransaction[]> {
+    return apiClient.get<InventoryTransaction[]>(`/api/v1/inventory/transactions/reference/${referenceDocumentType}/${referenceDocumentId}`, {
+      params: { companyId }
+    });
+  },
+
+  async reconcileInventory(params: {
+    companyId: string;
+    inventoryLocationId: string;
+    productId: string;
+  }): Promise<InventoryReconciliationDto> {
+    return apiClient.get<InventoryReconciliationDto>('/api/v1/inventory/transactions/reconcile', { params });
+  },
+
+  async createOpeningBalance(payload: OpeningBalanceRequest): Promise<InventoryTransaction> {
+    return this.postInventoryTransaction({
+      companyId: payload.companyId,
+      inventoryLocationId: payload.inventoryLocationId,
+      productId: payload.productId,
+      transactionType: 'OpeningBalance',
+      quantity: payload.openingQuantity,
+      notes: 'Opening stock established via ledger'
+    });
+  },
+
+  // Stock Availability Engine (Phase 2 Step 1)
+  async checkStockAvailability(params: {
+    companyId: string;
+    productId: string;
+    inventoryLocationId: string;
+    requestedQuantity?: number;
+  }): Promise<InventoryAvailabilityDto> {
+    return apiClient.get<InventoryAvailabilityDto>('/api/v1/inventory/availability', { params });
+  },
+
+  async fetchAlternativeLocations(params: {
+    companyId: string;
+    productId: string;
+    requestedQuantity?: number;
+    excludedLocationId?: string;
+  }): Promise<InventoryAlternativeLocationDto[]> {
+    return apiClient.get<InventoryAlternativeLocationDto[]>('/api/v1/inventory/availability/alternatives', { params });
+  },
+
+  // Inventory Stock Reservations (Phase 2 Step 1)
+  async fetchInventoryReservations(params?: {
+    companyId?: string;
+    inventoryLocationId?: string;
+    productId?: string;
+    status?: string;
+    salesOrderId?: string;
+    fromDate?: string;
+    toDate?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<InventoryReservation[]> {
+    return apiClient.get<InventoryReservation[]>('/api/v1/inventory/reservations', { params });
+  },
+
+  async fetchInventoryReservationById(id: string): Promise<InventoryReservation> {
+    return apiClient.get<InventoryReservation>(`/api/v1/inventory/reservations/${id}`);
+  },
+
+  async reserveStock(payload: ReserveStockRequest): Promise<InventoryReservation> {
+    return apiClient.post<InventoryReservation>('/api/v1/inventory/reservations', payload);
+  },
+
+  async releaseReservation(id: string, companyId?: string): Promise<InventoryReservation> {
+    return apiClient.post<InventoryReservation>(`/api/v1/inventory/reservations/${id}/release`, null, {
+      params: companyId ? { companyId } : undefined
+    });
+  },
+
+  async cancelReservation(id: string, companyId?: string): Promise<InventoryReservation> {
+    return apiClient.post<InventoryReservation>(`/api/v1/inventory/reservations/${id}/cancel`, null, {
+      params: companyId ? { companyId } : undefined
+    });
+  },
+
+  // Stock Transfers Lifecycle (Phase 2)
+  async fetchStockTransfers(params?: {
+    companyId?: string;
+    sourceLocationId?: string;
+    destinationLocationId?: string;
+    salesOrderId?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<StockTransfer[]> {
+    return apiClient.get<StockTransfer[]>('/api/v1/inventory/transfers', { params });
+  },
+
+  async fetchStockTransferById(id: string): Promise<StockTransfer> {
+    return apiClient.get<StockTransfer>(`/api/v1/inventory/transfers/${id}`);
+  },
+
+  async createStockTransfer(payload: CreateStockTransferRequest): Promise<StockTransfer> {
+    return apiClient.post<StockTransfer>('/api/v1/inventory/transfers', payload);
+  },
+
+  async approveStockTransfer(id: string, payload: ApproveStockTransferRequest, companyId?: string): Promise<StockTransfer> {
+    return apiClient.post<StockTransfer>(`/api/v1/inventory/transfers/${id}/approve`, payload, {
+      params: companyId ? { companyId } : undefined
+    });
+  },
+
+  async dispatchStockTransfer(id: string, companyId?: string): Promise<StockTransfer> {
+    return apiClient.post<StockTransfer>(`/api/v1/inventory/transfers/${id}/dispatch`, null, {
+      params: companyId ? { companyId } : undefined
+    });
+  },
+
+  async receiveStockTransfer(id: string, payload?: ReceiveStockTransferRequest, companyId?: string): Promise<StockTransfer> {
+    return apiClient.post<StockTransfer>(`/api/v1/inventory/transfers/${id}/receive`, payload || {}, {
+      params: companyId ? { companyId } : undefined
+    });
+  },
+
+  async cancelStockTransfer(id: string, companyId?: string): Promise<StockTransfer> {
+    return apiClient.post<StockTransfer>(`/api/v1/inventory/transfers/${id}/cancel`, null, {
+      params: companyId ? { companyId } : undefined
+    });
+  },
+
   // Stock Master
   async getStockItems(params?: Record<string, string | number | boolean | undefined>): Promise<StockItem[]> {
     return apiClient.get<StockItem[]>('/api/v1/inventory/stock', { params });

@@ -14,13 +14,15 @@ public record CreateDepartmentCommand(
     Guid? BranchId,
     string Code,
     string Name,
-    string? Description) : IRequest<Result<DepartmentDto>>;
+    string? Description,
+    Guid? ManagerEmployeeId = null) : IRequest<Result<DepartmentDto>>;
 
 public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCommand, Result<DepartmentDto>>
 {
     private readonly IDepartmentRepository _departmentRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
@@ -28,12 +30,14 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
         IDepartmentRepository departmentRepository,
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -55,7 +59,7 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
         }
 
         Branch? branch = null;
-        if (request.BranchId.HasValue)
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
         {
             branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
             if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
@@ -69,13 +73,31 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
             return Result<DepartmentDto>.Failure(Error.Conflict("Department.DuplicateCode", $"Department code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
+        Employee? manager = null;
+        if (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(request.ManagerEmployeeId.Value, cancellationToken);
+            if (manager == null || !manager.IsActive || manager.CompanyId != targetCompanyId)
+            {
+                return Result<DepartmentDto>.Failure(Error.Validation("Department.InvalidManager", "The selected manager employee does not exist, is inactive, or does not belong to the authorized company."));
+            }
+            if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            {
+                if (manager.BranchId.HasValue && manager.BranchId.Value != Guid.Empty && manager.BranchId.Value != request.BranchId.Value)
+                {
+                    return Result<DepartmentDto>.Failure(Error.Validation("Department.ManagerBranchMismatch", "The selected manager employee belongs to a different branch than the department."));
+                }
+            }
+        }
+
         var department = new Department
         {
             CompanyId = targetCompanyId,
-            BranchId = request.BranchId,
+            BranchId = (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty) ? request.BranchId : null,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
             Description = request.Description?.Trim(),
+            ManagerEmployeeId = (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty) ? request.ManagerEmployeeId : null,
             IsActive = true
         };
 
@@ -92,6 +114,9 @@ public class CreateDepartmentCommandHandler : IRequestHandler<CreateDepartmentCo
             department.Name,
             department.Description,
             department.IsActive,
+            department.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             department.CreatedAtUtc);
 
         return Result<DepartmentDto>.Success(dto);
@@ -105,13 +130,15 @@ public record UpdateDepartmentCommand(
     string Code,
     string Name,
     string? Description,
-    bool IsActive) : IRequest<Result<DepartmentDto>>;
+    bool IsActive,
+    Guid? ManagerEmployeeId = null) : IRequest<Result<DepartmentDto>>;
 
 public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCommand, Result<DepartmentDto>>
 {
     private readonly IDepartmentRepository _departmentRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
@@ -119,12 +146,14 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
         IDepartmentRepository departmentRepository,
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -153,7 +182,7 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
         }
 
         Branch? newBranch = null;
-        if (request.BranchId.HasValue)
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
         {
             newBranch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
             if (newBranch == null || newBranch.IsDeleted || newBranch.CompanyId != targetCompanyId)
@@ -167,11 +196,29 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
             return Result<DepartmentDto>.Failure(Error.Conflict("Department.DuplicateCode", $"Department code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
+        Employee? manager = null;
+        if (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(request.ManagerEmployeeId.Value, cancellationToken);
+            if (manager == null || !manager.IsActive || manager.CompanyId != targetCompanyId)
+            {
+                return Result<DepartmentDto>.Failure(Error.Validation("Department.InvalidManager", "The selected manager employee does not exist, is inactive, or does not belong to the authorized company."));
+            }
+            if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            {
+                if (manager.BranchId.HasValue && manager.BranchId.Value != Guid.Empty && manager.BranchId.Value != request.BranchId.Value)
+                {
+                    return Result<DepartmentDto>.Failure(Error.Validation("Department.ManagerBranchMismatch", "The selected manager employee belongs to a different branch than the department."));
+                }
+            }
+        }
+
         department.CompanyId = targetCompanyId;
-        department.BranchId = request.BranchId;
+        department.BranchId = (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty) ? request.BranchId : null;
         department.Code = request.Code.ToUpperInvariant().Trim();
         department.Name = request.Name.Trim();
         department.Description = request.Description?.Trim();
+        department.ManagerEmployeeId = (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty) ? request.ManagerEmployeeId : null;
         department.IsActive = request.IsActive;
 
         await _departmentRepository.UpdateAsync(department, cancellationToken);
@@ -187,6 +234,9 @@ public class UpdateDepartmentCommandHandler : IRequestHandler<UpdateDepartmentCo
             department.Name,
             department.Description,
             department.IsActive,
+            department.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             department.CreatedAtUtc);
 
         return Result<DepartmentDto>.Success(dto);

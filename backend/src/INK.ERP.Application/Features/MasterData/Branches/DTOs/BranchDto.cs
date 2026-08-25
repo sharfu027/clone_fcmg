@@ -17,4 +17,7 @@ public record BranchDto(
     string Country,
     bool IsHeadquarters,
     bool IsActive,
+    Guid? ManagerEmployeeId,
+    string? ManagerEmployeeName,
+    string? ManagerEmployeeCode,
     DateTime CreatedAtUtc);

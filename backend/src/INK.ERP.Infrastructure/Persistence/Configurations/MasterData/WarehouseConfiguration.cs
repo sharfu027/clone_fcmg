@@ -64,6 +64,15 @@ public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
             .HasForeignKey(w => w.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(w => w.ManagerEmployeeId)
+            .IsRequired(false);
+
+        builder.HasOne(w => w.ManagerEmployee)
+            .WithMany()
+            .HasForeignKey(w => w.ManagerEmployeeId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(w => new { w.CompanyId, w.Code })
             .IsUnique();
     }

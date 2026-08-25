@@ -28,4 +28,5 @@ public sealed class Warehouse : BaseEntity
     // Navigation Properties
     public Company? Company { get; set; }
     public Branch? Branch { get; set; }
+    public Employee? ManagerEmployee { get; set; }
 }

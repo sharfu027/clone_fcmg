@@ -10,4 +10,7 @@ public record DepartmentDto(
     string Name,
     string? Description,
     bool IsActive,
+    Guid? ManagerEmployeeId,
+    string? ManagerEmployeeName,
+    string? ManagerEmployeeCode,
     DateTime CreatedAtUtc);

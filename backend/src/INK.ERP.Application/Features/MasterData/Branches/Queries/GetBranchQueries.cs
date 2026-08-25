@@ -2,6 +2,7 @@ using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Branches.DTOs;
 using INK.ERP.Domain.Common;
+using INK.ERP.Domain.Entities.MasterData;
 
 namespace INK.ERP.Application.Features.MasterData.Branches.Queries;
 
@@ -10,11 +11,16 @@ public record GetBranchByIdQuery(Guid Id) : IRequest<Result<BranchDto>>;
 public class GetBranchByIdQueryHandler : IRequestHandler<GetBranchByIdQuery, Result<BranchDto>>
 {
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetBranchByIdQueryHandler(IBranchRepository branchRepository, ICompanyAccessResolver companyAccessResolver)
+    public GetBranchByIdQueryHandler(
+        IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _companyAccessResolver = companyAccessResolver;
     }
 
@@ -29,6 +35,12 @@ public class GetBranchByIdQueryHandler : IRequestHandler<GetBranchByIdQuery, Res
         if (!await _companyAccessResolver.HasAccessToCompanyAsync(branch.CompanyId, cancellationToken))
         {
             return Result<BranchDto>.Failure(Error.NotFound("Branch.NotFound", $"Branch with ID '{request.Id}' was not found."));
+        }
+
+        Employee? manager = null;
+        if (branch.ManagerEmployeeId.HasValue)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(branch.ManagerEmployeeId.Value, cancellationToken);
         }
 
         var dto = new BranchDto(
@@ -48,6 +60,9 @@ public class GetBranchByIdQueryHandler : IRequestHandler<GetBranchByIdQuery, Res
             branch.Address.Country,
             branch.IsHeadquarters,
             branch.IsActive,
+            branch.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             branch.CreatedAtUtc);
 
         return Result<BranchDto>.Success(dto);
@@ -64,11 +79,16 @@ public record GetBranchesPagedQuery(
 public class GetBranchesPagedQueryHandler : IRequestHandler<GetBranchesPagedQuery, Result<IReadOnlyList<BranchDto>>>
 {
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetBranchesPagedQueryHandler(IBranchRepository branchRepository, ICompanyAccessResolver companyAccessResolver)
+    public GetBranchesPagedQueryHandler(
+        IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _companyAccessResolver = companyAccessResolver;
     }
 
@@ -103,26 +123,41 @@ public class GetBranchesPagedQueryHandler : IRequestHandler<GetBranchesPagedQuer
             query = query.Where(b => b.IsActive == isActive);
         }
 
+        var allEmployees = await _employeeRepository.GetAllAsync(cancellationToken);
+        var employeeMap = allEmployees.ToDictionary(e => e.Id, e => e);
+
         var list = query
             .OrderBy(b => b.Code)
-            .Select(branch => new BranchDto(
-                branch.Id,
-                branch.CompanyId,
-                branch.Company != null ? branch.Company.LegalName : null,
-                branch.Code,
-                branch.Name,
-                branch.Gstin,
-                branch.Email,
-                branch.Phone,
-                branch.Address.AddressLine1,
-                branch.Address.AddressLine2,
-                branch.Address.City,
-                branch.Address.State,
-                branch.Address.PostalCode,
-                branch.Address.Country,
-                branch.IsHeadquarters,
-                branch.IsActive,
-                branch.CreatedAtUtc))
+            .AsEnumerable()
+            .Select(branch => {
+                Employee? manager = null;
+                if (branch.ManagerEmployeeId.HasValue && employeeMap.TryGetValue(branch.ManagerEmployeeId.Value, out var emp))
+                {
+                    manager = emp;
+                }
+
+                return new BranchDto(
+                    branch.Id,
+                    branch.CompanyId,
+                    branch.Company != null ? branch.Company.LegalName : null,
+                    branch.Code,
+                    branch.Name,
+                    branch.Gstin,
+                    branch.Email,
+                    branch.Phone,
+                    branch.Address.AddressLine1,
+                    branch.Address.AddressLine2,
+                    branch.Address.City,
+                    branch.Address.State,
+                    branch.Address.PostalCode,
+                    branch.Address.Country,
+                    branch.IsHeadquarters,
+                    branch.IsActive,
+                    branch.ManagerEmployeeId,
+                    manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+                    manager?.EmployeeCode,
+                    branch.CreatedAtUtc);
+            })
             .ToList();
 
         return Result.Success<IReadOnlyList<BranchDto>>(list);

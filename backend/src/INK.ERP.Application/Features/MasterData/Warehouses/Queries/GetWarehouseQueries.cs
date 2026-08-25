@@ -2,6 +2,7 @@ using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Warehouses.DTOs;
 using INK.ERP.Domain.Common;
+using INK.ERP.Domain.Entities.MasterData;
 
 namespace INK.ERP.Application.Features.MasterData.Warehouses.Queries;
 
@@ -10,11 +11,16 @@ public record GetWarehouseByIdQuery(Guid Id) : IRequest<Result<WarehouseDto>>;
 public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuery, Result<WarehouseDto>>
 {
     private readonly IWarehouseRepository _warehouseRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetWarehouseByIdQueryHandler(IWarehouseRepository warehouseRepository, ICompanyAccessResolver companyAccessResolver)
+    public GetWarehouseByIdQueryHandler(
+        IWarehouseRepository warehouseRepository,
+        IEmployeeRepository employeeRepository,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
+        _employeeRepository = employeeRepository;
         _companyAccessResolver = companyAccessResolver;
     }
 
@@ -31,6 +37,12 @@ public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuer
             return Result<WarehouseDto>.Failure(Error.NotFound("Warehouse.NotFound", $"Warehouse with ID '{request.Id}' was not found."));
         }
 
+        Employee? manager = null;
+        if (warehouse.ManagerEmployeeId.HasValue)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(warehouse.ManagerEmployeeId.Value, cancellationToken);
+        }
+
         var dto = new WarehouseDto(
             warehouse.Id,
             warehouse.CompanyId,
@@ -40,6 +52,8 @@ public class GetWarehouseByIdQueryHandler : IRequestHandler<GetWarehouseByIdQuer
             warehouse.WarehouseType,
             warehouse.Status,
             warehouse.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             warehouse.Address.AddressLine1,
             warehouse.Address.AddressLine2,
             warehouse.Address.City,
@@ -74,11 +88,16 @@ public record GetWarehousesPagedQuery(
 public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPagedQuery, Result<IReadOnlyList<WarehouseDto>>>
 {
     private readonly IWarehouseRepository _warehouseRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public GetWarehousesPagedQueryHandler(IWarehouseRepository warehouseRepository, ICompanyAccessResolver companyAccessResolver)
+    public GetWarehousesPagedQueryHandler(
+        IWarehouseRepository warehouseRepository,
+        IEmployeeRepository employeeRepository,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
+        _employeeRepository = employeeRepository;
         _companyAccessResolver = companyAccessResolver;
     }
 
@@ -101,7 +120,7 @@ public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPaged
 
         if (request.BranchId.HasValue)
         {
-            query = query.Where(w => w.BranchId == request.BranchId.Value);
+            query = query.Where(d => d.BranchId == request.BranchId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.WarehouseType))
@@ -124,34 +143,48 @@ public class GetWarehousesPagedQueryHandler : IRequestHandler<GetWarehousesPaged
             query = query.Where(w => w.IsActive == isActive);
         }
 
+        var allEmployees = await _employeeRepository.GetAllAsync(cancellationToken);
+        var empMap = allEmployees.ToDictionary(e => e.Id, e => e);
+
         var list = query
             .OrderBy(w => w.Code)
-            .Select(warehouse => new WarehouseDto(
-                warehouse.Id,
-                warehouse.CompanyId,
-                warehouse.BranchId,
-                warehouse.Code,
-                warehouse.Name,
-                warehouse.WarehouseType,
-                warehouse.Status,
-                warehouse.ManagerEmployeeId,
-                warehouse.Address.AddressLine1,
-                warehouse.Address.AddressLine2,
-                warehouse.Address.City,
-                warehouse.Address.State,
-                warehouse.Address.PostalCode,
-                warehouse.Address.Country,
-                warehouse.CapacitySqFt,
-                warehouse.PalletCapacity,
-                warehouse.CartonCapacity,
-                warehouse.ContactNumber,
-                warehouse.Email,
-                warehouse.Latitude,
-                warehouse.Longitude,
-                warehouse.Remarks,
-                warehouse.IsTemperatureControlled,
-                warehouse.IsActive,
-                warehouse.CreatedAtUtc))
+            .AsEnumerable()
+            .Select(warehouse => {
+                Employee? manager = null;
+                if (warehouse.ManagerEmployeeId.HasValue && empMap.TryGetValue(warehouse.ManagerEmployeeId.Value, out var emp))
+                {
+                    manager = emp;
+                }
+
+                return new WarehouseDto(
+                    warehouse.Id,
+                    warehouse.CompanyId,
+                    warehouse.BranchId,
+                    warehouse.Code,
+                    warehouse.Name,
+                    warehouse.WarehouseType,
+                    warehouse.Status,
+                    warehouse.ManagerEmployeeId,
+                    manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+                    manager?.EmployeeCode,
+                    warehouse.Address.AddressLine1,
+                    warehouse.Address.AddressLine2,
+                    warehouse.Address.City,
+                    warehouse.Address.State,
+                    warehouse.Address.PostalCode,
+                    warehouse.Address.Country,
+                    warehouse.CapacitySqFt,
+                    warehouse.PalletCapacity,
+                    warehouse.CartonCapacity,
+                    warehouse.ContactNumber,
+                    warehouse.Email,
+                    warehouse.Latitude,
+                    warehouse.Longitude,
+                    warehouse.Remarks,
+                    warehouse.IsTemperatureControlled,
+                    warehouse.IsActive,
+                    warehouse.CreatedAtUtc);
+            })
             .ToList();
 
         return Result.Success<IReadOnlyList<WarehouseDto>>(list);

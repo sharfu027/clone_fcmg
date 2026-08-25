@@ -20,23 +20,27 @@ public record CreateBranchCommand(
     string State,
     string PostalCode,
     string Country,
-    bool IsHeadquarters) : IRequest<Result<BranchDto>>;
+    bool IsHeadquarters,
+    Guid? ManagerEmployeeId = null) : IRequest<Result<BranchDto>>;
 
 public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, Result<BranchDto>>
 {
     private readonly IBranchRepository _branchRepository;
     private readonly ICompanyRepository _companyRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public CreateBranchCommandHandler(
         IBranchRepository branchRepository,
         ICompanyRepository companyRepository,
+        IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository;
         _companyRepository = companyRepository;
+        _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -71,6 +75,16 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, R
             }
         }
 
+        Employee? manager = null;
+        if (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(request.ManagerEmployeeId.Value, cancellationToken);
+            if (manager == null || !manager.IsActive || manager.CompanyId != targetCompanyId)
+            {
+                return Result<BranchDto>.Failure(Error.Validation("Branch.InvalidManager", "The selected manager employee does not exist, is inactive, or does not belong to the authorized company."));
+            }
+        }
+
         var branch = new Branch
         {
             CompanyId = targetCompanyId,
@@ -81,6 +95,7 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, R
             Phone = request.Phone.Trim(),
             Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country),
             IsHeadquarters = request.IsHeadquarters,
+            ManagerEmployeeId = (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty) ? request.ManagerEmployeeId : null,
             IsActive = true
         };
 
@@ -104,6 +119,9 @@ public class CreateBranchCommandHandler : IRequestHandler<CreateBranchCommand, R
             branch.Address.Country,
             branch.IsHeadquarters,
             branch.IsActive,
+            branch.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             branch.CreatedAtUtc);
 
         return Result<BranchDto>.Success(dto);

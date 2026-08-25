@@ -6,6 +6,8 @@ using INK.ERP.Domain.Entities.IAM;
 using INK.ERP.Domain.Entities.Security;
 using INK.ERP.Domain.Entities.MasterData;
 using INK.ERP.Domain.Entities.Pricing;
+using INK.ERP.Domain.Entities.Inventory;
+using INK.ERP.Domain.Entities.Sales;
 
 namespace INK.ERP.Persistence;
 
@@ -55,7 +57,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         });
 
         builder.Entity<INK.ERP.Domain.Entities.Warehouse>(entity => { entity.ToTable("warehouses", "warehouse"); });
-        builder.Entity<INK.ERP.Domain.Entities.SalesOrder>(entity => { entity.ToTable("sales_orders", "sales"); });
 
         // Procurement Purchase Requisition Configuration
         builder.Entity<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition>(entity =>
@@ -130,8 +131,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     }
 
     public DbSet<INK.ERP.Infrastructure.Persistence.Outbox.OutboxMessage> OutboxMessages => Set<INK.ERP.Infrastructure.Persistence.Outbox.OutboxMessage>();
+    public DbSet<InventoryLocation> InventoryLocations => Set<InventoryLocation>();
+    public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+    public DbSet<InventoryReservation> InventoryReservations => Set<InventoryReservation>();
     public DbSet<INK.ERP.Domain.Entities.Warehouse> Warehouses => Set<INK.ERP.Domain.Entities.Warehouse>();
-    public DbSet<INK.ERP.Domain.Entities.SalesOrder> SalesOrders => Set<INK.ERP.Domain.Entities.SalesOrder>();
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+    public DbSet<SalesOrderItem> SalesOrderItems => Set<SalesOrderItem>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferLine> StockTransferLines => Set<StockTransferLine>();
 
     // Procurement DB Sets
     public DbSet<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition> PurchaseRequisitions => Set<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition>();

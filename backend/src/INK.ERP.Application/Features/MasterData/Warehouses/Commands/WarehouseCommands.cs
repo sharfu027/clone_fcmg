@@ -6,6 +6,7 @@ using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Warehouses.DTOs;
 using INK.ERP.Domain.Common;
 using INK.ERP.Domain.Entities;
+using INK.ERP.Domain.Entities.MasterData;
 using INK.ERP.Domain.ValueObjects;
 
 namespace INK.ERP.Application.Features.MasterData.Warehouses.Commands;
@@ -39,6 +40,7 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
@@ -46,12 +48,14 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
         IWarehouseRepository warehouseRepository,
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -72,7 +76,7 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
         }
 
-        if (request.BranchId.HasValue)
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
         {
             var branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
             if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
@@ -86,15 +90,32 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             return Result<WarehouseDto>.Failure(Error.Conflict("Warehouse.DuplicateCode", $"Warehouse code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
+        Employee? manager = null;
+        if (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(request.ManagerEmployeeId.Value, cancellationToken);
+            if (manager == null || !manager.IsActive || manager.CompanyId != targetCompanyId)
+            {
+                return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidManager", "The selected manager employee does not exist, is inactive, or does not belong to the authorized company."));
+            }
+            if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            {
+                if (manager.BranchId.HasValue && manager.BranchId.Value != Guid.Empty && manager.BranchId.Value != request.BranchId.Value)
+                {
+                    return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.ManagerBranchMismatch", "The selected manager employee belongs to a different branch than the warehouse."));
+                }
+            }
+        }
+
         var warehouse = new Warehouse
         {
             CompanyId = targetCompanyId,
-            BranchId = request.BranchId,
+            BranchId = (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty) ? request.BranchId : null,
             Code = request.Code.ToUpperInvariant().Trim(),
             Name = request.Name.Trim(),
             WarehouseType = request.WarehouseType,
             Status = request.Status,
-            ManagerEmployeeId = request.ManagerEmployeeId,
+            ManagerEmployeeId = (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty) ? request.ManagerEmployeeId : null,
             Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country),
             CapacitySqFt = request.CapacitySqFt,
             PalletCapacity = request.PalletCapacity,
@@ -120,6 +141,8 @@ public class CreateWarehouseCommandHandler : IRequestHandler<CreateWarehouseComm
             warehouse.WarehouseType,
             warehouse.Status,
             warehouse.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             warehouse.Address.AddressLine1,
             warehouse.Address.AddressLine2,
             warehouse.Address.City,
@@ -173,6 +196,7 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
@@ -180,12 +204,14 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
         IWarehouseRepository warehouseRepository,
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
         _warehouseRepository = warehouseRepository;
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -213,7 +239,7 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             return Result<WarehouseDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
         }
 
-        if (request.BranchId.HasValue)
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
         {
             var branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
             if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
@@ -227,13 +253,30 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             return Result<WarehouseDto>.Failure(Error.Conflict("Warehouse.DuplicateCode", $"Warehouse code '{request.Code}' already exists under company '{company.LegalName}'."));
         }
 
+        Employee? manager = null;
+        if (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(request.ManagerEmployeeId.Value, cancellationToken);
+            if (manager == null || !manager.IsActive || manager.CompanyId != targetCompanyId)
+            {
+                return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.InvalidManager", "The selected manager employee does not exist, is inactive, or does not belong to the authorized company."));
+            }
+            if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            {
+                if (manager.BranchId.HasValue && manager.BranchId.Value != Guid.Empty && manager.BranchId.Value != request.BranchId.Value)
+                {
+                    return Result<WarehouseDto>.Failure(Error.Validation("Warehouse.ManagerBranchMismatch", "The selected manager employee belongs to a different branch than the warehouse."));
+                }
+            }
+        }
+
         warehouse.CompanyId = targetCompanyId;
-        warehouse.BranchId = request.BranchId;
+        warehouse.BranchId = (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty) ? request.BranchId : null;
         warehouse.Code = request.Code.ToUpperInvariant().Trim();
         warehouse.Name = request.Name.Trim();
         warehouse.WarehouseType = request.WarehouseType;
         warehouse.Status = request.Status;
-        warehouse.ManagerEmployeeId = request.ManagerEmployeeId;
+        warehouse.ManagerEmployeeId = (request.ManagerEmployeeId.HasValue && request.ManagerEmployeeId.Value != Guid.Empty) ? request.ManagerEmployeeId : null;
         warehouse.Address = new Address(request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Country);
         warehouse.CapacitySqFt = request.CapacitySqFt;
         warehouse.PalletCapacity = request.PalletCapacity;
@@ -258,6 +301,8 @@ public class UpdateWarehouseCommandHandler : IRequestHandler<UpdateWarehouseComm
             warehouse.WarehouseType,
             warehouse.Status,
             warehouse.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             warehouse.Address.AddressLine1,
             warehouse.Address.AddressLine2,
             warehouse.Address.City,

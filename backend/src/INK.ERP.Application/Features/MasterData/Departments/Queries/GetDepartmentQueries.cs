@@ -2,6 +2,7 @@ using MediatR;
 using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.MasterData.Departments.DTOs;
 using INK.ERP.Domain.Common;
+using INK.ERP.Domain.Entities.MasterData;
 
 namespace INK.ERP.Application.Features.MasterData.Departments.Queries;
 
@@ -12,17 +13,20 @@ public class GetDepartmentByIdQueryHandler : IRequestHandler<GetDepartmentByIdQu
     private readonly IDepartmentRepository _departmentRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public GetDepartmentByIdQueryHandler(
         IDepartmentRepository departmentRepository,
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
         ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _companyAccessResolver = companyAccessResolver;
     }
 
@@ -41,6 +45,11 @@ public class GetDepartmentByIdQueryHandler : IRequestHandler<GetDepartmentByIdQu
 
         var company = await _companyRepository.GetByIdAsync(department.CompanyId, cancellationToken);
         var branch = department.BranchId.HasValue ? await _branchRepository.GetByIdAsync(department.BranchId.Value, cancellationToken) : null;
+        Employee? manager = null;
+        if (department.ManagerEmployeeId.HasValue)
+        {
+            manager = await _employeeRepository.GetByIdWithDetailsAsync(department.ManagerEmployeeId.Value, cancellationToken);
+        }
 
         var dto = new DepartmentDto(
             department.Id,
@@ -52,6 +61,9 @@ public class GetDepartmentByIdQueryHandler : IRequestHandler<GetDepartmentByIdQu
             department.Name,
             department.Description,
             department.IsActive,
+            department.ManagerEmployeeId,
+            manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+            manager?.EmployeeCode,
             department.CreatedAtUtc);
 
         return Result<DepartmentDto>.Success(dto);
@@ -71,17 +83,20 @@ public class GetDepartmentsPagedQueryHandler : IRequestHandler<GetDepartmentsPag
     private readonly IDepartmentRepository _departmentRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public GetDepartmentsPagedQueryHandler(
         IDepartmentRepository departmentRepository,
         ICompanyRepository companyRepository,
         IBranchRepository branchRepository,
+        IEmployeeRepository employeeRepository,
         ICompanyAccessResolver companyAccessResolver)
     {
         _departmentRepository = departmentRepository;
         _companyRepository = companyRepository;
         _branchRepository = branchRepository;
+        _employeeRepository = employeeRepository;
         _companyAccessResolver = companyAccessResolver;
     }
 
@@ -126,20 +141,34 @@ public class GetDepartmentsPagedQueryHandler : IRequestHandler<GetDepartmentsPag
         var branches = await _branchRepository.GetAllAsync(cancellationToken);
         var branchMap = branches.ToDictionary(b => b.Id, b => b.Name);
 
+        var allEmployees = await _employeeRepository.GetAllAsync(cancellationToken);
+        var empMap = allEmployees.ToDictionary(e => e.Id, e => e);
+
         var list = query
             .OrderBy(d => d.Code)
             .AsEnumerable()
-            .Select(department => new DepartmentDto(
-                department.Id,
-                department.CompanyId,
-                compMap.TryGetValue(department.CompanyId, out var cName) ? cName : null,
-                department.BranchId,
-                department.BranchId.HasValue && branchMap.TryGetValue(department.BranchId.Value, out var bName) ? bName : (department.Branch?.Name),
-                department.Code,
-                department.Name,
-                department.Description,
-                department.IsActive,
-                department.CreatedAtUtc))
+            .Select(department => {
+                Employee? manager = null;
+                if (department.ManagerEmployeeId.HasValue && empMap.TryGetValue(department.ManagerEmployeeId.Value, out var emp))
+                {
+                    manager = emp;
+                }
+
+                return new DepartmentDto(
+                    department.Id,
+                    department.CompanyId,
+                    compMap.TryGetValue(department.CompanyId, out var cName) ? cName : null,
+                    department.BranchId,
+                    department.BranchId.HasValue && branchMap.TryGetValue(department.BranchId.Value, out var bName) ? bName : (department.Branch?.Name),
+                    department.Code,
+                    department.Name,
+                    department.Description,
+                    department.IsActive,
+                    department.ManagerEmployeeId,
+                    manager != null ? $"{manager.FirstName} {manager.LastName}".Trim() : null,
+                    manager?.EmployeeCode,
+                    department.CreatedAtUtc);
+            })
             .ToList();
 
         return Result.Success<IReadOnlyList<DepartmentDto>>(list);

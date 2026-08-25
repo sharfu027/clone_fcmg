@@ -384,24 +384,14 @@ export default function ProductClassificationHierarchy({
             }`}>
               <Layers size={13} />
             </div>
-            <div className="truncate flex items-center gap-1.5 min-w-0">
+            <div className="truncate flex items-center gap-2 min-w-0">
               <span className="font-bold text-xs text-brand-text-primary truncate">{node.name}</span>
-              <span className="font-mono text-[10px] text-slate-400">({node.code || 'CAT'})</span>
-              {node.depth > 0 && (
-                <span className="text-[10px] text-slate-400 hidden sm:inline truncate">
-                  [Level {node.depth + 1}]
-                </span>
-              )}
+              <span className="font-mono text-[11px] text-slate-400 font-normal">({node.code || 'CAT'})</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {node.children.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                {node.children.length} {node.children.length === 1 ? 'Subcategory' : 'Subcategories'}
-              </span>
-            )}
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
               {node.totalProductsCount} {node.totalProductsCount === 1 ? 'SKU' : 'SKUs'}
             </span>
           </div>
@@ -414,8 +404,8 @@ export default function ProductClassificationHierarchy({
             {/* 1. DIRECT UNBRANDED PRODUCTS UNDER THIS CATEGORY NODE */}
             {node.directUnbrandedProducts.length > 0 && (
               <div className="ml-3 sm:ml-4 p-2 space-y-1 bg-white border border-slate-200/60 rounded shadow-2xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5 mb-1 flex items-center gap-1">
-                  <Package size={11} /> Unbranded Products ({node.directUnbrandedProducts.length})
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5 mb-1 flex items-center gap-1.5">
+                  <Package size={11} /> Unbranded Products
                 </div>
                 {node.directUnbrandedProducts.map(prod => renderProductItem(prod))}
               </div>

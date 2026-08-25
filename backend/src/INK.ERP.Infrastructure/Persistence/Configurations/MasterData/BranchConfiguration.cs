@@ -47,6 +47,15 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
             .HasForeignKey(b => b.CompanyId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(b => b.ManagerEmployeeId)
+            .IsRequired(false);
+
+        builder.HasOne(b => b.ManagerEmployee)
+            .WithMany()
+            .HasForeignKey(b => b.ManagerEmployeeId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(b => new { b.CompanyId, b.Code })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");

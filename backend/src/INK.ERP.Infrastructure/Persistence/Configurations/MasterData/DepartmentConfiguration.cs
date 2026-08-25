@@ -39,6 +39,15 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
             .HasForeignKey(d => d.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(d => d.ManagerEmployeeId)
+            .IsRequired(false);
+
+        builder.HasOne(d => d.ManagerEmployee)
+            .WithMany()
+            .HasForeignKey(d => d.ManagerEmployeeId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(d => new { d.CompanyId, d.Code })
             .IsUnique();
     }

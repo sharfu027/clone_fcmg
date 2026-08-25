@@ -10,8 +10,10 @@ public sealed class Department : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? ManagerEmployeeId { get; set; }
 
     // Navigation Properties
     public Company? Company { get; set; }
     public Branch? Branch { get; set; }
+    public Employee? ManagerEmployee { get; set; }
 }

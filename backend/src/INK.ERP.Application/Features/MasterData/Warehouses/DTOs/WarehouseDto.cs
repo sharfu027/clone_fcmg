@@ -9,6 +9,8 @@ public record WarehouseDto(
     string WarehouseType,
     string Status,
     Guid? ManagerEmployeeId,
+    string? ManagerEmployeeName,
+    string? ManagerEmployeeCode,
     string AddressLine1,
     string? AddressLine2,
     string City,

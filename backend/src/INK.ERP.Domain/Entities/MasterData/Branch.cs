@@ -15,7 +15,9 @@ public sealed class Branch : AuditableEntity
     public Address Address { get; set; } = new();
     public bool IsHeadquarters { get; set; } = false;
     public bool IsActive { get; set; } = true;
+    public Guid? ManagerEmployeeId { get; set; }
 
-    // Navigation Property
+    // Navigation Properties
     public Company? Company { get; set; }
+    public Employee? ManagerEmployee { get; set; }
 }

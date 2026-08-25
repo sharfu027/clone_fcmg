@@ -107,10 +107,7 @@ export const NAVIGATION_MENU: NavItem[] = [
     icon: 'Package',
     requiredPermissions: ['inventory:manage', 'manage:inventory'],
     children: [
-      { title: 'Stock Levels', href: 'inventory/stock', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
-      { title: 'FEFO Expiry Tracker', href: 'inventory/expiry', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
-      { title: 'Stock Adjustments', href: 'inventory/adjustments', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
-      { title: 'Cycle Counting', href: 'inventory/cycle-count', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] }
+      { title: 'Overview', href: 'inventory/overview', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] }
     ]
   },
   {

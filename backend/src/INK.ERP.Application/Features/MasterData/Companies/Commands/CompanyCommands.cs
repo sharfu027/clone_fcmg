@@ -39,12 +39,18 @@ public record CreateCompanyCommand(
 public class CreateCompanyCommandHandler : IRequestHandler<CreateCompanyCommand, Result<CompanyDto>>
 {
     private readonly ICompanyRepository _repository;
+    private readonly IDesignationRepository _designationRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
-    public CreateCompanyCommandHandler(ICompanyRepository repository, IUnitOfWork unitOfWork, ICompanyAccessResolver companyAccessResolver)
+    public CreateCompanyCommandHandler(
+        ICompanyRepository repository,
+        IDesignationRepository designationRepository,
+        IUnitOfWork unitOfWork,
+        ICompanyAccessResolver companyAccessResolver)
     {
         _repository = repository;
+        _designationRepository = designationRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -99,6 +105,32 @@ public class CreateCompanyCommandHandler : IRequestHandler<CreateCompanyCommand,
         company.AddDomainEvent(new CompanyCreatedEvent(company, "System"));
 
         await _repository.AddAsync(company, cancellationToken);
+
+        // Provision Company-scoped Default Designations
+        var defaultDesignations = new (string Code, string Title, int Level, decimal ApprovalLimit)[]
+        {
+            ("DSG-BM", "Branch Manager", 2, 500000m),
+            ("DSG-WM", "Warehouse Manager", 3, 250000m),
+            ("DSG-DM", "Department Manager", 3, 250000m),
+            ("DSG-OM", "Operations Manager", 2, 500000m),
+            ("DSG-SM", "Sales Manager", 2, 500000m),
+            ("DSG-FM", "Finance Manager", 2, 1000000m)
+        };
+
+        foreach (var d in defaultDesignations)
+        {
+            var designation = new Designation
+            {
+                CompanyId = company.Id,
+                Code = d.Code,
+                Title = d.Title,
+                Level = d.Level,
+                ApprovalLimit = d.ApprovalLimit,
+                IsActive = true
+            };
+            await _designationRepository.AddAsync(designation, cancellationToken);
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(MapToDto(company));

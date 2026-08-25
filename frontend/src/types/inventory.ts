@@ -1,3 +1,124 @@
+export type LocationType = 'Standard' | 'Transit' | 'VanStock' | 'Quarantine' | 'Damaged' | string;
+
+export interface InventoryLocation {
+  id: string;
+  companyId: string;
+  companyName?: string;
+  branchId?: string | null;
+  branchName?: string | null;
+  warehouseId?: string | null;
+  warehouseName?: string | null;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  code: string;
+  name: string;
+  locationType: LocationType;
+  isActive: boolean;
+  createdAtUtc: string;
+  lastModifiedAtUtc?: string | null;
+}
+
+export interface InventoryBalance {
+  id: string;
+  companyId: string;
+  companyName?: string;
+  inventoryLocationId: string;
+  inventoryLocationName?: string;
+  inventoryLocationCode?: string;
+  productId: string;
+  productName?: string;
+  productCode?: string;
+  sku?: string;
+  baseUomId: string;
+  baseUomName?: string;
+  onHandQuantity: number;
+  reservedQuantity: number;
+  allocatedQuantity: number;
+  availableQuantity: number;
+  lastMovementAtUtc?: string | null;
+  createdAtUtc: string;
+  lastModifiedAtUtc?: string | null;
+}
+
+export type InventoryBalanceDto = InventoryBalance;
+
+export interface OpeningBalanceRequest {
+  companyId: string;
+  inventoryLocationId: string;
+  productId: string;
+  openingQuantity: number;
+}
+
+export type InventoryTransactionType =
+  | 'OpeningBalance'
+  | 'GoodsReceipt'
+  | 'GoodsIssue'
+  | 'AdjustmentIncrease'
+  | 'AdjustmentDecrease'
+  | 'TransferIn'
+  | 'TransferOut'
+  | string;
+
+export interface InventoryTransaction {
+  id: string;
+  companyId: string;
+  companyName?: string;
+  inventoryLocationId: string;
+  inventoryLocationName?: string;
+  inventoryLocationCode?: string;
+  productId: string;
+  productName?: string;
+  productCode?: string;
+  sku?: string;
+  baseUomId: string;
+  baseUomName?: string;
+  transactionType: InventoryTransactionType;
+  quantity: number;
+  signedQuantity: number;
+  balanceAfter: number;
+  referenceDocumentType?: string | null;
+  referenceDocumentId?: string | null;
+  referenceDocumentNumber?: string | null;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+  performedByEmployeeId?: string | null;
+  performedByEmployeeName?: string | null;
+  notes?: string | null;
+  createdAtUtc: string;
+}
+
+export type InventoryTransactionDto = InventoryTransaction;
+
+export interface PostInventoryTransactionRequest {
+  companyId: string;
+  inventoryLocationId: string;
+  productId: string;
+  transactionType: InventoryTransactionType;
+  quantity: number;
+  referenceDocumentType?: string | null;
+  referenceDocumentId?: string | null;
+  referenceDocumentNumber?: string | null;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+  performedByEmployeeId?: string | null;
+  notes?: string | null;
+}
+
+export interface InventoryReconciliationDto {
+  companyId: string;
+  companyName?: string;
+  inventoryLocationId: string;
+  inventoryLocationName?: string;
+  productId: string;
+  productName?: string;
+  baseUomName?: string;
+  currentOnHandQuantity: number;
+  ledgerCalculatedQuantity: number;
+  discrepancy: number;
+  isReconciled: boolean;
+  totalTransactionsCount: number;
+}
+
 export type MovementType =
   | 'GoodsReceipt'
   | 'GoodsIssue'
@@ -71,16 +192,177 @@ export interface StockMovement {
   performedBy: string;
 }
 
-export interface StockReservation {
+export type InventoryReservationStatus =
+  | 'Pending'
+  | 'Active'
+  | 'Allocated'
+  | 'Fulfilled'
+  | 'Released'
+  | 'Cancelled'
+  | 'Expired'
+  | string;
+
+export interface InventoryReservation {
+  id: string;
+  companyId: string;
+  inventoryLocationId: string;
+  inventoryLocationName: string;
+  inventoryLocationCode: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  baseUomName?: string | null;
+  reservedQuantity: number;
+  status: InventoryReservationStatus;
+  salesOrderId?: string | null;
+  salesOrderLineId?: string | null;
+  reservedAtUtc: string;
+  releasedAtUtc?: string | null;
+  expiresAtUtc?: string | null;
+  createdAtUtc: string;
+}
+
+export type InventoryReservationDto = InventoryReservation;
+
+export interface ReserveStockRequest {
+  companyId: string;
+  inventoryLocationId: string;
+  productId: string;
+  requestedQuantity: number;
+  salesOrderId?: string | null;
+  salesOrderLineId?: string | null;
+  expiresAtUtc?: string | null;
+}
+
+export interface InventoryAvailabilityDto {
+  companyId: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  baseUomName?: string | null;
+  inventoryLocationId: string;
+  inventoryLocationName: string;
+  inventoryLocationCode: string;
+  onHandQuantity: number;
+  reservedQuantity: number;
+  allocatedQuantity: number;
+  availableQuantity: number;
+  requestedQuantity: number;
+  isAvailable: boolean;
+  shortfallQuantity: number;
+}
+
+export interface InventoryAlternativeLocationDto {
   id: string;
   code: string;
-  type: ReservationType;
-  referenceCode: string;
+  name: string;
+  locationType: string;
+  companyId: string;
+  companyName?: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
+  warehouseId?: string | null;
+  warehouseName?: string | null;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  onHandQuantity: number;
+  reservedQuantity: number;
+  allocatedQuantity: number;
+  availableQuantity: number;
+  recommendedRank: number;
+  rankReason: string;
+}
+
+export type StockTransferStatus =
+  | 'Draft'
+  | 'Requested'
+  | 'Approved'
+  | 'Rejected'
+  | 'Dispatched'
+  | 'InTransit'
+  | 'Received'
+  | 'Completed'
+  | 'Cancelled'
+  | string;
+
+export interface StockTransferLine {
+  id: string;
+  stockTransferId: string;
+  productId: string;
   productName: string;
-  reservedQty: number;
-  priority: 'High' | 'Normal';
-  reservationDate: string;
-  status: 'Active' | 'Released' | 'Fulfilled';
+  productCode: string;
+  productSku?: string | null;
+  uomName: string;
+  requestedQuantity: number;
+  approvedQuantity: number;
+  dispatchedQuantity: number;
+  receivedQuantity: number;
+  remainingQuantity: number;
+  createdAtUtc: string;
+}
+
+export interface StockTransfer {
+  id: string;
+  companyId: string;
+  companyName: string;
+  transferNumber: string;
+  sourceLocationId: string;
+  sourceLocationName: string;
+  sourceLocationCode: string;
+  destinationLocationId: string;
+  destinationLocationName: string;
+  destinationLocationCode: string;
+  salesOrderId?: string | null;
+  salesOrderNumber?: string | null;
+  status: StockTransferStatus;
+  requestedByEmployeeId: string;
+  requestedByEmployeeName: string;
+  approvedByEmployeeId?: string | null;
+  approvedByEmployeeName?: string | null;
+  dispatchedAtUtc?: string | null;
+  receivedAtUtc?: string | null;
+  notes?: string | null;
+  createdAtUtc: string;
+  lastModifiedAtUtc?: string | null;
+  lines: StockTransferLine[];
+}
+
+export type StockTransferDto = StockTransfer;
+
+export interface CreateStockTransferLineRequest {
+  productId: string;
+  requestedQuantity: number;
+}
+
+export interface CreateStockTransferRequest {
+  companyId: string;
+  sourceLocationId: string;
+  destinationLocationId: string;
+  salesOrderId?: string | null;
+  requestedByEmployeeId: string;
+  notes?: string | null;
+  lines: CreateStockTransferLineRequest[];
+}
+
+export interface ApproveTransferLineItem {
+  lineId: string;
+  approvedQuantity: number;
+}
+
+export interface ApproveStockTransferRequest {
+  approvedByEmployeeId: string;
+  lineApprovals?: ApproveTransferLineItem[];
+}
+
+export interface ReceiveTransferLineItem {
+  lineId: string;
+  receivedQuantity: number;
+}
+
+export interface ReceiveStockTransferRequest {
+  lineReceipts?: ReceiveTransferLineItem[];
 }
 
 export interface PhysicalCountSheet {

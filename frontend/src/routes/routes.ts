@@ -79,10 +79,15 @@ export const ROUTES = {
   },
   INVENTORY: {
     ROOT: '/inventory',
+    OVERVIEW: '/inventory/overview',
     STOCK: '/inventory/stock',
-    EXPIRY: '/inventory/expiry',
-    ADJUSTMENTS: '/inventory/adjustments',
-    CYCLE_COUNT: '/inventory/cycle-count'
+    LOCATIONS: '/inventory/locations',
+    MOVEMENTS: '/inventory/movements',
+    RESERVATIONS: '/inventory/reservations',
+    TRANSFERS: '/inventory/transfers',
+    EXPIRY: '/inventory/stock',
+    ADJUSTMENTS: '/inventory/movements',
+    CYCLE_COUNT: '/inventory/stock'
   },
   WAREHOUSE: {
     ROOT: '/warehouse',

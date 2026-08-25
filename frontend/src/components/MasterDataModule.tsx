@@ -239,18 +239,21 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
   const [branchPhone, setBranchPhone] = useState('');
   const [branchEmail, setBranchEmail] = useState('');
   const [branchIsHq, setBranchIsHq] = useState(false);
+  const [branchManagerId, setBranchManagerId] = useState('');
 
   // 3. Department
   const [deptCompanyId, setDeptCompanyId] = useState('');
   const [deptBranchId, setDeptBranchId] = useState('');
   const [deptName, setDeptName] = useState('');
   const [deptDesc, setDeptDesc] = useState('');
+  const [deptManagerId, setDeptManagerId] = useState('');
 
   // 4. Designation
   const [desigCompanyId, setDesigCompanyId] = useState('1');
   const [desigTitle, setDesigTitle] = useState('');
   const [desigLevel, setDesigLevel] = useState<number>(1);
   const [desigApprovalLimit, setDesigApprovalLimit] = useState<number>(0);
+  const [desigTemplate, setDesigTemplate] = useState('Custom');
 
   // 4.1 Employee Role
   const [roleCompanyId, setRoleCompanyId] = useState('');
@@ -980,6 +983,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       if (x) {
         setFormCode(x.code); setBranchName(x.name); setBranchCompanyId(x.companyId); setBranchGstin(x.gstin); setBranchPhone(x.phone);
         setBranchEmail(x.email); setBranchIsHq(x.isHeadquarters); setFormStatus(x.status as any);
+        setBranchManagerId(x.managerEmployeeId || '');
         setAddrLine1(x.addressLine1); setAddrCity(x.city); setAddrState(x.state); setAddrPostalCode(x.postalCode); setAddrCountry(x.country);
       }
     } else if (module === 'departments' || module === 'masters/departments') {
@@ -990,6 +994,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
         setDeptCompanyId(x.companyId || (dbCompanies[0]?.id || ''));
         setDeptBranchId(x.branchId || '');
         setDeptDesc(x.description || '');
+        setDeptManagerId(x.managerEmployeeId || '');
         setFormStatus(x.status as any);
         setFormErrors({});
       }
@@ -1006,7 +1011,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     } else if (module === 'designations' || module === 'masters/designations') {
       const x = dbDesignations.find(d => d.id === id);
       if (x) {
-        setFormCode(x.code); setDesigTitle(x.title); setDesigCompanyId(x.companyId); setDesigLevel(x.level); setDesigApprovalLimit(x.approvalLimit); setFormStatus(x.status as any);
+        setFormCode(x.code); setDesigTitle(x.title); setDesigCompanyId(x.companyId); setDesigLevel(x.level); setDesigApprovalLimit(x.approvalLimit); setDesigTemplate('Custom'); setFormStatus(x.status as any);
       }
     } else if (module === 'employees' || module === 'masters/employees') {
       const x = dbEmployees.find(e => e.id === id);
@@ -1576,7 +1581,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           state: (addrState || 'Delhi').trim(), 
           postalCode: (addrPostalCode || '110001').trim(), 
           country: (addrCountry || 'India').trim(), 
-          isHeadquarters: Boolean(branchIsHq) 
+          isHeadquarters: Boolean(branchIsHq),
+          managerEmployeeId: isGuid(branchManagerId) ? branchManagerId : null,
+          isActive: formStatus === 'Active'
         };
         if (isNew) {
            await masterDataService.createBranch(payload);
@@ -1594,6 +1601,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
           code: formCode.toUpperCase().trim(), 
           name: deptName.trim(), 
           description: (deptDesc || '').trim() || undefined,
+          managerEmployeeId: isGuid(deptManagerId) ? deptManagerId : null,
           isActive: formStatus === 'Active'
         };
         if (isNew) {
@@ -1937,8 +1945,14 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       const location = c.city ? (c.state ? `${c.city}, ${c.state}` : c.city) : 'HQ';
       return { id: c.id, code: c.code, name: c.legalName, detail1: gstin, detail2: location, numericText: currency, status: statusDisplay };
     });
-    if (module === 'branches' || module === 'masters/branches') return dbBranches.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.companyName, detail2: b.city, numericText: b.isHeadquarters ? 'Headquarters' : 'Depot', status: b.status }));
-    if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => ({ id: d.id, code: d.code, name: d.name, detail1: d.branchName ? `Branch: ${d.branchName}` : (d.companyName ? `Company: ${d.companyName}` : 'Company Level'), detail2: d.description || 'Department', numericText: 'Dept', status: d.status }));
+    if (module === 'branches' || module === 'masters/branches') return dbBranches.map(b => {
+      const mgr = b.managerEmployeeName || (b.managerEmployeeId && dbEmployees.find(e => e.id === b.managerEmployeeId) ? `${dbEmployees.find(e => e.id === b.managerEmployeeId)?.firstName} ${dbEmployees.find(e => e.id === b.managerEmployeeId)?.lastName}`.trim() : null);
+      return { id: b.id, code: b.code, name: b.name, detail1: b.companyName, detail2: `${b.city}${mgr ? ` | Mgr: ${mgr}` : ''}`, numericText: b.isHeadquarters ? 'Headquarters' : 'Depot', status: b.status };
+    });
+    if (module === 'departments' || module === 'masters/departments') return dbDepartments.map(d => {
+      const mgr = d.managerEmployeeName || (d.managerEmployeeId && dbEmployees.find(e => e.id === d.managerEmployeeId) ? `${dbEmployees.find(e => e.id === d.managerEmployeeId)?.firstName} ${dbEmployees.find(e => e.id === d.managerEmployeeId)?.lastName}`.trim() : null);
+      return { id: d.id, code: d.code, name: d.name, detail1: d.branchName ? `Branch: ${d.branchName}` : (d.companyName ? `Company: ${d.companyName}` : 'Company Level'), detail2: `${d.description || 'Department'}${mgr ? ` | Mgr: ${mgr}` : ''}`, numericText: 'Dept', status: d.status };
+    });
     if (module === 'employee-roles' || module === 'masters/employee-roles') return dbEmployeeRoles.map(r => ({
       id: r.id,
       code: r.code,
@@ -1970,7 +1984,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
     }));
     if (module === 'brands' || module === 'masters/brands') return dbBrands.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.origin, detail2: '', numericText: `${b.productCount} SKUs`, status: b.status }));
     if (module === 'units' || module === 'masters/units') return dbUnits.map(u => ({ id: u.id, code: u.code, name: u.name, detail1: u.baseUnit, detail2: '', numericText: `Factor: ${u.conversionFactor}`, status: u.status }));
-    if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => ({ id: w.id, code: w.code, name: w.name, detail1: w.branchName ? `Branch: ${w.branchName}` : (w.companyName ? `Company: ${w.companyName}` : (w.manager || 'Company Level')), detail2: w.address || w.warehouseType || 'Warehouse / Stockist', numericText: `${(w.capacitySft || w.storageAreaSqFt || 0).toLocaleString()} sq ft`, status: w.status }));
+    if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => {
+      const mgr = (w as any).managerEmployeeName || (w.managerEmployeeId && dbEmployees.find(e => e.id === w.managerEmployeeId) ? `${dbEmployees.find(e => e.id === w.managerEmployeeId)?.firstName} ${dbEmployees.find(e => e.id === w.managerEmployeeId)?.lastName}`.trim() : null);
+      return { id: w.id, code: w.code, name: w.name, detail1: (w as any).companyName || (w.branchName ? `Branch: ${w.branchName}` : 'Central Warehouse'), detail2: `${(w as any).city || w.warehouseType || 'Depot'}${mgr ? ` | Mgr: ${mgr}` : ''}`, numericText: `${(w.capacitySft || (w as any).capacitySqFt || (w as any).storageAreaSqFt || 0).toLocaleString()} sq ft`, status: w.status };
+    });
     if (module === 'customers' || module === 'masters/customers') return dbCustomers.map(c => ({
       id: c.id,
       code: c.code,
@@ -2477,11 +2494,30 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                               setCustCreditDays(30);
                               setCustSalesRouteId('');
                             } else if (module === 'branches' || module === 'masters/branches') {
+                              setBranchName('');
+                              setBranchManagerId('');
                               const parent = dbCompanies.find(c => c.id === branchCompanyId) || dbCompanies[0];
                               if (parent) {
                                 setBranchCompanyId(parent.id);
                                 if (parent.gstin) setBranchGstin(parent.gstin);
                               }
+                            } else if (module === 'departments' || module === 'masters/departments') {
+                              setDeptName('');
+                              setDeptDesc('');
+                              setDeptBranchId('');
+                              setDeptManagerId('');
+                              if (dbCompanies[0]?.id) setDeptCompanyId(dbCompanies[0].id);
+                            } else if (module === 'designations' || module === 'masters/designations') {
+                              setDesigTitle('');
+                              setDesigLevel(1);
+                              setDesigApprovalLimit(0);
+                              setDesigTemplate('Custom');
+                              if (dbCompanies[0]?.id) setDesigCompanyId(dbCompanies[0].id);
+                            } else if (module === 'warehouses' || module === 'masters/warehouses') {
+                              setWhName('');
+                              setWhBranchId('');
+                              setWhManagerEmployeeId('');
+                              if (dbCompanies[0]?.id) setWhCompanyId(dbCompanies[0].id);
                             } else if (module === 'employees' || module === 'masters/employees') {
                               if (dbCompanies[0]?.id) setEmpCompanyId(dbCompanies[0].id);
                               setEmpBranchId('');
@@ -3182,6 +3218,18 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Legal Entity / Title</span>
                         <span className="font-semibold text-brand-text-primary text-sm">{branchName || deptName || desigTitle || `${empFirstName} ${empLastName}`.trim() || catName || brandName || uomName || whName || custLegalName || suppLegalName || 'N/A'}</span>
                       </div>
+                      {(module.includes('branches') || module.includes('departments') || module.includes('warehouses')) && (
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Assigned Manager</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {(() => {
+                              const mgrId = module.includes('branches') ? branchManagerId : (module.includes('departments') ? deptManagerId : whManagerEmployeeId);
+                              const emp = dbEmployees.find(e => e.id === mgrId);
+                              return emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeCode || emp.code})${emp.designationTitle ? ` - ${emp.designationTitle}` : ''}` : <span className="text-slate-400 font-normal italic">Not Assigned</span>;
+                            })()}
+                          </span>
+                        </div>
+                      )}
                       <div>
                         <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${formStatus === 'Active' ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
@@ -3415,6 +3463,30 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label htmlFor="branchManagerId" className="font-bold text-brand-text-primary">Branch Manager <span className="text-slate-400 font-normal">(optional)</span></label>
+                      <select 
+                        id="branchManagerId" 
+                        value={branchManagerId} 
+                        onChange={e => setBranchManagerId(e.target.value)} 
+                        className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                      >
+                        <option value="">-- No Manager Assigned --</option>
+                        {dbEmployees
+                          .filter(e => (!branchCompanyId || e.companyId === branchCompanyId) && e.isActive !== false)
+                          .map(e => (
+                            <option key={e.id} value={e.id}>
+                              {e.firstName} {e.lastName} ({e.employeeCode || e.code}){e.designationTitle ? ` - ${e.designationTitle}` : ''}
+                            </option>
+                          ))}
+                      </select>
+                      {branchManagerId && !dbEmployees.find(e => e.id === branchManagerId)?.designationTitle?.toLowerCase().includes('branch manager') && (
+                        <p className="text-[11px] text-amber-600 font-medium mt-1">Note: Selected employee is not designated as Branch Manager.</p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Branch GSTIN</label>
@@ -3448,6 +3520,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         onChange={e => {
                           setDeptCompanyId(e.target.value);
                           setDeptBranchId('');
+                          setDeptManagerId('');
                           setFormErrors(p => ({ ...p, deptCompanyId: '' }));
                         }} 
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.deptCompanyId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
@@ -3461,7 +3534,10 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       <label className="font-bold text-brand-text-primary">Parent Branch <span className="text-slate-400 font-normal">(Optional)</span></label>
                       <select 
                         value={deptBranchId} 
-                        onChange={e => setDeptBranchId(e.target.value)} 
+                        onChange={e => {
+                          setDeptBranchId(e.target.value);
+                          setDeptManagerId('');
+                        }} 
                         className="w-full p-2 border rounded bg-white font-medium border-brand-border"
                       >
                         <option value="">-- No Parent Branch / Company Level --</option>
@@ -3489,6 +3565,30 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label htmlFor="deptManagerId" className="font-bold text-brand-text-primary">Department Manager <span className="text-slate-400 font-normal">(optional)</span></label>
+                      <select 
+                        id="deptManagerId" 
+                        value={deptManagerId} 
+                        onChange={e => setDeptManagerId(e.target.value)} 
+                        className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                      >
+                        <option value="">-- No Manager Assigned --</option>
+                        {dbEmployees
+                          .filter(e => (!deptCompanyId || e.companyId === deptCompanyId) && e.isActive !== false && (!deptBranchId || !e.branchId || e.branchId === deptBranchId))
+                          .map(e => (
+                            <option key={e.id} value={e.id}>
+                              {e.firstName} {e.lastName} ({e.employeeCode || e.code}){e.designationTitle ? ` - ${e.designationTitle}` : ''}
+                            </option>
+                          ))}
+                      </select>
+                      {deptManagerId && !dbEmployees.find(e => e.id === deptManagerId)?.designationTitle?.toLowerCase().includes('department manager') && (
+                        <p className="text-[11px] text-amber-600 font-medium mt-1">Note: Selected employee is not designated as Department Manager.</p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="font-bold text-brand-text-primary">Description & Operational Mandate</label>
                     <textarea rows={3} value={deptDesc} onChange={e => setDeptDesc(e.target.value)} className="w-full p-2 border border-brand-border rounded" placeholder="Oversees raw material procurement, warehouse inventory, and trade routes." />
@@ -3499,11 +3599,55 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
               {/* 4. DESIGNATION FORM */}
               {(module === 'designations' || module === 'masters/designations') && (
                 <div className="space-y-6 text-xs">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">Company <span className="text-red-500">*</span></label>
                       <select value={desigCompanyId} onChange={e => setDesigCompanyId(e.target.value)} className="w-full p-2 border rounded bg-white font-semibold border-brand-border">
                         {dbCompanies.map(c => <option key={c.id} value={c.id}>{c.legalName}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-brand-text-primary">Designation Template <span className="text-slate-400 font-normal">(optional quick-fill)</span></label>
+                      <select 
+                        value={desigTemplate} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          setDesigTemplate(val);
+                          if (val === 'Branch Manager') {
+                            setDesigTitle('Branch Manager');
+                            setDesigLevel(2);
+                            setDesigApprovalLimit(500000);
+                          } else if (val === 'Warehouse Manager') {
+                            setDesigTitle('Warehouse Manager');
+                            setDesigLevel(3);
+                            setDesigApprovalLimit(250000);
+                          } else if (val === 'Department Manager') {
+                            setDesigTitle('Department Manager');
+                            setDesigLevel(3);
+                            setDesigApprovalLimit(250000);
+                          } else if (val === 'Operations Manager') {
+                            setDesigTitle('Operations Manager');
+                            setDesigLevel(2);
+                            setDesigApprovalLimit(500000);
+                          } else if (val === 'Sales Manager') {
+                            setDesigTitle('Sales Manager');
+                            setDesigLevel(2);
+                            setDesigApprovalLimit(500000);
+                          } else if (val === 'Finance Manager') {
+                            setDesigTitle('Finance Manager');
+                            setDesigLevel(2);
+                            setDesigApprovalLimit(1000000);
+                          }
+                        }} 
+                        className="w-full p-2 border border-brand-border rounded bg-white font-medium"
+                      >
+                        <option value="Custom">-- Custom Designation --</option>
+                        <option value="Branch Manager">Branch Manager (Level 2, ₹5L)</option>
+                        <option value="Warehouse Manager">Warehouse Manager (Level 3, ₹2.5L)</option>
+                        <option value="Department Manager">Department Manager (Level 3, ₹2.5L)</option>
+                        <option value="Operations Manager">Operations Manager (Level 2, ₹5L)</option>
+                        <option value="Sales Manager">Sales Manager (Level 2, ₹5L)</option>
+                        <option value="Finance Manager">Finance Manager (Level 2, ₹10L)</option>
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -4318,11 +4462,20 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1">
-                        <label htmlFor="whManagerEmployeeId" className="font-bold text-brand-text-primary">Warehouse Manager</label>
-                        <select id="whManagerEmployeeId" value={whManagerEmployeeId} onChange={e => setWhManagerEmployeeId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-semibold">
-                          <option value="">-- Select Employee Manager --</option>
-                          {dbEmployees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName} ({e.employeeCode})</option>)}
+                        <label htmlFor="whManagerEmployeeId" className="font-bold text-brand-text-primary">Warehouse Manager <span className="text-slate-400 font-normal">(optional)</span></label>
+                        <select id="whManagerEmployeeId" value={whManagerEmployeeId} onChange={e => setWhManagerEmployeeId(e.target.value)} className="w-full p-2 border border-brand-border rounded bg-white font-medium">
+                          <option value="">-- No Manager Assigned --</option>
+                          {dbEmployees
+                            .filter(e => (!whCompanyId || e.companyId === whCompanyId) && e.isActive !== false && (!whBranchId || !e.branchId || e.branchId === whBranchId))
+                            .map(e => (
+                              <option key={e.id} value={e.id}>
+                                {e.firstName} {e.lastName} ({e.employeeCode || e.code}){e.designationTitle ? ` - ${e.designationTitle}` : ''}
+                              </option>
+                            ))}
                         </select>
+                        {whManagerEmployeeId && !dbEmployees.find(e => e.id === whManagerEmployeeId)?.designationTitle?.toLowerCase().includes('warehouse manager') && (
+                          <p className="text-[11px] text-amber-600 font-medium mt-1">Note: Selected employee is not designated as Warehouse Manager.</p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <label htmlFor="whContactNumber" className="font-bold text-brand-text-primary">Contact Number</label>
