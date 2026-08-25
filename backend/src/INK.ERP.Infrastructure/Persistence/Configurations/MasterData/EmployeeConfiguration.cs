@@ -46,6 +46,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasOne(e => e.Branch)
             .WithMany()
             .HasForeignKey(e => e.BranchId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(e => e.Department)

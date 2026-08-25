@@ -5,7 +5,7 @@ namespace INK.ERP.Domain.Entities.MasterData;
 public sealed class Employee : BaseEntity
 {
     public Guid CompanyId { get; set; }
-    public Guid BranchId { get; set; }
+    public Guid? BranchId { get; set; }
     public Guid DepartmentId { get; set; }
     public Guid DesignationId { get; set; }
     public Guid? EmployeeRoleId { get; set; }

@@ -11,7 +11,7 @@ namespace INK.ERP.Application.Features.MasterData.Employees.Commands;
 
 public record CreateEmployeeCommand(
     Guid CompanyId,
-    Guid BranchId,
+    Guid? BranchId,
     Guid DepartmentId,
     Guid? WarehouseId,
     Guid DesignationId,
@@ -74,16 +74,36 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             return Result<EmployeeDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{targetCompanyId}' was not found."));
         }
 
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+        Branch? branch = null;
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
         {
-            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
+            if (branch == null || branch.IsDeleted || branch.CompanyId != targetCompanyId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            }
         }
 
         var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
-        if (department == null || !department.IsActive || department.CompanyId != targetCompanyId || (department.BranchId.HasValue && department.BranchId.Value != branch.Id))
+        if (department == null || !department.IsActive || department.CompanyId != targetCompanyId)
         {
-            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company/branch."));
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company."));
+        }
+
+        // Department Compatibility Rules:
+        if (!request.BranchId.HasValue || request.BranchId.Value == Guid.Empty)
+        {
+            if (department.BranchId.HasValue && department.BranchId.Value != Guid.Empty)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchDepartmentMismatch", "A branch-linked department cannot be assigned to an employee without a branch location."));
+            }
+        }
+        else
+        {
+            if (department.BranchId.HasValue && department.BranchId.Value != Guid.Empty && department.BranchId.Value != request.BranchId.Value)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchDepartmentMismatch", "The selected department is assigned to a different branch than the employee's branch location."));
+            }
         }
 
         INK.ERP.Domain.Entities.Warehouse? warehouse = null;
@@ -95,17 +115,20 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
                 return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidWarehouse", "The selected warehouse/stockist does not exist, is inactive, or does not belong to the authorized company."));
             }
 
-            // Branch Compatibility Rules:
-            // 1. Employee has no branch (Guid.Empty) but Warehouse is branch-linked -> REJECT
-            if (request.BranchId == Guid.Empty && warehouse.BranchId.HasValue)
+            // Warehouse Compatibility Rules:
+            if (!request.BranchId.HasValue || request.BranchId.Value == Guid.Empty)
             {
-                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "A branch-linked warehouse cannot be assigned to an employee without a branch location."));
+                if (warehouse.BranchId.HasValue && warehouse.BranchId.Value != Guid.Empty)
+                {
+                    return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "A branch-linked warehouse cannot be assigned to an employee without a branch location."));
+                }
             }
-
-            // 2. Both populated and mismatched -> REJECT
-            if (request.BranchId != Guid.Empty && warehouse.BranchId.HasValue && warehouse.BranchId.Value != request.BranchId)
+            else
             {
-                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "The selected warehouse is assigned to a different branch than the employee's branch location."));
+                if (warehouse.BranchId.HasValue && warehouse.BranchId.Value != Guid.Empty && warehouse.BranchId.Value != request.BranchId.Value)
+                {
+                    return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "The selected warehouse is assigned to a different branch than the employee's branch location."));
+                }
             }
         }
 
@@ -134,7 +157,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         var employee = new Employee
         {
             CompanyId = targetCompanyId,
-            BranchId = request.BranchId,
+            BranchId = request.BranchId.HasValue && request.BranchId.Value != Guid.Empty ? request.BranchId.Value : null,
             DepartmentId = request.DepartmentId,
             WarehouseId = request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty ? request.WarehouseId.Value : null,
             DesignationId = request.DesignationId,
@@ -157,7 +180,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             employee.CompanyId,
             company.LegalName,
             employee.BranchId,
-            branch.Name,
+            branch?.Name,
             employee.DepartmentId,
             department.Name,
             employee.WarehouseId,
@@ -185,7 +208,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
 public record UpdateEmployeeCommand(
     Guid Id,
     Guid CompanyId,
-    Guid BranchId,
+    Guid? BranchId,
     Guid DepartmentId,
     Guid? WarehouseId,
     Guid DesignationId,
@@ -253,16 +276,36 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             return Result<EmployeeDto>.Failure(Error.NotFound("Company.NotFound", $"Parent Company with ID '{employee.CompanyId}' was not found."));
         }
 
-        var branch = await _branchRepository.GetByIdAsync(request.BranchId, cancellationToken);
-        if (branch == null || branch.IsDeleted || branch.CompanyId != employee.CompanyId)
+        Branch? branch = null;
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
         {
-            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            branch = await _branchRepository.GetByIdAsync(request.BranchId.Value, cancellationToken);
+            if (branch == null || branch.IsDeleted || branch.CompanyId != employee.CompanyId)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidBranch", "The selected branch does not exist or does not belong to the authorized company."));
+            }
         }
 
         var department = await _departmentRepository.GetByIdAsync(request.DepartmentId, cancellationToken);
-        if (department == null || !department.IsActive || department.CompanyId != employee.CompanyId || (department.BranchId.HasValue && department.BranchId.Value != branch.Id))
+        if (department == null || !department.IsActive || department.CompanyId != employee.CompanyId)
         {
-            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company/branch."));
+            return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidDepartment", "The selected department does not exist or does not belong to the authorized company."));
+        }
+
+        // Department Compatibility Rules:
+        if (!request.BranchId.HasValue || request.BranchId.Value == Guid.Empty)
+        {
+            if (department.BranchId.HasValue && department.BranchId.Value != Guid.Empty)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchDepartmentMismatch", "A branch-linked department cannot be assigned to an employee without a branch location."));
+            }
+        }
+        else
+        {
+            if (department.BranchId.HasValue && department.BranchId.Value != Guid.Empty && department.BranchId.Value != request.BranchId.Value)
+            {
+                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchDepartmentMismatch", "The selected department is assigned to a different branch than the employee's branch location."));
+            }
         }
 
         INK.ERP.Domain.Entities.Warehouse? warehouse = null;
@@ -274,17 +317,20 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
                 return Result<EmployeeDto>.Failure(Error.Validation("Employee.InvalidWarehouse", "The selected warehouse/stockist does not exist, is inactive, or does not belong to the authorized company."));
             }
 
-            // Branch Compatibility Rules:
-            // 1. Employee has no branch (Guid.Empty) but Warehouse is branch-linked -> REJECT
-            if (request.BranchId == Guid.Empty && warehouse.BranchId.HasValue)
+            // Warehouse Compatibility Rules:
+            if (!request.BranchId.HasValue || request.BranchId.Value == Guid.Empty)
             {
-                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "A branch-linked warehouse cannot be assigned to an employee without a branch location."));
+                if (warehouse.BranchId.HasValue && warehouse.BranchId.Value != Guid.Empty)
+                {
+                    return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "A branch-linked warehouse cannot be assigned to an employee without a branch location."));
+                }
             }
-
-            // 2. Both populated and mismatched -> REJECT
-            if (request.BranchId != Guid.Empty && warehouse.BranchId.HasValue && warehouse.BranchId.Value != request.BranchId)
+            else
             {
-                return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "The selected warehouse is assigned to a different branch than the employee's branch location."));
+                if (warehouse.BranchId.HasValue && warehouse.BranchId.Value != Guid.Empty && warehouse.BranchId.Value != request.BranchId.Value)
+                {
+                    return Result<EmployeeDto>.Failure(Error.Validation("Employee.BranchWarehouseMismatch", "The selected warehouse is assigned to a different branch than the employee's branch location."));
+                }
             }
         }
 
@@ -318,7 +364,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             return Result<EmployeeDto>.Failure(Error.Conflict("Employee.DuplicateEmail", $"Email '{request.Email}' is already registered with another employee."));
         }
 
-        employee.BranchId = request.BranchId;
+        employee.BranchId = request.BranchId.HasValue && request.BranchId.Value != Guid.Empty ? request.BranchId.Value : null;
         employee.DepartmentId = request.DepartmentId;
         employee.WarehouseId = request.WarehouseId.HasValue && request.WarehouseId.Value != Guid.Empty ? request.WarehouseId.Value : null;
         employee.DesignationId = request.DesignationId;
@@ -340,7 +386,7 @@ public class UpdateEmployeeCommandHandler : IRequestHandler<UpdateEmployeeComman
             employee.CompanyId,
             company.LegalName,
             employee.BranchId,
-            branch.Name,
+            branch?.Name,
             employee.DepartmentId,
             department.Name,
             employee.WarehouseId,

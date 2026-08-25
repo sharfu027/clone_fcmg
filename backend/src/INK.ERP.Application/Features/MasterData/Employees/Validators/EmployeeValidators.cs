@@ -10,9 +10,6 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
         RuleFor(x => x.CompanyId)
             .NotEmpty().WithMessage("Company ID is required.");
 
-        RuleFor(x => x.BranchId)
-            .NotEmpty().WithMessage("Branch ID is required.");
-
         RuleFor(x => x.DepartmentId)
             .NotEmpty().WithMessage("Department ID is required.");
 
@@ -52,9 +49,6 @@ public class UpdateEmployeeCommandValidator : AbstractValidator<UpdateEmployeeCo
 
         RuleFor(x => x.CompanyId)
             .NotEmpty().WithMessage("Company ID is required.");
-
-        RuleFor(x => x.BranchId)
-            .NotEmpty().WithMessage("Branch ID is required.");
 
         RuleFor(x => x.DepartmentId)
             .NotEmpty().WithMessage("Department ID is required.");

@@ -168,7 +168,7 @@ public sealed class GetAdminSubordinatesQueryHandler : IRequestHandler<GetAdminS
         var company = await companyRepo.GetByIdAsync(activeAssign.CompanyId, cancellationToken);
 
         var employees = await empRepo.FindAsync(e => e.CompanyId == activeAssign.CompanyId, cancellationToken);
-        var branchIds = employees.Select(e => e.BranchId).Distinct().ToList();
+        var branchIds = employees.Where(e => e.BranchId.HasValue).Select(e => e.BranchId!.Value).Distinct().ToList();
         var deptIds = employees.Select(e => e.DepartmentId).Distinct().ToList();
         var desigIds = employees.Select(e => e.DesignationId).Distinct().ToList();
 
@@ -184,7 +184,11 @@ public sealed class GetAdminSubordinatesQueryHandler : IRequestHandler<GetAdminS
             .OrderBy(e => e.EmployeeCode)
             .Select(e =>
             {
-                branchMap.TryGetValue(e.BranchId, out var branchName);
+                string? branchName = null;
+                if (e.BranchId.HasValue)
+                {
+                    branchMap.TryGetValue(e.BranchId.Value, out branchName);
+                }
                 deptMap.TryGetValue(e.DepartmentId, out var deptName);
                 desigMap.TryGetValue(e.DesignationId, out var desigTitle);
 

@@ -4,7 +4,7 @@ public record EmployeeDto(
     Guid Id,
     Guid CompanyId,
     string? CompanyName,
-    Guid BranchId,
+    Guid? BranchId,
     string? BranchName,
     Guid DepartmentId,
     string? DepartmentName,

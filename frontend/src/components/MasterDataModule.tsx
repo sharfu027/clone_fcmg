@@ -1272,9 +1272,6 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       if (!empCompanyId || !isGuid(empCompanyId)) {
         errors.empCompanyId = 'Company is required. Please select a valid Company.';
       }
-      if (!empBranchId || !isGuid(empBranchId)) {
-        errors.empBranchId = 'Branch is required. Please select a Branch.';
-      }
       if (!empDepartmentId || !isGuid(empDepartmentId)) {
         errors.empDepartmentId = 'Department is required. Please select a Department.';
       }
@@ -1641,7 +1638,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       } else if (module === 'employees' || module === 'masters/employees') {
         const payload = { 
           companyId: empCompanyId, 
-          branchId: empBranchId, 
+          branchId: isGuid(empBranchId) ? empBranchId : null, 
           departmentId: empDepartmentId, 
           warehouseId: isGuid(empWarehouseId) ? empWarehouseId : null,
           designationId: empDesignationId, 
@@ -1957,7 +1954,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       code: e.employeeCode || e.code,
       name: e.fullName || `${e.firstName} ${e.lastName}`.trim(),
       detail1: e.employeeRoleName ? `Role: ${e.employeeRoleName}` : (e.email || '—'),
-      detail2: `${e.designationTitle || '—'}${e.warehouseName ? ` | WH: ${e.warehouseName}` : (e.branchName ? ` | ${e.branchName}` : '')}`,
+      detail2: `${e.designationTitle || '—'} | ${e.branchName ? e.branchName : 'Company Level'}${e.warehouseName ? ` | WH: ${e.warehouseName}` : ''}`,
       numericText: e.salary !== undefined && e.salary !== null && e.salary !== '' ? `₹${Number(e.salary).toLocaleString('en-IN')}` : '—',
       status: e.status
     }));
@@ -3105,7 +3102,9 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                         </div>
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Branch Location</span>
-                          <span className="font-medium text-brand-text-primary">{dbBranches.find(b => b.id === empBranchId)?.name || dbEmployees.find(e => e.id === selectedId)?.branchName || 'N/A'}</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {dbBranches.find(b => b.id === empBranchId)?.name || dbEmployees.find(e => e.id === selectedId)?.branchName || <span className="text-slate-500 font-normal italic">Not Assigned / Company Level</span>}
+                          </span>
                         </div>
                         <div>
                           <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Warehouse / Stockist</span>
@@ -3669,28 +3668,39 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-slate-50/60 p-4 rounded-lg border border-slate-200">
                     {/* Branch Location */}
                     <div className="space-y-1">
-                      <label className="font-bold text-brand-text-primary">Branch Location <span className="text-red-500">*</span></label>
+                      <label className="font-bold text-brand-text-primary">Branch Location <span className="text-xs font-normal text-slate-500">(optional)</span></label>
                       <select
                         value={empBranchId}
                         onChange={e => {
                           const newBranchId = e.target.value;
                           setEmpBranchId(newBranchId);
                           setFormErrors(p => ({ ...p, empBranchId: '' }));
-                          // Clear department if incompatible
-                          if (empDepartmentId && !dbDepartments.some(d => d.id === empDepartmentId && (!d.branchId || d.branchId === newBranchId))) {
-                            setEmpDepartmentId('');
+                          // Clear department if incompatible with new branch
+                          if (empDepartmentId) {
+                            const dept = dbDepartments.find(d => d.id === empDepartmentId);
+                            if (dept) {
+                              if (!newBranchId && dept.branchId) {
+                                setEmpDepartmentId('');
+                              } else if (newBranchId && dept.branchId && dept.branchId !== newBranchId) {
+                                setEmpDepartmentId('');
+                              }
+                            }
                           }
-                          // Clear warehouse if incompatible with branch
+                          // Clear warehouse if incompatible with new branch
                           if (empWarehouseId) {
                             const wh = dbWarehouses.find(w => w.id === empWarehouseId);
-                            if (wh && wh.branchId && wh.branchId !== newBranchId) {
-                              setEmpWarehouseId('');
+                            if (wh) {
+                              if (!newBranchId && wh.branchId) {
+                                setEmpWarehouseId('');
+                              } else if (newBranchId && wh.branchId && wh.branchId !== newBranchId) {
+                                setEmpWarehouseId('');
+                              }
                             }
                           }
                         }}
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.empBranchId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
-                        <option value="">-- Select Branch --</option>
+                        <option value="">-- No Branch / Company Level --</option>
                         {dbBranches
                           .filter(b => !empCompanyId || b.companyId === empCompanyId)
                           .map(b => <option key={b.id} value={b.id}>{b.name} ({b.code})</option>)}
@@ -3708,7 +3718,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       >
                         <option value="">-- No Warehouse / Stockist --</option>
                         {dbWarehouses
-                          .filter(w => (!empCompanyId || w.companyId === empCompanyId) && (!w.branchId || !empBranchId || w.branchId === empBranchId) && w.status !== 'Inactive')
+                          .filter(w => (!empCompanyId || w.companyId === empCompanyId) && (!empBranchId ? !w.branchId : (!w.branchId || w.branchId === empBranchId)) && w.status !== 'Inactive')
                           .map(w => (
                             <option key={w.id} value={w.id}>
                               {w.name} ({w.code}){w.branchName ? ` — ${w.branchName}` : ' (Company Level)'}
@@ -3727,8 +3737,8 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       >
                         <option value="">-- Select Department --</option>
                         {dbDepartments
-                          .filter(d => (!empBranchId || !d.branchId || d.branchId === empBranchId) && (!empCompanyId || d.companyId === empCompanyId))
-                          .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          .filter(d => (!empCompanyId || d.companyId === empCompanyId) && (!empBranchId ? !d.branchId : (!d.branchId || d.branchId === empBranchId)))
+                          .map(d => <option key={d.id} value={d.id}>{d.name}{d.branchName ? ` — ${d.branchName}` : ' (Company Level)'}</option>)}
                       </select>
                       {formErrors.empDepartmentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.empDepartmentId}</p>}
                     </div>
