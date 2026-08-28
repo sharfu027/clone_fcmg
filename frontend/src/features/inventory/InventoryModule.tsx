@@ -27,7 +27,8 @@ import {
   Send,
   ShoppingCart,
   Lock,
-  Info
+  Info,
+  RotateCcw
 } from 'lucide-react';
 import {
   InventoryLocation,
@@ -1994,14 +1995,15 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                         )}
                       </td>
                       <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
                           {(resv.status === 'Active' || resv.status === 'Allocated') && (
-                            <Tooltip content="Release reservation to restore available stock">
+                            <Tooltip content="Release internal hold and restore quantity to available stock in real time">
                               <button
                                 onClick={() => handleReleaseReservation(resv)}
-                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold transition cursor-pointer"
+                                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
                               >
-                                Release
+                                <RotateCcw size={12} />
+                                <span>Restore Stock</span>
                               </button>
                             </Tooltip>
                           )}
@@ -2009,13 +2011,35 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                             <Tooltip content="Cancel reservation">
                               <button
                                 onClick={() => handleCancelReservation(resv)}
-                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-[11px] font-semibold transition cursor-pointer"
+                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-semibold transition cursor-pointer"
                               >
                                 Cancel
                               </button>
                             </Tooltip>
                           )}
-                          {resv.status !== 'Active' && resv.status !== 'Allocated' && resv.status !== 'Pending' && (
+                          {!resv.salesOrderId && (resv.status === 'Released' || resv.status === 'Cancelled' || resv.status === 'Expired') && (
+                            <Tooltip content="Re-apply internal stock reservation hold for this product & location">
+                              <button
+                                onClick={() => {
+                                  setReserveForm({
+                                    companyId: resv.companyId || filterCompanyId || (companies[0]?.id ?? ''),
+                                    inventoryLocationId: resv.inventoryLocationId,
+                                    productId: resv.productId,
+                                    requestedQuantity: Number(resv.reservedQuantity),
+                                    salesOrderId: '',
+                                    salesOrderLineId: '',
+                                    expiresAtUtc: ''
+                                  });
+                                  setIsReserveModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                              >
+                                <BookmarkCheck size={12} />
+                                <span>Re-Reserve</span>
+                              </button>
+                            </Tooltip>
+                          )}
+                          {resv.salesOrderId && resv.status !== 'Active' && resv.status !== 'Allocated' && resv.status !== 'Pending' && (
                             <span className="text-[11px] text-slate-400 italic">Locked</span>
                           )}
                         </div>
