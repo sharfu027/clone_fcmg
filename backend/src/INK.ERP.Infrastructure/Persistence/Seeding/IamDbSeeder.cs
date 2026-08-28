@@ -673,7 +673,11 @@ public static class IamDbSeeder
             ("USER_MGMT", "IAM.Users.Delete", "Delete Users", "Soft delete user profiles", 29),
             ("INVENTORY", "inventory:pick", "Order Picking", "Create, assign, and verify stock picking tasks", 30),
             ("INVENTORY", "inventory:pack", "Order Packing", "Create and verify packaging for picked orders", 31),
-            ("INVENTORY", "inventory:dispatch", "Order Dispatch", "Prepare shipments, confirm dispatches, and issue goods", 32)
+            ("INVENTORY", "inventory:dispatch", "Order Dispatch", "Prepare shipments, confirm dispatches, and issue goods", 32),
+            ("INVENTORY", "inventory:transfer:request", "Request Stock Transfer", "Create stock transfer requests for destination locations", 33),
+            ("INVENTORY", "inventory:transfer:approve", "Approve Stock Transfer", "Approve transfer requests for source supply locations", 34),
+            ("INVENTORY", "inventory:transfer:dispatch", "Dispatch Stock Transfer", "Dispatch stock from source supply locations", 35),
+            ("INVENTORY", "inventory:transfer:receive", "Receive Stock Transfer", "Receive stock at destination locations", 36)
         };
 
         var allPermissionIds = new List<Guid>();

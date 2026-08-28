@@ -14,7 +14,7 @@ using INK.ERP.Domain.Entities.Sales;
 namespace INK.ERP.Application.Features.Inventory.Transfers.Commands;
 
 // ----------------------------------------------------
-// 1. CREATE STOCK TRANSFER COMMAND
+// 1. CREATE STOCK TRANSFER COMMAND (Destination Requests from Source)
 // ----------------------------------------------------
 public record CreateStockTransferCommand(
     Guid CompanyId,
@@ -34,6 +34,7 @@ public class CreateStockTransferCommandHandler : IRequestHandler<CreateStockTran
     private readonly IEmployeeRepository _employeeRepository;
     private readonly ISalesOrderRepository _orderRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ILocationAuthorizationService _locationAuthService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreateStockTransferCommandHandler(
@@ -43,6 +44,7 @@ public class CreateStockTransferCommandHandler : IRequestHandler<CreateStockTran
         IEmployeeRepository employeeRepository,
         ISalesOrderRepository orderRepository,
         ICompanyAccessResolver companyAccessResolver,
+        ILocationAuthorizationService locationAuthService,
         IUnitOfWork unitOfWork)
     {
         _transferRepository = transferRepository ?? throw new ArgumentNullException(nameof(transferRepository));
@@ -51,6 +53,7 @@ public class CreateStockTransferCommandHandler : IRequestHandler<CreateStockTran
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
+        _locationAuthService = locationAuthService ?? throw new ArgumentNullException(nameof(locationAuthService));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -69,21 +72,32 @@ public class CreateStockTransferCommandHandler : IRequestHandler<CreateStockTran
         if (request.Lines == null || request.Lines.Count == 0)
             return Result<StockTransferDto>.Failure(Error.Validation("Transfer.EmptyLines", "Transfer must contain at least one line item."));
 
-        // Validate Source Location
+        // Validate Destination Location Authority (Requesting Location)
+        var destAuth = await _locationAuthService.AuthorizeLocationAccessAsync(
+            request.CompanyId,
+            request.DestinationLocationId,
+            "Request",
+            request.RequestedByEmployeeId,
+            cancellationToken);
+
+        if (!destAuth.IsSuccess)
+            return Result<StockTransferDto>.Failure(destAuth.Error);
+
+        // Validate Source Location exists, is active, and belongs to same company
         var srcLoc = await _locationRepository.GetByIdAsync(request.SourceLocationId, cancellationToken);
         if (srcLoc == null || srcLoc.CompanyId != request.CompanyId)
             return Result<StockTransferDto>.Failure(Error.NotFound("Transfer.SourceNotFound", "Source inventory location not found or does not belong to specified company."));
         if (!srcLoc.IsActive)
             return Result<StockTransferDto>.Failure(Error.Validation("Transfer.InactiveSource", "Source inventory location is inactive."));
 
-        // Validate Destination Location
+        // Validate Destination Location exists & is active
         var dstLoc = await _locationRepository.GetByIdAsync(request.DestinationLocationId, cancellationToken);
         if (dstLoc == null || dstLoc.CompanyId != request.CompanyId)
             return Result<StockTransferDto>.Failure(Error.NotFound("Transfer.DestNotFound", "Destination inventory location not found or does not belong to specified company."));
         if (!dstLoc.IsActive)
             return Result<StockTransferDto>.Failure(Error.Validation("Transfer.InactiveDest", "Destination inventory location is inactive."));
 
-        // Validate Employee
+        // Validate Requesting Employee
         var emp = await _employeeRepository.GetByIdAsync(request.RequestedByEmployeeId, cancellationToken);
         if (emp == null || emp.CompanyId != request.CompanyId)
             return Result<StockTransferDto>.Failure(Error.NotFound("Transfer.EmployeeNotFound", "Requesting employee not found or does not belong to specified company."));
@@ -143,8 +157,8 @@ public class CreateStockTransferCommandHandler : IRequestHandler<CreateStockTran
         await _transferRepository.AddAsync(transfer, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var detail = await _transferRepository.GetByIdWithDetailsAsync(transfer.Id, cancellationToken);
-        return Result.Success(MapToDto(detail!));
+        var created = await _transferRepository.GetByIdWithDetailsAsync(transfer.Id, cancellationToken);
+        return Result.Success(MapToDto(created!));
     }
 
     private static StockTransferDto MapToDto(StockTransfer t) => new(
@@ -189,7 +203,7 @@ public class CreateStockTransferCommandHandler : IRequestHandler<CreateStockTran
 }
 
 // ----------------------------------------------------
-// 2. APPROVE STOCK TRANSFER COMMAND
+// 2. APPROVE STOCK TRANSFER COMMAND (Source Location Scope Required)
 // ----------------------------------------------------
 public record ApproveStockTransferCommand(
     Guid Id,
@@ -204,6 +218,7 @@ public class ApproveStockTransferCommandHandler : IRequestHandler<ApproveStockTr
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IInventoryBalanceRepository _balanceRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ILocationAuthorizationService _locationAuthService;
     private readonly IUnitOfWork _unitOfWork;
 
     public ApproveStockTransferCommandHandler(
@@ -211,12 +226,14 @@ public class ApproveStockTransferCommandHandler : IRequestHandler<ApproveStockTr
         IEmployeeRepository employeeRepository,
         IInventoryBalanceRepository balanceRepository,
         ICompanyAccessResolver companyAccessResolver,
+        ILocationAuthorizationService locationAuthService,
         IUnitOfWork unitOfWork)
     {
         _transferRepository = transferRepository ?? throw new ArgumentNullException(nameof(transferRepository));
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _balanceRepository = balanceRepository ?? throw new ArgumentNullException(nameof(balanceRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
+        _locationAuthService = locationAuthService ?? throw new ArgumentNullException(nameof(locationAuthService));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -233,8 +250,20 @@ public class ApproveStockTransferCommandHandler : IRequestHandler<ApproveStockTr
         if (!hasAccess)
             return Result<StockTransferDto>.Failure(Error.Unauthorized("Transfer.Unauthorized", "Unauthorized access to requested company transfer."));
 
+        // Status check & concurrency protection
         if (transfer.Status != StockTransferStatuses.Requested)
-            return Result<StockTransferDto>.Failure(Error.Validation("Transfer.InvalidStatus", $"Only 'Requested' transfers can be approved. Current status: '{transfer.Status}'."));
+            return Result<StockTransferDto>.Failure(Error.Conflict("Transfer.InvalidStatus", $"Only 'Requested' transfers can be approved. Current status: '{transfer.Status}'."));
+
+        // Authorize Source Location Scope (Supply Location)
+        var srcAuth = await _locationAuthService.AuthorizeLocationAccessAsync(
+            transfer.CompanyId,
+            transfer.SourceLocationId,
+            "Approve",
+            request.ApprovedByEmployeeId,
+            cancellationToken);
+
+        if (!srcAuth.IsSuccess)
+            return Result<StockTransferDto>.Failure(srcAuth.Error);
 
         var approver = await _employeeRepository.GetByIdAsync(request.ApprovedByEmployeeId, cancellationToken);
         if (approver == null || approver.CompanyId != transfer.CompanyId)
@@ -332,7 +361,7 @@ public class ApproveStockTransferCommandHandler : IRequestHandler<ApproveStockTr
 }
 
 // ----------------------------------------------------
-// 3. DISPATCH STOCK TRANSFER COMMAND (TransferOut physical ledger movement)
+// 3. DISPATCH STOCK TRANSFER COMMAND (Source Location Scope Required)
 // ----------------------------------------------------
 public record DispatchStockTransferCommand(Guid Id, Guid? CompanyId = null) : IRequest<Result<StockTransferDto>>;
 
@@ -342,6 +371,7 @@ public class DispatchStockTransferCommandHandler : IRequestHandler<DispatchStock
     private readonly IInventoryBalanceRepository _balanceRepository;
     private readonly IInventoryTransactionRepository _transactionRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ILocationAuthorizationService _locationAuthService;
     private readonly IUnitOfWork _unitOfWork;
 
     public DispatchStockTransferCommandHandler(
@@ -349,12 +379,14 @@ public class DispatchStockTransferCommandHandler : IRequestHandler<DispatchStock
         IInventoryBalanceRepository balanceRepository,
         IInventoryTransactionRepository transactionRepository,
         ICompanyAccessResolver companyAccessResolver,
+        ILocationAuthorizationService locationAuthService,
         IUnitOfWork unitOfWork)
     {
         _transferRepository = transferRepository ?? throw new ArgumentNullException(nameof(transferRepository));
         _balanceRepository = balanceRepository ?? throw new ArgumentNullException(nameof(balanceRepository));
         _transactionRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
+        _locationAuthService = locationAuthService ?? throw new ArgumentNullException(nameof(locationAuthService));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -371,8 +403,19 @@ public class DispatchStockTransferCommandHandler : IRequestHandler<DispatchStock
         if (!hasAccess)
             return Result<StockTransferDto>.Failure(Error.Unauthorized("Transfer.Unauthorized", "Unauthorized access to requested company transfer."));
 
+        // Status check & concurrency protection
         if (transfer.Status != StockTransferStatuses.Approved)
-            return Result<StockTransferDto>.Failure(Error.Validation("Transfer.InvalidStatus", $"Only 'Approved' transfers can be dispatched. Current status: '{transfer.Status}'."));
+            return Result<StockTransferDto>.Failure(Error.Conflict("Transfer.InvalidStatus", $"Only 'Approved' transfers can be dispatched. Current status: '{transfer.Status}'."));
+
+        // Authorize Source Location Scope (Supply Location)
+        var srcAuth = await _locationAuthService.AuthorizeLocationAccessAsync(
+            transfer.CompanyId,
+            transfer.SourceLocationId,
+            "Dispatch",
+            cancellationToken: cancellationToken);
+
+        if (!srcAuth.IsSuccess)
+            return Result<StockTransferDto>.Failure(srcAuth.Error);
 
         // Atomic Physical Movement: Post TransferOut for each line
         foreach (var line in transfer.Lines)
@@ -473,7 +516,7 @@ public class DispatchStockTransferCommandHandler : IRequestHandler<DispatchStock
 }
 
 // ----------------------------------------------------
-// 4. RECEIVE STOCK TRANSFER COMMAND (TransferIn + Auto-Reservation)
+// 4. RECEIVE STOCK TRANSFER COMMAND (Destination Location Scope Required)
 // ----------------------------------------------------
 public record ReceiveStockTransferCommand(
     Guid Id,
@@ -489,6 +532,7 @@ public class ReceiveStockTransferCommandHandler : IRequestHandler<ReceiveStockTr
     private readonly IInventoryReservationRepository _reservationRepository;
     private readonly ISalesOrderRepository _orderRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ILocationAuthorizationService _locationAuthService;
     private readonly IUnitOfWork _unitOfWork;
 
     public ReceiveStockTransferCommandHandler(
@@ -498,6 +542,7 @@ public class ReceiveStockTransferCommandHandler : IRequestHandler<ReceiveStockTr
         IInventoryReservationRepository reservationRepository,
         ISalesOrderRepository orderRepository,
         ICompanyAccessResolver companyAccessResolver,
+        ILocationAuthorizationService locationAuthService,
         IUnitOfWork unitOfWork)
     {
         _transferRepository = transferRepository ?? throw new ArgumentNullException(nameof(transferRepository));
@@ -506,6 +551,7 @@ public class ReceiveStockTransferCommandHandler : IRequestHandler<ReceiveStockTr
         _reservationRepository = reservationRepository ?? throw new ArgumentNullException(nameof(reservationRepository));
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
+        _locationAuthService = locationAuthService ?? throw new ArgumentNullException(nameof(locationAuthService));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -522,8 +568,19 @@ public class ReceiveStockTransferCommandHandler : IRequestHandler<ReceiveStockTr
         if (!hasAccess)
             return Result<StockTransferDto>.Failure(Error.Unauthorized("Transfer.Unauthorized", "Unauthorized access to requested company transfer."));
 
-        if (transfer.Status != StockTransferStatuses.InTransit)
-            return Result<StockTransferDto>.Failure(Error.Validation("Transfer.InvalidStatus", $"Only 'InTransit' transfers can be received. Current status: '{transfer.Status}'."));
+        // Status check & concurrency protection
+        if (transfer.Status != StockTransferStatuses.InTransit && transfer.Status != StockTransferStatuses.Dispatched)
+            return Result<StockTransferDto>.Failure(Error.Conflict("Transfer.InvalidStatus", $"Only 'InTransit' transfers can be received. Current status: '{transfer.Status}'."));
+
+        // Authorize Destination Location Scope (Requesting Location)
+        var destAuth = await _locationAuthService.AuthorizeLocationAccessAsync(
+            transfer.CompanyId,
+            transfer.DestinationLocationId,
+            "Receive",
+            cancellationToken: cancellationToken);
+
+        if (!destAuth.IsSuccess)
+            return Result<StockTransferDto>.Failure(destAuth.Error);
 
         // Load SalesOrder if linked
         SalesOrder? salesOrder = null;
@@ -757,15 +814,18 @@ public class CancelStockTransferCommandHandler : IRequestHandler<CancelStockTran
 {
     private readonly IStockTransferRepository _transferRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ILocationAuthorizationService _locationAuthService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CancelStockTransferCommandHandler(
         IStockTransferRepository transferRepository,
         ICompanyAccessResolver companyAccessResolver,
+        ILocationAuthorizationService locationAuthService,
         IUnitOfWork unitOfWork)
     {
         _transferRepository = transferRepository ?? throw new ArgumentNullException(nameof(transferRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
+        _locationAuthService = locationAuthService ?? throw new ArgumentNullException(nameof(locationAuthService));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -782,6 +842,13 @@ public class CancelStockTransferCommandHandler : IRequestHandler<CancelStockTran
         if (!hasAccess)
             return Result<StockTransferDto>.Failure(Error.Unauthorized("Transfer.Unauthorized", "Unauthorized access to requested company transfer."));
 
+        // Authorize Destination or Source Location Scope
+        var destAuth = await _locationAuthService.AuthorizeLocationAccessAsync(transfer.CompanyId, transfer.DestinationLocationId, "Cancel", cancellationToken: cancellationToken);
+        var srcAuth = await _locationAuthService.AuthorizeLocationAccessAsync(transfer.CompanyId, transfer.SourceLocationId, "Cancel", cancellationToken: cancellationToken);
+
+        if (!destAuth.IsSuccess && !srcAuth.IsSuccess)
+            return Result<StockTransferDto>.Failure(destAuth.Error);
+
         if (StockTransferStatuses.InFlightStatuses.Contains(transfer.Status))
         {
             return Result<StockTransferDto>.Failure(Error.Validation("Transfer.InFlightCancellationRejected",
@@ -789,7 +856,7 @@ public class CancelStockTransferCommandHandler : IRequestHandler<CancelStockTran
         }
 
         if (transfer.Status == StockTransferStatuses.Cancelled)
-            return Result<StockTransferDto>.Failure(Error.Validation("Transfer.AlreadyCancelled", "Transfer is already cancelled."));
+            return Result<StockTransferDto>.Failure(Error.Conflict("Transfer.AlreadyCancelled", "Transfer is already cancelled."));
 
         transfer.Status = StockTransferStatuses.Cancelled;
         transfer.LastModifiedAtUtc = DateTime.UtcNow;

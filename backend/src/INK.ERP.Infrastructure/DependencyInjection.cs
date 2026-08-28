@@ -239,6 +239,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ICompanyAccessResolver, CompanyAccessResolver>();
+        services.AddScoped<ILocationAuthorizationService, LocationAuthorizationService>();
 
         // Register Enterprise Security Model Loader (Singleton)
         services.AddSingleton<IModelLoader, ModelLoader>();

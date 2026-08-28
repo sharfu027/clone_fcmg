@@ -2125,12 +2125,13 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                   <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="p-3">Transfer #</th>
-                      <th className="p-3">Source Location</th>
-                      <th className="p-3">Destination</th>
-                      <th className="p-3">Items & Qty</th>
+                      <th className="p-3">Requesting Location (Dest)</th>
+                      <th className="p-3">Supply Location (Src)</th>
+                      <th className="p-3">Items & Qty Breakdown</th>
                       <th className="p-3 text-center">Status</th>
                       <th className="p-3">Order Link</th>
                       <th className="p-3">Requested By</th>
+                      <th className="p-3">Approved By</th>
                       <th className="p-3">Created Date</th>
                       <th className="p-3 text-center">Workflow Action</th>
                     </tr>
@@ -2144,12 +2145,12 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                             {trf.transferNumber}
                           </td>
                           <td className="p-3 text-slate-800">
-                            <div className="font-semibold">{trf.sourceLocationName}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{trf.sourceLocationCode}</div>
-                          </td>
-                          <td className="p-3 text-slate-800">
                             <div className="font-semibold text-emerald-700">{trf.destinationLocationName}</div>
                             <div className="text-[10px] text-slate-400 font-mono">{trf.destinationLocationCode}</div>
+                          </td>
+                          <td className="p-3 text-slate-800">
+                            <div className="font-semibold text-slate-800">{trf.sourceLocationName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{trf.sourceLocationCode}</div>
                           </td>
                           <td className="p-3 text-slate-700">
                             {firstLine ? (
@@ -2179,9 +2180,13 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                             )}
                           </td>
                           <td className="p-3 text-slate-700 text-[11px]">
-                            <div>{trf.requestedByEmployeeName}</div>
-                            {trf.approvedByEmployeeName && (
-                              <div className="text-[10px] text-emerald-600">Appr: {trf.approvedByEmployeeName}</div>
+                            <div className="font-medium">{trf.requestedByEmployeeName}</div>
+                          </td>
+                          <td className="p-3 text-slate-700 text-[11px]">
+                            {trf.approvedByEmployeeName ? (
+                              <div className="font-medium text-emerald-700">{trf.approvedByEmployeeName}</div>
+                            ) : (
+                              <span className="text-slate-400 italic">—</span>
                             )}
                           </td>
                           <td className="p-3 font-mono text-[11px] text-slate-500">
@@ -2328,24 +2333,17 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 </div>
               )}
 
+              <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3 text-xs text-blue-900 flex items-start gap-2.5">
+                <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-blue-950">Inter-Facility Stock Request:</div>
+                  <div>The <b>Requesting Location (Destination)</b> creates this transfer to request inventory from the <b>Supply Location (Source)</b>. An authorized manager for the Supply Location must approve and dispatch the stock.</div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Source Location (From) *</label>
-                  <select
-                    value={transferForm.sourceLocationId}
-                    onChange={e => setTransferForm({ ...transferForm, sourceLocationId: e.target.value })}
-                    required
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-                  >
-                    <option value="">Select Source...</option>
-                    {transferLocations.map(l => (
-                      <option key={l.id} value={l.id}>{l.name} ({l.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Destination Location (To) *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Requesting Location (Destination) *</label>
                   <select
                     value={transferForm.destinationLocationId}
                     onChange={e => setTransferForm({ ...transferForm, destinationLocationId: e.target.value })}
@@ -2353,6 +2351,21 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                     className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                   >
                     <option value="">Select Destination...</option>
+                    {transferLocations.map(l => (
+                      <option key={l.id} value={l.id}>{l.name} ({l.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Supply Location (Source) *</label>
+                  <select
+                    value={transferForm.sourceLocationId}
+                    onChange={e => setTransferForm({ ...transferForm, sourceLocationId: e.target.value })}
+                    required
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  >
+                    <option value="">Select Supply Source...</option>
                     {transferLocations.map(l => (
                       <option key={l.id} value={l.id}>{l.name} ({l.code})</option>
                     ))}
