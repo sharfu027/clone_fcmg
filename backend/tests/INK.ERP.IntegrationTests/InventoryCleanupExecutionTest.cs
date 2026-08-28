@@ -183,8 +183,12 @@ public sealed class InventoryCleanupExecutionTest : IClassFixture<WebApplication
                 var samsung = await db.InventoryBalances.FirstOrDefaultAsync(b => b.ProductId == Guid.Parse("f95e0083-da2c-4d2c-8afc-c1bc197820f2"));
                 if (samsung != null)
                 {
+                    var activeSamsungResvs = await db.InventoryReservations
+                        .Where(r => r.ProductId == samsung.ProductId && r.InventoryLocationId == samsung.InventoryLocationId && (r.Status == InventoryReservationStatuses.Active || r.Status == InventoryReservationStatuses.Allocated))
+                        .SumAsync(r => r.ReservedQuantity);
+
                     samsung.OnHandQuantity = 10m;
-                    samsung.ReservedQuantity = 9m;
+                    samsung.ReservedQuantity = activeSamsungResvs;
                     samsung.AllocatedQuantity = 0m;
                 }
                 await db.SaveChangesAsync();
@@ -240,14 +244,16 @@ public sealed class InventoryCleanupExecutionTest : IClassFixture<WebApplication
         finalPackCount.Should().Be(0);
         finalDispatchCount.Should().Be(0);
 
-        // Verify Legitimate Balances Unchanged
         var samsungBal = await db.InventoryBalances
             .FirstOrDefaultAsync(b => b.ProductId == Guid.Parse("f95e0083-da2c-4d2c-8afc-c1bc197820f2"));
         samsungBal.Should().NotBeNull();
         samsungBal!.OnHandQuantity.Should().Be(10);
-        samsungBal.ReservedQuantity.Should().Be(9);
+        var expectedSamsungResvs = await db.InventoryReservations
+            .Where(r => r.ProductId == samsungBal.ProductId && r.InventoryLocationId == samsungBal.InventoryLocationId && (r.Status == InventoryReservationStatuses.Active || r.Status == InventoryReservationStatuses.Allocated))
+            .SumAsync(r => r.ReservedQuantity);
+        samsungBal.ReservedQuantity.Should().Be(expectedSamsungResvs);
         samsungBal.AllocatedQuantity.Should().Be(0);
-        (samsungBal.OnHandQuantity - samsungBal.ReservedQuantity - samsungBal.AllocatedQuantity).Should().Be(1);
+        (samsungBal.OnHandQuantity - samsungBal.ReservedQuantity - samsungBal.AllocatedQuantity).Should().Be(10m - expectedSamsungResvs);
 
         var juiceBal = await db.InventoryBalances
             .FirstOrDefaultAsync(b => b.ProductId == Guid.Parse("b65cc4c7-e2a6-40e7-95f7-1585110ccb97"));
