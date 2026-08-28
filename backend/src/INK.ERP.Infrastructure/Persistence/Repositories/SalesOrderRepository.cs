@@ -51,9 +51,13 @@ public sealed class SalesOrderRepository : ISalesOrderRepository
         CancellationToken cancellationToken = default)
     {
         var query = _context.SalesOrders
+            .Include(x => x.Company)
             .Include(x => x.Customer)
             .Include(x => x.SalesEmployee)
             .Include(x => x.InventoryLocation)
+            .Include(x => x.Items)
+                .ThenInclude(i => i.Product)
+                    .ThenInclude(p => p!.BaseUom)
             .AsQueryable();
 
         if (companyId.HasValue && companyId.Value != Guid.Empty)
@@ -125,7 +129,10 @@ public sealed class SalesOrderRepository : ISalesOrderRepository
     public Task UpdateAsync(SalesOrder order, CancellationToken cancellationToken = default)
     {
         if (order == null) throw new ArgumentNullException(nameof(order));
-        _context.SalesOrders.Update(order);
+        if (_context.Entry(order).State == EntityState.Detached)
+        {
+            _context.SalesOrders.Update(order);
+        }
         return Task.CompletedTask;
     }
 

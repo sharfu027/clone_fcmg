@@ -24,7 +24,10 @@ import {
   ArrowLeftRight,
   CheckCircle2,
   FileText,
-  Send
+  Send,
+  ShoppingCart,
+  Lock,
+  Info
 } from 'lucide-react';
 import {
   InventoryLocation,
@@ -54,12 +57,13 @@ import { SearchInput } from '../../components/ui/SearchInput';
 import { StatCard } from '../../components/ui/StatCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Tooltip } from '../../components/ui/Tooltip';
+import FulfillmentView from './fulfillment/FulfillmentView';
 
 interface InventoryModuleProps {
   onTriggerToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, desc?: string) => void;
 }
 
-type TabType = 'overview' | 'stock' | 'locations' | 'movements' | 'reservations' | 'transfers';
+type TabType = 'overview' | 'stock' | 'locations' | 'movements' | 'reservations' | 'transfers' | 'fulfillment';
 
 export default function InventoryModule({ onTriggerToast }: InventoryModuleProps) {
   const { user } = useAuth();
@@ -75,18 +79,25 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     if (path.includes('/inventory/movements')) return 'movements';
     if (path.includes('/inventory/reservations')) return 'reservations';
     if (path.includes('/inventory/transfers')) return 'transfers';
+    if (path.includes('/inventory/fulfillment')) return 'fulfillment';
     return 'overview';
   };
 
   const [activeTab, setActiveTab] = useState<TabType>(getInitialTab);
 
-  // Sync tab with URL changes
+  // Sync tab with URL changes and handle bare /inventory redirect
   useEffect(() => {
+    const path = location.pathname.toLowerCase();
+    if (path === '/inventory' || path === '/inventory/') {
+      navigate('/inventory/overview', { replace: true });
+      setActiveTab('overview');
+      return;
+    }
     const tabFromUrl = getInitialTab();
     if (tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -96,6 +107,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     else if (tab === 'movements') navigate('/inventory/movements');
     else if (tab === 'reservations') navigate('/inventory/reservations');
     else if (tab === 'transfers') navigate('/inventory/transfers');
+    else if (tab === 'fulfillment') navigate('/inventory/fulfillment');
   };
 
   // Core Data States
@@ -209,7 +221,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     requestedQuantity: 10
   });
 
-  const [receiveForm, setReceiveForm] = useState<{ lineReceipts: { [lineId: string]: number } }>({
+  const [receiveForm, setReceiveForm] = useState<{ lineReceipts: { [lineId: string]: number | string } }>({
     lineReceipts: {}
   });
 
@@ -623,6 +635,24 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       onTriggerToast('warning', 'Validation Error', 'Please select location, product, and enter a valid quantity greater than 0.');
       return;
     }
+
+    const selectedBal = balances.find(
+      b => b.inventoryLocationId === reserveForm.inventoryLocationId && b.productId === reserveForm.productId
+    );
+    const onHandQty = selectedBal?.onHandQuantity ?? 0;
+    const reservedQty = selectedBal?.reservedQuantity ?? 0;
+    const allocatedQty = selectedBal?.allocatedQuantity ?? 0;
+    const availableQty = Math.max(0, onHandQty - reservedQty - allocatedQty);
+
+    if (qty > availableQty) {
+      onTriggerToast(
+        'error',
+        'Insufficient Available Stock',
+        `Cannot reserve ${qty} units. Only ${availableQty} units are currently available (On Hand: ${onHandQty}, Reserved: ${reservedQty}).`
+      );
+      return;
+    }
+
     setIsSubmittingReservation(true);
     try {
       const res = await inventoryService.reserveStock({
@@ -815,9 +845,10 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
 
   const handleOpenReceiveModal = (transfer: StockTransfer) => {
     setSelectedTransferForAction(transfer);
-    const initialReceipts: { [lineId: string]: number } = {};
+    const initialReceipts: { [lineId: string]: number | string } = {};
     transfer.lines.forEach(l => {
-      initialReceipts[l.id] = Math.max(0, l.dispatchedQuantity - l.receivedQuantity);
+      const rem = Math.max(0, l.dispatchedQuantity - l.receivedQuantity);
+      initialReceipts[l.id] = rem;
     });
     setReceiveForm({ lineReceipts: initialReceipts });
     setIsReceiveTransferModalOpen(true);
@@ -830,13 +861,26 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     const lineReceipts = Object.entries(receiveForm.lineReceipts).map(([lineId, qty]) => ({
       lineId,
       receivedQuantity: Number(qty)
-    })).filter(lr => lr.receivedQuantity > 0);
+    })).filter(lr => !isNaN(lr.receivedQuantity) && lr.receivedQuantity > 0);
 
     if (lineReceipts.length === 0) {
       onTriggerToast('warning', 'Validation Error', 'Please enter receiving quantity greater than 0.');
       return;
     }
 
+    // Validate against remaining undispatched quantity
+    for (const item of lineReceipts) {
+      const line = selectedTransferForAction.lines.find(l => l.id === item.lineId);
+      if (line) {
+        const remaining = Math.max(0, line.dispatchedQuantity - line.receivedQuantity);
+        if (item.receivedQuantity > remaining) {
+          onTriggerToast('error', 'Validation Error', `Cannot receive ${item.receivedQuantity} for ${line.productName}. Maximum remaining quantity is ${remaining}.`);
+          return;
+        }
+      }
+    }
+
+    setIsSubmittingTransfer(true);
     try {
       await inventoryService.receiveStockTransfer(selectedTransferForAction.id, {
         lineReceipts
@@ -849,6 +893,8 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     } catch (err: any) {
       const detail = err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to receive transfer';
       onTriggerToast('error', 'Receive Failed', detail);
+    } finally {
+      setIsSubmittingTransfer(false);
     }
   };
 
@@ -870,186 +916,181 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
   return (
     <div className="space-y-6">
       {/* ---------------------------------------------------- */}
-      {/* LEVEL 1: TOP HEADER & PRIMARY ACTIONS */}
+      {/* TOP HEADER & PRIMARY ACTIONS */}
       {/* ---------------------------------------------------- */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900">Inventory Management</h1>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              Live
-            </span>
+      {activeTab !== 'fulfillment' && (
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900">
+                {activeTab === 'overview' && 'Inventory Overview'}
+                {activeTab === 'stock' && 'Stock Balances'}
+                {activeTab === 'locations' && 'Inventory Locations'}
+                {activeTab === 'movements' && 'Stock Movement Ledger'}
+                {activeTab === 'reservations' && 'Stock Reservations'}
+                {activeTab === 'transfers' && 'Stock Transfers'}
+              </h1>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                Live
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {activeTab === 'overview' && 'Monitor overall stock, facility locations, and inventory metrics.'}
+              {activeTab === 'stock' && 'Real-time on-hand, reserved, allocated, and available stock levels.'}
+              {activeTab === 'locations' && 'Manage warehouse nodes, staging bays, and facility locations.'}
+              {activeTab === 'movements' && 'Immutable audit log of all physical and transactional stock events.'}
+              {activeTab === 'reservations' && 'Active sales order allocations and soft inventory reservations.'}
+              {activeTab === 'transfers' && 'Inter-facility transfer orders and multi-stage transit workflow.'}
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Monitor stock, inventory locations, and stock movements.
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Tooltip content="Synchronize live balances & transactions from backend">
+              <button
+                onClick={() => loadInventoryData(true)}
+                disabled={isRefreshing}
+                aria-label="Refresh inventory data"
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer border border-slate-300"
+              >
+                <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+            </Tooltip>
+
+            {(activeTab === 'overview' || activeTab === 'stock' || activeTab === 'reservations') && (
+              <Tooltip content="Evaluate real-time stock availability and find alternate locations">
+                <button
+                  onClick={() => {
+                    const compId = filterCompanyId || (companies[0]?.id ?? '');
+                    const compLocs = locations.filter(l => !compId || l.companyId === compId);
+                    const compProds = products.filter(p => !compId || p.companyId === compId);
+                    setAvailabilityForm({
+                      companyId: compId,
+                      inventoryLocationId: filterLocationId || compLocs[0]?.id || '',
+                      productId: filterProductId || compProds[0]?.id || '',
+                      requestedQuantity: 1
+                    });
+                    setAvailabilityResult(null);
+                    setAlternativeLocations(null);
+                    setIsAvailabilityModalOpen(true);
+                  }}
+                  aria-label="Check Availability"
+                  className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Compass size={14} />
+                  <span>Check Availability</span>
+                </button>
+              </Tooltip>
+            )}
+
+            {(activeTab === 'overview' || activeTab === 'stock' || activeTab === 'reservations') && (
+              <Tooltip content="Reserve available stock for a confirmed order or demand allocation">
+                <button
+                  onClick={() => {
+                    const compId = filterCompanyId || (companies[0]?.id ?? '');
+                    const compLocs = locations.filter(l => !compId || l.companyId === compId);
+                    const compProds = products.filter(p => !compId || p.companyId === compId);
+                    setReserveForm({
+                      companyId: compId,
+                      inventoryLocationId: filterLocationId || compLocs[0]?.id || '',
+                      productId: filterProductId || compProds[0]?.id || '',
+                      requestedQuantity: 1,
+                      salesOrderId: '',
+                      salesOrderLineId: '',
+                      expiresAtUtc: ''
+                    });
+                    setIsReserveModalOpen(true);
+                  }}
+                  aria-label="Reserve Stock"
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <BookmarkCheck size={14} />
+                  <span>Reserve Stock</span>
+                </button>
+              </Tooltip>
+            )}
+
+            {(activeTab === 'overview' || activeTab === 'stock') && (
+              <Tooltip content="Establish initial product stock through immutable transaction ledger">
+                <button
+                  onClick={handleOpenOpeningStockModal}
+                  aria-label="Establish Opening Stock"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Plus size={14} />
+                  <span>Establish Opening Stock</span>
+                </button>
+              </Tooltip>
+            )}
+
+            {(activeTab === 'overview' || activeTab === 'locations') && (
+              <Tooltip content="Register a new inventory staging location or facility node">
+                <button
+                  onClick={() => handleOpenLocationModal()}
+                  aria-label="Add Location"
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Layers size={14} />
+                  <span>Add Location</span>
+                </button>
+              </Tooltip>
+            )}
+
+            {(activeTab === 'overview' || activeTab === 'stock' || activeTab === 'movements') && (
+              <Tooltip content="Audit tool comparing current balance against historical ledger sum">
+                <button
+                  onClick={() => {
+                    const compId = filterCompanyId || (companies[0]?.id ?? '');
+                    const compLocs = locations.filter(l => !compId || l.companyId === compId);
+                    const compProds = products.filter(p => !compId || p.companyId === compId);
+                    setReconcileForm({
+                      companyId: compId,
+                      inventoryLocationId: compLocs[0]?.id ?? '',
+                      productId: compProds[0]?.id ?? ''
+                    });
+                    setReconciliationResult(null);
+                    setIsReconcileModalOpen(true);
+                  }}
+                  aria-label="Reconcile Ledger"
+                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <ShieldCheck size={14} />
+                  <span>Reconcile Ledger</span>
+                </button>
+              </Tooltip>
+            )}
+
+            {(activeTab === 'overview' || activeTab === 'transfers') && (
+              <Tooltip content="Request an inter-facility or warehouse stock transfer">
+                <button
+                  onClick={() => {
+                    const compId = filterCompanyId || (companies[0]?.id ?? '');
+                    const compLocs = locations.filter(l => !compId || l.companyId === compId);
+                    const compProds = products.filter(p => !compId || p.companyId === compId);
+                    const compEmps = employees.filter(e => !compId || e.companyId === compId);
+                    setTransferForm({
+                      companyId: compId,
+                      sourceLocationId: compLocs[0]?.id ?? '',
+                      destinationLocationId: compLocs[1]?.id ?? compLocs[0]?.id ?? '',
+                      salesOrderId: '',
+                      requestedByEmployeeId: compEmps[0]?.id ?? '',
+                      notes: '',
+                      productId: compProds[0]?.id ?? '',
+                      requestedQuantity: 10
+                    });
+                    setIsCreateTransferModalOpen(true);
+                  }}
+                  aria-label="Create Transfer"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <ArrowLeftRight size={14} />
+                  <span>Create Transfer</span>
+                </button>
+              </Tooltip>
+            )}
+          </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Tooltip content="Synchronize live balances & transactions from backend">
-            <button
-              onClick={() => loadInventoryData(true)}
-              disabled={isRefreshing}
-              aria-label="Refresh inventory data"
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer border border-slate-300"
-            >
-              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              <span>Refresh</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Evaluate real-time stock availability and find alternate locations">
-            <button
-              onClick={() => {
-                const compId = filterCompanyId || (companies[0]?.id ?? '');
-                const compLocs = locations.filter(l => !compId || l.companyId === compId);
-                const compProds = products.filter(p => !compId || p.companyId === compId);
-                setAvailabilityForm({
-                  companyId: compId,
-                  inventoryLocationId: filterLocationId || compLocs[0]?.id || '',
-                  productId: filterProductId || compProds[0]?.id || '',
-                  requestedQuantity: 1
-                });
-                setAvailabilityResult(null);
-                setAlternativeLocations(null);
-                setIsAvailabilityModalOpen(true);
-              }}
-              aria-label="Check Availability"
-              className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Compass size={14} />
-              <span>Check Availability</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Reserve available stock for a confirmed order or demand allocation">
-            <button
-              onClick={() => {
-                const compId = filterCompanyId || (companies[0]?.id ?? '');
-                const compLocs = locations.filter(l => !compId || l.companyId === compId);
-                const compProds = products.filter(p => !compId || p.companyId === compId);
-                setReserveForm({
-                  companyId: compId,
-                  inventoryLocationId: filterLocationId || compLocs[0]?.id || '',
-                  productId: filterProductId || compProds[0]?.id || '',
-                  requestedQuantity: 1,
-                  salesOrderId: '',
-                  salesOrderLineId: '',
-                  expiresAtUtc: ''
-                });
-                setIsReserveModalOpen(true);
-              }}
-              aria-label="Reserve Stock"
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-            >
-              <BookmarkCheck size={14} />
-              <span>Reserve Stock</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Establish initial product stock through immutable transaction ledger">
-            <button
-              onClick={handleOpenOpeningStockModal}
-              aria-label="Establish Opening Stock"
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-            >
-              <Plus size={14} />
-              <span>Establish Opening Stock</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Register a new inventory staging location or facility node">
-            <button
-              onClick={() => handleOpenLocationModal()}
-              aria-label="Add Location"
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-            >
-              <Layers size={14} />
-              <span>Add Location</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Audit tool comparing current balance against historical ledger sum">
-            <button
-              onClick={() => {
-                const compId = filterCompanyId || (companies[0]?.id ?? '');
-                const compLocs = locations.filter(l => !compId || l.companyId === compId);
-                const compProds = products.filter(p => !compId || p.companyId === compId);
-                setReconcileForm({
-                  companyId: compId,
-                  inventoryLocationId: compLocs[0]?.id ?? '',
-                  productId: compProds[0]?.id ?? ''
-                });
-                setReconciliationResult(null);
-                setIsReconcileModalOpen(true);
-              }}
-              aria-label="Reconcile Ledger"
-              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <ShieldCheck size={14} />
-              <span>Reconcile Ledger</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Request an inter-facility or warehouse stock transfer">
-            <button
-              onClick={() => {
-                const compId = filterCompanyId || (companies[0]?.id ?? '');
-                const compLocs = locations.filter(l => !compId || l.companyId === compId);
-                const compProds = products.filter(p => !compId || p.companyId === compId);
-                const compEmps = employees.filter(e => !compId || e.companyId === compId);
-                setTransferForm({
-                  companyId: compId,
-                  sourceLocationId: compLocs[0]?.id ?? '',
-                  destinationLocationId: compLocs[1]?.id ?? compLocs[0]?.id ?? '',
-                  salesOrderId: '',
-                  requestedByEmployeeId: compEmps[0]?.id ?? '',
-                  notes: '',
-                  productId: compProds[0]?.id ?? '',
-                  requestedQuantity: 10
-                });
-                setIsCreateTransferModalOpen(true);
-              }}
-              aria-label="Create Transfer"
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-            >
-              <ArrowLeftRight size={14} />
-              <span>Create Transfer</span>
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* ---------------------------------------------------- */}
-      {/* LEVEL 2: CLEAN 6-TAB PRIMARY NAVIGATION */}
-      {/* ---------------------------------------------------- */}
-      <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-xs flex overflow-x-auto gap-1">
-        {[
-          { id: 'overview' as TabType, label: 'Overview', icon: TrendingUp },
-          { id: 'stock' as TabType, label: 'Stock', icon: Package },
-          { id: 'locations' as TabType, label: 'Locations', icon: Layers },
-          { id: 'movements' as TabType, label: 'Stock Movements', icon: History },
-          { id: 'reservations' as TabType, label: 'Reservations', icon: BookmarkCheck },
-          { id: 'transfers' as TabType, label: 'Transfers', icon: ArrowLeftRight }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Icon size={14} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      )}
 
       {/* GLOBAL ERROR BANNER */}
       {errorMessage && (
@@ -1750,7 +1791,13 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
               <p className="text-xs text-slate-500">Authoritative stock reservation commitments against inventory balances.</p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
+                <Info size={13} className="text-indigo-500 shrink-0" />
+                <span>
+                  <b>Tip:</b> For customer orders, create and submit a <b>Sales Order</b>. Inventory will reserve available stock automatically and move the order to Fulfillment.
+                </span>
+              </div>
               <button
                 onClick={() => {
                   setReserveForm({
@@ -1764,7 +1811,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                   });
                   setIsReserveModalOpen(true);
                 }}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-xs shrink-0"
               >
                 <BookmarkCheck size={14} />
                 <span>Reserve Stock</span>
@@ -1872,6 +1919,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   <tr>
                     <th className="p-3">Reservation Ref</th>
+                    <th className="p-3">Type</th>
                     <th className="p-3">Product</th>
                     <th className="p-3">Location</th>
                     <th className="p-3 text-right">Reserved Qty</th>
@@ -1888,6 +1936,19 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                       <td className="p-3 font-mono text-[11px] font-semibold text-indigo-700">
                         {resv.id.substring(0, 8)}...
                       </td>
+                      <td className="p-3">
+                        {resv.salesOrderId ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <ShoppingCart size={11} />
+                            <span>Sales Order</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            <Lock size={11} />
+                            <span>Manual / Internal</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 font-semibold text-slate-900">
                         <div>{resv.productName}</div>
                         <div className="text-[10px] text-slate-400 font-mono">{resv.sku || resv.productCode}</div>
@@ -1902,13 +1963,15 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                       <td className="p-3 text-center">
                         {getReservationStatusBadge(resv.status)}
                       </td>
-                      <td className="p-3 font-mono text-[11px] text-slate-600">
+                      <td className="p-3 font-mono text-[11px]">
                         {resv.salesOrderId ? (
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                            SO: {resv.salesOrderId.substring(0, 8)}
+                          <span className="bg-indigo-50 text-indigo-800 font-semibold px-2 py-0.5 rounded border border-indigo-200 inline-block">
+                            SO: {resv.salesOrderNumber || resv.salesOrderId.substring(0, 8)}
                           </span>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-slate-400 font-sans italic text-[11px]">
+                            Manual / Internal
+                          </span>
                         )}
                       </td>
                       <td className="p-3 font-mono text-[11px] text-slate-500">
@@ -2185,6 +2248,13 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       )}
 
       {/* ---------------------------------------------------- */}
+      {/* TAB 7: FULFILLMENT ENGINE (PICKING, PACKING, DISPATCH) */}
+      {/* ---------------------------------------------------- */}
+      {activeTab === 'fulfillment' && (
+        <FulfillmentView onTriggerToast={onTriggerToast} />
+      )}
+
+      {/* ---------------------------------------------------- */}
       {/* MODAL: CREATE STOCK TRANSFER */}
       {/* ---------------------------------------------------- */}
       {isCreateTransferModalOpen && (
@@ -2345,96 +2415,289 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       {/* ---------------------------------------------------- */}
       {/* MODAL: RECEIVE STOCK TRANSFER */}
       {/* ---------------------------------------------------- */}
-      {isReceiveTransferModalOpen && selectedTransferForAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Package size={18} className="text-emerald-600" />
-                <h3 className="text-base font-bold text-slate-900">Receive Stock at Destination</h3>
-              </div>
-              <button
-                onClick={() => setIsReceiveTransferModalOpen(false)}
-                aria-label="Close receive modal"
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {isReceiveTransferModalOpen && selectedTransferForAction && (() => {
+        let totalDispatched = 0;
+        let totalReceivedPrev = 0;
+        let totalReceivingNow = 0;
+        let totalRemainingAfter = 0;
+        let hasInvalidLine = false;
 
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Transfer Number:</span>
-                <span className="font-mono font-bold text-blue-700">{selectedTransferForAction.transferNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Destination:</span>
-                <span className="font-semibold text-emerald-700">{selectedTransferForAction.destinationLocationName}</span>
-              </div>
-              {selectedTransferForAction.salesOrderNumber && (
-                <div className="flex justify-between text-indigo-700 font-semibold">
-                  <span>Linked Sales Order:</span>
-                  <span>{selectedTransferForAction.salesOrderNumber} (Auto-Reserve on receipt)</span>
+        selectedTransferForAction.lines.forEach(line => {
+          const dispatched = line.dispatchedQuantity || 0;
+          const prevReceived = line.receivedQuantity || 0;
+          const remaining = Math.max(0, dispatched - prevReceived);
+          const currentInputVal = receiveForm.lineReceipts[line.id];
+          const receivingNow = currentInputVal === '' || currentInputVal === undefined ? 0 : Number(currentInputVal);
+
+          if (currentInputVal !== '' && (isNaN(receivingNow) || receivingNow < 0 || receivingNow > remaining)) {
+            hasInvalidLine = true;
+          }
+
+          totalDispatched += dispatched;
+          totalReceivedPrev += prevReceived;
+          totalReceivingNow += (isNaN(receivingNow) || receivingNow < 0) ? 0 : receivingNow;
+          totalRemainingAfter += Math.max(0, remaining - ((isNaN(receivingNow) || receivingNow < 0) ? 0 : receivingNow));
+        });
+
+        const isSubmitDisabled = isSubmittingTransfer || totalReceivingNow <= 0 || hasInvalidLine;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+            <div className="bg-white rounded-xl border border-slate-200 max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <Package size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Receive Stock at Destination</h3>
+                    <p className="text-xs text-slate-500">Record physical goods receipt at destination location.</p>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <form onSubmit={handleSubmitReceive} className="space-y-4">
-              <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-800">Transfer Lines to Receive</label>
-                {selectedTransferForAction.lines.map(line => {
-                  const remaining = Math.max(0, line.dispatchedQuantity - line.receivedQuantity);
-                  return (
-                    <div key={line.id} className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-semibold text-slate-900">{line.productName}</span>
-                        <span className="text-slate-400 font-mono">Dispatched: {line.dispatchedQuantity}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="text-slate-500">Already Received: <b>{line.receivedQuantity}</b></span>
-                        <span className="text-amber-700 font-semibold">Remaining: <b>{remaining}</b></span>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Receive Quantity Now</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max={remaining}
-                          step="0.0001"
-                          value={receiveForm.lineReceipts[line.id] ?? remaining}
-                          onChange={e => setReceiveForm({
-                            lineReceipts: {
-                              ...receiveForm.lineReceipts,
-                              [line.id]: parseFloat(e.target.value) || 0
-                            }
-                          })}
-                          className="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
-                  type="button"
                   onClick={() => setIsReceiveTransferModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Close receive modal"
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs"
-                >
-                  Confirm Physical Receipt (TransferIn)
+                  <X size={18} />
                 </button>
               </div>
-            </form>
+
+              {/* Transfer Metadata Banner */}
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1.5 shrink-0">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Transfer Number</span>
+                    <span className="font-mono font-bold text-blue-700">{selectedTransferForAction.transferNumber}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Source Location</span>
+                    <span className="font-semibold text-slate-800">{selectedTransferForAction.sourceLocationName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Destination Location</span>
+                    <span className="font-semibold text-emerald-700">{selectedTransferForAction.destinationLocationName}</span>
+                  </div>
+                </div>
+                {selectedTransferForAction.salesOrderNumber && (
+                  <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-indigo-700 text-xs font-semibold">
+                    <span>Linked Sales Order: {selectedTransferForAction.salesOrderNumber}</span>
+                    <span className="bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 text-[11px]">
+                      Auto-Reservation Active
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Transfer Lines Form */}
+              <form onSubmit={handleSubmitReceive} className="space-y-4 overflow-y-auto flex-1 pr-1">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Transfer Lines to Receive ({selectedTransferForAction.lines.length})
+                    </label>
+                    <span className="text-[11px] text-slate-500">Supports full and partial receipts</span>
+                  </div>
+
+                  {selectedTransferForAction.lines.map((line, idx) => {
+                    const dispatched = line.dispatchedQuantity || 0;
+                    const received = line.receivedQuantity || 0;
+                    const remaining = Math.max(0, dispatched - received);
+                    const currentVal = receiveForm.lineReceipts[line.id] ?? '';
+                    const numVal = currentVal === '' ? 0 : Number(currentVal);
+                    const isLineInvalid = currentVal !== '' && (isNaN(numVal) || numVal < 0 || numVal > remaining);
+                    const lineRemainingAfter = Math.max(0, remaining - (isNaN(numVal) || numVal < 0 ? 0 : numVal));
+
+                    return (
+                      <div
+                        key={line.id}
+                        className={`p-3.5 bg-white border rounded-xl space-y-3 transition ${
+                          isLineInvalid
+                            ? 'border-rose-300 ring-1 ring-rose-200 bg-rose-50/20'
+                            : numVal > 0
+                            ? 'border-emerald-200 bg-emerald-50/10'
+                            : 'border-slate-200'
+                        }`}
+                      >
+                        {/* Line Header */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-slate-900">{line.productName}</span>
+                              {line.productCode && (
+                                <span className="font-mono text-[11px] text-slate-400">({line.productCode})</span>
+                              )}
+                            </div>
+                            {line.productSku && (
+                              <span className="text-[10px] text-slate-400 font-mono">SKU: {line.productSku}</span>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            Line #{idx + 1}
+                          </span>
+                        </div>
+
+                        {/* Line Metrics Table */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/80 p-2.5 rounded-lg border border-slate-200/80 text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-medium">Requested</span>
+                            <span className="font-semibold text-slate-700">{line.requestedQuantity}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-medium">Dispatched</span>
+                            <span className="font-semibold text-blue-700">{line.dispatchedQuantity}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-medium">Already Received</span>
+                            <span className="font-semibold text-slate-700">{line.receivedQuantity}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-amber-700 block uppercase font-bold">Remaining</span>
+                            <span className="font-bold text-amber-800">{remaining}</span>
+                          </div>
+                        </div>
+
+                        {/* Receive Quantity Input Row */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
+                          <div className="flex-1">
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Receive Now <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="0.0001"
+                                max={remaining}
+                                step="0.0001"
+                                placeholder={`Enter qty (max ${remaining})`}
+                                value={receiveForm.lineReceipts[line.id] ?? ''}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setReceiveForm({
+                                    ...receiveForm,
+                                    lineReceipts: {
+                                      ...receiveForm.lineReceipts,
+                                      [line.id]: val === '' ? '' : parseFloat(val)
+                                    }
+                                  });
+                                }}
+                                className={`w-full text-xs font-semibold p-2.5 rounded-lg border transition focus:outline-hidden ${
+                                  isLineInvalid
+                                    ? 'border-rose-400 text-rose-900 focus:ring-2 focus:ring-rose-400 bg-rose-50'
+                                    : 'border-slate-300 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white'
+                                }`}
+                              />
+                            </div>
+                            {isLineInvalid && (
+                              <p className="text-[11px] text-rose-600 font-semibold mt-1">
+                                {numVal > remaining
+                                  ? `Cannot exceed remaining quantity (${remaining}).`
+                                  : 'Must be greater than 0.'}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 sm:self-end pb-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReceiveForm({
+                                  ...receiveForm,
+                                  lineReceipts: {
+                                    ...receiveForm.lineReceipts,
+                                    [line.id]: remaining
+                                  }
+                                });
+                              }}
+                              className="px-2.5 py-2 text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg transition cursor-pointer"
+                            >
+                              Receive Full ({remaining})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReceiveForm({
+                                  ...receiveForm,
+                                  lineReceipts: {
+                                    ...receiveForm.lineReceipts,
+                                    [line.id]: 0
+                                  }
+                                });
+                              }}
+                              className="px-2.5 py-2 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded-lg transition cursor-pointer"
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Line Result Preview */}
+                        {numVal > 0 && !isLineInvalid && (
+                          <div className="flex items-center justify-between text-[11px] text-emerald-700 bg-emerald-50/60 px-2.5 py-1.5 rounded-md border border-emerald-200/60 font-medium">
+                            <span>Receiving Now: <b>{numVal}</b></span>
+                            <span>Remaining After Receipt: <b>{lineRemainingAfter}</b></span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Overall Summary Card */}
+                <div className="p-3.5 bg-slate-900 text-white rounded-xl space-y-2 shrink-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Receipt Summary
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                      <span className="text-[10px] text-slate-400 block uppercase">Total Dispatched</span>
+                      <span className="font-mono font-bold text-sm text-blue-400">{totalDispatched}</span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                      <span className="text-[10px] text-slate-400 block uppercase">Receiving Now</span>
+                      <span className="font-mono font-bold text-sm text-emerald-400">{totalReceivingNow}</span>
+                    </div>
+                    <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                      <span className="text-[10px] text-slate-400 block uppercase">Remaining After</span>
+                      <span className="font-mono font-bold text-sm text-amber-400">{totalRemainingAfter}</span>
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                    <span>Target Transfer State:</span>
+                    <span className={`font-bold ${totalRemainingAfter === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {totalRemainingAfter === 0 ? 'Completed (Fully Received)' : 'InTransit (Partial Receipt)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsReceiveTransferModalOpen(false)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitDisabled}
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs ${
+                      isSubmitDisabled
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                    }`}
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>Confirm Physical Receipt (TransferIn)</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {isOpeningModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
@@ -2963,6 +3226,17 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
               </button>
             </div>
 
+            {/* Informational Guidance Note */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 space-y-1">
+              <div className="flex items-start gap-2">
+                <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold block">Internal Stock Hold:</span>
+                  <span>Manual reservations are internal stock holds and do not enter the fulfillment queue. Customer orders are automatically reserved when the Sales Order is submitted.</span>
+                </div>
+              </div>
+            </div>
+
             <form onSubmit={handleReserveStock} className="space-y-4 text-xs">
               {isSuperAdmin && companies.length > 0 && (
                 <div>
@@ -3008,6 +3282,47 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                   ))}
                 </select>
               </div>
+
+              {/* Live Location Stock Metrics */}
+              {(() => {
+                const selectedBal = balances.find(
+                  b => b.inventoryLocationId === reserveForm.inventoryLocationId && b.productId === reserveForm.productId
+                );
+                const onHandQty = selectedBal?.onHandQuantity ?? 0;
+                const reservedQty = selectedBal?.reservedQuantity ?? 0;
+                const allocatedQty = selectedBal?.allocatedQuantity ?? 0;
+                const availableQty = Math.max(0, onHandQty - reservedQty - allocatedQty);
+                const isExcessiveQty = reserveForm.productId && reserveForm.inventoryLocationId && (Number(reserveForm.requestedQuantity) > availableQty);
+
+                return (
+                  <>
+                    {reserveForm.inventoryLocationId && reserveForm.productId && (
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-3 gap-2 text-center text-xs">
+                        <div>
+                          <span className="text-[10px] text-slate-500 uppercase block font-medium">On Hand</span>
+                          <span className="font-bold text-slate-800">{onHandQty}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 uppercase block font-medium">Reserved</span>
+                          <span className="font-bold text-amber-700">{reservedQty}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 uppercase block font-medium">Available to Reserve</span>
+                          <span className={`font-bold ${availableQty > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {availableQty}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {isExcessiveQty && (
+                      <div className="p-2 bg-rose-50 border border-rose-200 rounded-md text-[11px] text-rose-700 font-semibold flex items-center gap-1.5">
+                        <AlertTriangle size={13} className="shrink-0" />
+                        <span>Requested quantity exceeds available unreserved stock ({availableQty} units).</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Reservation Quantity *</label>

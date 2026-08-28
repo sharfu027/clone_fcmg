@@ -15,13 +15,21 @@ public static class SalesOrderStatuses
     public const string AwaitingTransfer = "AwaitingTransfer";
     public const string Reserved = "Reserved";
     public const string ReadyForFulfillment = "ReadyForFulfillment";
+    public const string Picking = "Picking";
+    public const string Picked = "Picked";
+    public const string Packing = "Packing";
+    public const string Packed = "Packed";
+    public const string Dispatched = "Dispatched";
+    public const string PartiallyDispatched = "PartiallyDispatched";
     public const string Cancelled = "Cancelled";
     public const string Completed = "Completed";
 
     public static readonly string[] All =
     [
         Draft, Submitted, StockChecking, PartiallyAvailable,
-        AwaitingTransfer, Reserved, ReadyForFulfillment, Cancelled, Completed
+        AwaitingTransfer, Reserved, ReadyForFulfillment,
+        Picking, Picked, Packing, Packed, Dispatched, PartiallyDispatched,
+        Cancelled, Completed
     ];
 }
 

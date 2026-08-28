@@ -358,6 +358,196 @@ public static class IamDbSeeder
             logger.LogWarning(ex, "Table creation or seeding for pricing.currencies / pricing.exchange_rates skipped or handled.");
         }
 
+        // 0.8. Ensure PostgreSQL inventory fulfillment tables exist (PickTasks, PackTasks, Packages, Dispatches)
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE SCHEMA IF NOT EXISTS inventory;
+
+                CREATE TABLE IF NOT EXISTS inventory.pick_tasks (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL,
+                    ""SalesOrderId"" uuid NOT NULL,
+                    ""InventoryLocationId"" uuid NOT NULL,
+                    ""PickTaskNumber"" character varying(50) NOT NULL,
+                    ""AssignedEmployeeId"" uuid NULL,
+                    ""Status"" character varying(30) NOT NULL DEFAULT 'Pending',
+                    ""StartedAtUtc"" timestamp with time zone NULL,
+                    ""CompletedAtUtc"" timestamp with time zone NULL,
+                    ""Notes"" character varying(1000) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NOT NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_pick_tasks_CompanyId_PickTaskNumber"" ON inventory.pick_tasks (""CompanyId"", ""PickTaskNumber"");
+                CREATE INDEX IF NOT EXISTS ""IX_pick_tasks_CompanyId_SalesOrderId"" ON inventory.pick_tasks (""CompanyId"", ""SalesOrderId"");
+                CREATE INDEX IF NOT EXISTS ""IX_pick_tasks_CompanyId_InventoryLocationId"" ON inventory.pick_tasks (""CompanyId"", ""InventoryLocationId"");
+                CREATE INDEX IF NOT EXISTS ""IX_pick_tasks_CompanyId_Status"" ON inventory.pick_tasks (""CompanyId"", ""Status"");
+
+                CREATE TABLE IF NOT EXISTS inventory.pick_task_lines (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""PickTaskId"" uuid NOT NULL REFERENCES inventory.pick_tasks(""Id"") ON DELETE CASCADE,
+                    ""SalesOrderLineId"" uuid NOT NULL,
+                    ""ProductId"" uuid NOT NULL,
+                    ""RequestedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""AllocatedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""PickedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""ShortQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""Status"" character varying(30) NOT NULL DEFAULT 'Pending',
+                    ""BatchNumber"" character varying(100) NULL,
+                    ""ExpiryDate"" timestamp with time zone NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_pick_task_lines_PickTaskId"" ON inventory.pick_task_lines (""PickTaskId"");
+                CREATE INDEX IF NOT EXISTS ""IX_pick_task_lines_ProductId"" ON inventory.pick_task_lines (""ProductId"");
+
+                CREATE TABLE IF NOT EXISTS inventory.pack_tasks (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL,
+                    ""SalesOrderId"" uuid NOT NULL,
+                    ""PickTaskId"" uuid NOT NULL,
+                    ""PackTaskNumber"" character varying(50) NOT NULL,
+                    ""AssignedEmployeeId"" uuid NULL,
+                    ""Status"" character varying(30) NOT NULL DEFAULT 'Pending',
+                    ""TotalPackagesCount"" integer NOT NULL DEFAULT 0,
+                    ""StartedAtUtc"" timestamp with time zone NULL,
+                    ""CompletedAtUtc"" timestamp with time zone NULL,
+                    ""Notes"" character varying(1000) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NOT NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_pack_tasks_CompanyId_PackTaskNumber"" ON inventory.pack_tasks (""CompanyId"", ""PackTaskNumber"");
+                CREATE INDEX IF NOT EXISTS ""IX_pack_tasks_CompanyId_SalesOrderId"" ON inventory.pack_tasks (""CompanyId"", ""SalesOrderId"");
+                CREATE INDEX IF NOT EXISTS ""IX_pack_tasks_CompanyId_PickTaskId"" ON inventory.pack_tasks (""CompanyId"", ""PickTaskId"");
+                CREATE INDEX IF NOT EXISTS ""IX_pack_tasks_CompanyId_Status"" ON inventory.pack_tasks (""CompanyId"", ""Status"");
+
+                CREATE TABLE IF NOT EXISTS inventory.packages (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""PackTaskId"" uuid NOT NULL REFERENCES inventory.pack_tasks(""Id"") ON DELETE CASCADE,
+                    ""PackageNumber"" character varying(50) NOT NULL,
+                    ""PackageType"" character varying(50) NOT NULL DEFAULT 'Carton',
+                    ""GrossWeightKg"" numeric(18,2) NULL,
+                    ""Length"" numeric(18,2) NULL,
+                    ""Width"" numeric(18,2) NULL,
+                    ""Height"" numeric(18,2) NULL,
+                    ""SealNumber"" character varying(100) NULL,
+                    ""Barcode"" character varying(100) NULL,
+                    ""PackedByEmployeeId"" uuid NULL,
+                    ""PackedAtUtc"" timestamp with time zone NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_packages_PackTaskId"" ON inventory.packages (""PackTaskId"");
+
+                CREATE TABLE IF NOT EXISTS inventory.package_items (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""PackageId"" uuid NOT NULL REFERENCES inventory.packages(""Id"") ON DELETE CASCADE,
+                    ""ProductId"" uuid NOT NULL,
+                    ""PackedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""BatchNumber"" character varying(100) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_package_items_PackageId"" ON inventory.package_items (""PackageId"");
+                CREATE INDEX IF NOT EXISTS ""IX_package_items_ProductId"" ON inventory.package_items (""ProductId"");
+
+                CREATE TABLE IF NOT EXISTS inventory.dispatches (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL,
+                    ""SalesOrderId"" uuid NOT NULL,
+                    ""PackTaskId"" uuid NULL,
+                    ""DispatchNumber"" character varying(50) NOT NULL,
+                    ""DispatchStatus"" character varying(30) NOT NULL DEFAULT 'Draft',
+                    ""VehicleNumber"" character varying(50) NULL,
+                    ""DriverName"" character varying(100) NULL,
+                    ""DriverPhone"" character varying(30) NULL,
+                    ""TransporterName"" character varying(100) NULL,
+                    ""WaybillNumber"" character varying(100) NULL,
+                    ""DispatchedAtUtc"" timestamp with time zone NULL,
+                    ""DispatchedByEmployeeId"" uuid NULL,
+                    ""Notes"" character varying(1000) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NOT NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_dispatches_CompanyId_DispatchNumber"" ON inventory.dispatches (""CompanyId"", ""DispatchNumber"");
+                CREATE INDEX IF NOT EXISTS ""IX_dispatches_CompanyId_SalesOrderId"" ON inventory.dispatches (""CompanyId"", ""SalesOrderId"");
+                CREATE INDEX IF NOT EXISTS ""IX_dispatches_CompanyId_DispatchStatus"" ON inventory.dispatches (""CompanyId"", ""DispatchStatus"");
+
+                CREATE TABLE IF NOT EXISTS inventory.dispatch_lines (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""DispatchId"" uuid NOT NULL REFERENCES inventory.dispatches(""Id"") ON DELETE CASCADE,
+                    ""ProductId"" uuid NOT NULL,
+                    ""DispatchedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""BatchNumber"" character varying(100) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_dispatch_lines_DispatchId"" ON inventory.dispatch_lines (""DispatchId"");
+                CREATE INDEX IF NOT EXISTS ""IX_dispatch_lines_ProductId"" ON inventory.dispatch_lines (""ProductId"");
+            ");
+            logger.LogInformation("Ensured PostgreSQL fulfillment tables (pick_tasks, pack_tasks, packages, dispatches) exist.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Table creation for inventory fulfillment skipped or handled.");
+        }
+
         // 1. Seed Roles (13 Production Default Roles including Super Admin)
         var defaultRoles = new (string Code, string Name, string Description, int Priority, bool IsSystem)[]
         {
@@ -477,11 +667,13 @@ public static class IamDbSeeder
             ("IAM", "security:user_management", "User Management", "Manage user accounts, locking, and status", 22),
             ("IAM", "security:role_management", "Role Management", "Create, edit, clone, and assign roles & permissions", 23),
             ("REPORTS", "reports:view", "View Reports", "View analytical and operational reports", 24),
-            ("BI", "dashboard:view_dashboard", "View Dashboard", "Access main ERP dashboard overview", 25),
             ("USER_MGMT", "IAM.Users.Read", "Read Users", "Read user profile data", 26),
             ("USER_MGMT", "IAM.Users.Create", "Create Users", "Create new user profiles", 27),
             ("USER_MGMT", "IAM.Users.Update", "Update Users", "Update user profile data", 28),
-            ("USER_MGMT", "IAM.Users.Delete", "Delete Users", "Soft delete user profiles", 29)
+            ("USER_MGMT", "IAM.Users.Delete", "Delete Users", "Soft delete user profiles", 29),
+            ("INVENTORY", "inventory:pick", "Order Picking", "Create, assign, and verify stock picking tasks", 30),
+            ("INVENTORY", "inventory:pack", "Order Packing", "Create and verify packaging for picked orders", 31),
+            ("INVENTORY", "inventory:dispatch", "Order Dispatch", "Prepare shipments, confirm dispatches, and issue goods", 32)
         };
 
         var allPermissionIds = new List<Guid>();

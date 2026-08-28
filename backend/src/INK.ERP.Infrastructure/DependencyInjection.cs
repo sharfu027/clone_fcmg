@@ -302,6 +302,9 @@ public static class DependencyInjection
         services.AddScoped<IInventoryReservationRepository, InventoryReservationRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IStockTransferRepository, StockTransferRepository>();
+        services.AddScoped<IPickTaskRepository, PickTaskRepository>();
+        services.AddScoped<IPackTaskRepository, PackTaskRepository>();
+        services.AddScoped<IDispatchRepository, DispatchRepository>();
         services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IBranchRepository, BranchRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();

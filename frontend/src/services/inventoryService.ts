@@ -301,5 +301,125 @@ export const inventoryService = {
   // Metrics
   async getInventoryMetrics(): Promise<InventoryMetrics> {
     return apiClient.get<InventoryMetrics>('/api/v1/inventory/metrics');
+  },
+
+  // -------------------------------------------------------------------------
+  // PHASE 3 FULFILLMENT SERVICES
+  // -------------------------------------------------------------------------
+  async fetchReadyOrders(params?: { companyId?: string; search?: string; locationId?: string }): Promise<any[]> {
+    return apiClient.get<any[]>('/api/v1/inventory/fulfillment/ready-orders', { params });
+  },
+
+  // Pick Tasks
+  async fetchPickTasks(params?: {
+    companyId?: string;
+    salesOrderId?: string;
+    locationId?: string;
+    employeeId?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<any[]> {
+    return apiClient.get<any[]>('/api/v1/inventory/picks', { params });
+  },
+
+  async fetchPickTaskById(id: string): Promise<any> {
+    return apiClient.get<any>(`/api/v1/inventory/picks/${id}`);
+  },
+
+  async createPickTask(payload: { salesOrderId: string; assignedEmployeeId?: string | null; notes?: string | null }): Promise<any> {
+    return apiClient.post<any>('/api/v1/inventory/picks', payload);
+  },
+
+  async assignPicker(id: string, employeeId: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/picks/${id}/assign`, { employeeId });
+  },
+
+  async startPickTask(id: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/picks/${id}/start`);
+  },
+
+  async completePickTask(id: string, lineVerifications?: any[]): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/picks/${id}/complete`, { lineVerifications });
+  },
+
+  async cancelPickTask(id: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/picks/${id}/cancel`);
+  },
+
+  // Pack Tasks
+  async fetchPackTasks(params?: {
+    companyId?: string;
+    salesOrderId?: string;
+    pickTaskId?: string;
+    employeeId?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<any[]> {
+    return apiClient.get<any[]>('/api/v1/inventory/packs', { params });
+  },
+
+  async fetchPackTaskById(id: string): Promise<any> {
+    return apiClient.get<any>(`/api/v1/inventory/packs/${id}`);
+  },
+
+  async createPackTask(payload: { pickTaskId: string; assignedEmployeeId?: string | null; notes?: string | null }): Promise<any> {
+    return apiClient.post<any>('/api/v1/inventory/packs', payload);
+  },
+
+  async assignPacker(id: string, employeeId: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/packs/${id}/assign`, { employeeId });
+  },
+
+  async completePackTask(id: string, packages?: any[]): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/packs/${id}/complete`, { packages });
+  },
+
+  async cancelPackTask(id: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/packs/${id}/cancel`);
+  },
+
+  // Dispatches
+  async fetchDispatches(params?: {
+    companyId?: string;
+    salesOrderId?: string;
+    packTaskId?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<any[]> {
+    return apiClient.get<any[]>('/api/v1/inventory/dispatches', { params });
+  },
+
+  async fetchDispatchById(id: string): Promise<any> {
+    return apiClient.get<any>(`/api/v1/inventory/dispatches/${id}`);
+  },
+
+  async createDispatch(payload: {
+    salesOrderId: string;
+    packTaskId?: string | null;
+    vehicleNumber?: string | null;
+    driverName?: string | null;
+    driverPhone?: string | null;
+    transporterName?: string | null;
+    waybillNumber?: string | null;
+    notes?: string | null;
+  }): Promise<any> {
+    return apiClient.post<any>('/api/v1/inventory/dispatches', payload);
+  },
+
+  async confirmDispatch(id: string, payload?: { dispatchedByEmployeeId?: string | null; notes?: string | null }): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/dispatches/${id}/confirm`, payload ?? {});
+  },
+
+  async cancelDispatch(id: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/inventory/dispatches/${id}/cancel`);
   }
 };

@@ -7,6 +7,7 @@ using INK.ERP.Domain.Entities.Security;
 using INK.ERP.Domain.Entities.MasterData;
 using INK.ERP.Domain.Entities.Pricing;
 using INK.ERP.Domain.Entities.Inventory;
+using INK.ERP.Domain.Entities.Inventory.Fulfillment;
 using INK.ERP.Domain.Entities.Sales;
 
 namespace INK.ERP.Persistence;
@@ -140,6 +141,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<SalesOrderItem> SalesOrderItems => Set<SalesOrderItem>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<StockTransferLine> StockTransferLines => Set<StockTransferLine>();
+
+    // Fulfillment DB Sets
+    public DbSet<PickTask> PickTasks => Set<PickTask>();
+    public DbSet<PickTaskLine> PickTaskLines => Set<PickTaskLine>();
+    public DbSet<PackTask> PackTasks => Set<PackTask>();
+    public DbSet<Package> Packages => Set<Package>();
+    public DbSet<PackageItem> PackageItems => Set<PackageItem>();
+    public DbSet<Dispatch> Dispatches => Set<Dispatch>();
+    public DbSet<DispatchLine> DispatchLines => Set<DispatchLine>();
 
     // Procurement DB Sets
     public DbSet<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition> PurchaseRequisitions => Set<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition>();

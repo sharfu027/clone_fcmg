@@ -143,7 +143,10 @@ public class InventoryReservationRepository : IInventoryReservationRepository
     public Task UpdateAsync(InventoryReservation reservation, CancellationToken cancellationToken = default)
     {
         if (reservation == null) throw new ArgumentNullException(nameof(reservation));
-        _context.InventoryReservations.Update(reservation);
+        if (_context.Entry(reservation).State == EntityState.Detached)
+        {
+            _context.InventoryReservations.Update(reservation);
+        }
         return Task.CompletedTask;
     }
 

@@ -420,3 +420,243 @@ export interface InventoryMetrics {
   nearExpiryItemsCount: number;
   avgTurnoverRatio: number;
 }
+
+// -------------------------------------------------------------------------
+// PHASE 3 FULFILLMENT TYPES
+// -------------------------------------------------------------------------
+
+export interface ReadyForFulfillmentOrderItemDto {
+  orderLineId: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  uomName: string;
+  requestedQuantity: number;
+  reservedQuantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface ReadyForFulfillmentOrderDto {
+  id: string;
+  companyId: string;
+  companyName: string;
+  customerId: string;
+  customerName: string;
+  customerCode: string;
+  salesEmployeeId?: string | null;
+  salesEmployeeName?: string | null;
+  inventoryLocationId?: string | null;
+  inventoryLocationName?: string | null;
+  inventoryLocationCode?: string | null;
+  orderNumber: string;
+  orderStatus: string;
+  orderDateUtc: string;
+  totalAmount: number;
+  itemsCount: number;
+  totalQuantity: number;
+  totalReservedQuantity: number;
+  hasActivePickTask: boolean;
+  activePickTaskId?: string | null;
+  activePickTaskNumber?: string | null;
+  activePickTaskStatus?: string | null;
+  items: ReadyForFulfillmentOrderItemDto[];
+}
+
+export interface PickTaskLineDto {
+  id: string;
+  pickTaskId: string;
+  salesOrderLineId: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  uomName: string;
+  requestedQuantity: number;
+  allocatedQuantity: number;
+  pickedQuantity: number;
+  shortQuantity: number;
+  status: 'Pending' | 'Picked' | 'ShortPicked' | 'Cancelled' | string;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+}
+
+export interface PickTaskDto {
+  id: string;
+  companyId: string;
+  companyName: string;
+  salesOrderId: string;
+  salesOrderNumber: string;
+  customerId: string;
+  customerName: string;
+  inventoryLocationId: string;
+  inventoryLocationName: string;
+  inventoryLocationCode: string;
+  pickTaskNumber: string;
+  assignedEmployeeId?: string | null;
+  assignedEmployeeName?: string | null;
+  assignedEmployeeCode?: string | null;
+  status: 'Pending' | 'Assigned' | 'InProgress' | 'PartiallyPicked' | 'Completed' | 'Cancelled' | string;
+  startedAtUtc?: string | null;
+  completedAtUtc?: string | null;
+  notes?: string | null;
+  concurrencyToken: string;
+  createdAtUtc: string;
+  lines: PickTaskLineDto[];
+}
+
+export interface PackageItemDto {
+  id: string;
+  packageId: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  uomName: string;
+  packedQuantity: number;
+  batchNumber?: string | null;
+}
+
+export interface PackageDto {
+  id: string;
+  packTaskId: string;
+  packageNumber: string;
+  packageType: string;
+  grossWeightKg?: number | null;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  sealNumber?: string | null;
+  barcode?: string | null;
+  packedByEmployeeId?: string | null;
+  packedByEmployeeName?: string | null;
+  packedAtUtc?: string | null;
+  items: PackageItemDto[];
+}
+
+export interface PackTaskDto {
+  id: string;
+  companyId: string;
+  companyName: string;
+  salesOrderId: string;
+  salesOrderNumber: string;
+  customerId: string;
+  customerName: string;
+  pickTaskId: string;
+  pickTaskNumber: string;
+  packTaskNumber: string;
+  assignedEmployeeId?: string | null;
+  assignedEmployeeName?: string | null;
+  assignedEmployeeCode?: string | null;
+  status: 'Pending' | 'Assigned' | 'InProgress' | 'Packed' | 'Cancelled' | string;
+  totalPackagesCount: number;
+  startedAtUtc?: string | null;
+  completedAtUtc?: string | null;
+  notes?: string | null;
+  concurrencyToken: string;
+  createdAtUtc: string;
+  packages: PackageDto[];
+}
+
+export interface DispatchLineDto {
+  id: string;
+  dispatchId: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  uomName: string;
+  dispatchedQuantity: number;
+  batchNumber?: string | null;
+}
+
+export interface DispatchDto {
+  id: string;
+  companyId: string;
+  companyName: string;
+  salesOrderId: string;
+  salesOrderNumber: string;
+  customerId: string;
+  customerName: string;
+  packTaskId?: string | null;
+  packTaskNumber?: string | null;
+  dispatchNumber: string;
+  dispatchStatus: 'Draft' | 'ReadyForDispatch' | 'Dispatched' | 'Cancelled' | string;
+  vehicleNumber?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  transporterName?: string | null;
+  waybillNumber?: string | null;
+  dispatchedAtUtc?: string | null;
+  dispatchedByEmployeeId?: string | null;
+  dispatchedByEmployeeName?: string | null;
+  notes?: string | null;
+  concurrencyToken: string;
+  createdAtUtc: string;
+  lines: DispatchLineDto[];
+}
+
+// Request Interfaces
+export interface CreatePickTaskRequest {
+  salesOrderId: string;
+  assignedEmployeeId?: string | null;
+  notes?: string | null;
+}
+
+export interface CompletePickItemVerification {
+  pickTaskLineId: string;
+  pickedQuantity: number;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
+  scannedCode?: string | null;
+}
+
+export interface CompletePickTaskRequest {
+  lineVerifications: CompletePickItemVerification[];
+}
+
+export interface CreatePackTaskRequest {
+  pickTaskId: string;
+  assignedEmployeeId?: string | null;
+  notes?: string | null;
+}
+
+export interface PackageItemInput {
+  productId: string;
+  packedQuantity: number;
+  batchNumber?: string | null;
+}
+
+export interface PackageInput {
+  packageNumber?: string | null;
+  packageType?: string;
+  grossWeightKg?: number | null;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  sealNumber?: string | null;
+  barcode?: string | null;
+  items: PackageItemInput[];
+}
+
+export interface CompletePackTaskRequest {
+  packages: PackageInput[];
+}
+
+export interface CreateDispatchRequest {
+  salesOrderId: string;
+  packTaskId?: string | null;
+  vehicleNumber?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  transporterName?: string | null;
+  waybillNumber?: string | null;
+  notes?: string | null;
+}
+
+export interface ConfirmDispatchRequest {
+  dispatchedByEmployeeId?: string | null;
+  notes?: string | null;
+}
+
