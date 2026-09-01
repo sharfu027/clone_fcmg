@@ -27,6 +27,10 @@ public class InventoryReservationConfiguration : IEntityTypeConfiguration<Invent
         builder.Property(x => x.ProductId)
             .IsRequired();
 
+        builder.Property(x => x.BatchNumber)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
         builder.Property(x => x.ReservedQuantity)
             .HasPrecision(18, 4)
             .IsRequired();

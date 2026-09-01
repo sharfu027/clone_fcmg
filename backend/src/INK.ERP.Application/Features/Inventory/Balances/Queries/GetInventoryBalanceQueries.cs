@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,6 +15,7 @@ public record GetInventoryBalanceByIdQuery(Guid Id) : IRequest<Result<InventoryB
 public class GetInventoryBalanceByIdQueryHandler : IRequestHandler<GetInventoryBalanceByIdQuery, Result<InventoryBalanceDto>>
 {
     private readonly IInventoryBalanceRepository _balanceRepository;
+    private readonly IInventoryStockPolicyRepository _policyRepository;
     private readonly IInventoryLocationRepository _locationRepository;
     private readonly IProductRepository _productRepository;
     private readonly ICompanyRepository _companyRepository;
@@ -22,12 +23,14 @@ public class GetInventoryBalanceByIdQueryHandler : IRequestHandler<GetInventoryB
 
     public GetInventoryBalanceByIdQueryHandler(
         IInventoryBalanceRepository balanceRepository,
+        IInventoryStockPolicyRepository policyRepository,
         IInventoryLocationRepository locationRepository,
         IProductRepository productRepository,
         ICompanyRepository companyRepository,
         ICompanyAccessResolver companyAccessResolver)
     {
         _balanceRepository = balanceRepository;
+        _policyRepository = policyRepository;
         _locationRepository = locationRepository;
         _productRepository = productRepository;
         _companyRepository = companyRepository;
@@ -53,6 +56,12 @@ public class GetInventoryBalanceByIdQueryHandler : IRequestHandler<GetInventoryB
 
         decimal availableQty = balance.OnHandQuantity - balance.ReservedQuantity - balance.AllocatedQuantity;
 
+        var allBalances = await _balanceRepository.GetByLocationAndProductListAsync(balance.CompanyId, balance.InventoryLocationId, balance.ProductId, cancellationToken);
+        decimal totalLocationAvailable = allBalances.Sum(b => Math.Max(0m, b.OnHandQuantity - b.ReservedQuantity - b.AllocatedQuantity));
+
+        var policy = await _policyRepository.GetPolicyAsync(balance.CompanyId, balance.InventoryLocationId, balance.ProductId, cancellationToken);
+        decimal minStock = policy?.MinStockQuantity ?? (product?.MinOrderQty ?? 0m);
+
         var dto = new InventoryBalanceDto(
             balance.Id,
             balance.CompanyId,
@@ -66,13 +75,17 @@ public class GetInventoryBalanceByIdQueryHandler : IRequestHandler<GetInventoryB
             product?.Sku,
             product?.BaseUomId ?? Guid.Empty,
             product?.BaseUom?.Name,
+            balance.BatchNumber,
+            balance.ExpiryDate,
             balance.OnHandQuantity,
             balance.ReservedQuantity,
             balance.AllocatedQuantity,
             availableQty,
             balance.LastMovementAtUtc,
             balance.CreatedAtUtc,
-            balance.LastModifiedAtUtc);
+            balance.LastModifiedAtUtc,
+            minStock,
+            totalLocationAvailable);
 
         return Result<InventoryBalanceDto>.Success(dto);
     }
@@ -90,6 +103,7 @@ public record GetInventoryBalancesPagedQuery(
 public class GetInventoryBalancesPagedQueryHandler : IRequestHandler<GetInventoryBalancesPagedQuery, Result<IReadOnlyList<InventoryBalanceDto>>>
 {
     private readonly IInventoryBalanceRepository _balanceRepository;
+    private readonly IInventoryStockPolicyRepository _policyRepository;
     private readonly IInventoryLocationRepository _locationRepository;
     private readonly IProductRepository _productRepository;
     private readonly ICompanyRepository _companyRepository;
@@ -97,12 +111,14 @@ public class GetInventoryBalancesPagedQueryHandler : IRequestHandler<GetInventor
 
     public GetInventoryBalancesPagedQueryHandler(
         IInventoryBalanceRepository balanceRepository,
+        IInventoryStockPolicyRepository policyRepository,
         IInventoryLocationRepository locationRepository,
         IProductRepository productRepository,
         ICompanyRepository companyRepository,
         ICompanyAccessResolver companyAccessResolver)
     {
         _balanceRepository = balanceRepository;
+        _policyRepository = policyRepository;
         _locationRepository = locationRepository;
         _productRepository = productRepository;
         _companyRepository = companyRepository;
@@ -138,6 +154,23 @@ public class GetInventoryBalancesPagedQueryHandler : IRequestHandler<GetInventor
 
         var balanceList = query.ToList();
 
+        // Calculate aggregate available quantity per (Location, Product)
+        var locationProductTotals = balanceList
+            .GroupBy(b => new { b.CompanyId, b.InventoryLocationId, b.ProductId })
+            .ToDictionary(
+                g => (g.Key.CompanyId, g.Key.InventoryLocationId, g.Key.ProductId),
+                g => g.Sum(b => Math.Max(0m, b.OnHandQuantity - b.ReservedQuantity - b.AllocatedQuantity))
+            );
+
+        // Fetch policies for the company
+        IReadOnlyList<Domain.Entities.Inventory.InventoryStockPolicy> policies = new List<Domain.Entities.Inventory.InventoryStockPolicy>();
+        if (effectiveCompanyId.HasValue)
+        {
+            policies = await _policyRepository.GetPoliciesByCompanyAsync(effectiveCompanyId.Value, cancellationToken);
+        }
+
+        var policyMap = policies.ToDictionary(p => (p.CompanyId, p.InventoryLocationId, p.ProductId), p => p.MinStockQuantity);
+
         // Hydrate and filter in memory with relations
         var dtos = new List<InventoryBalanceDto>();
         var search = request.Search?.Trim();
@@ -172,6 +205,17 @@ public class GetInventoryBalancesPagedQueryHandler : IRequestHandler<GetInventor
             var company = await _companyRepository.GetByIdAsync(b.CompanyId, cancellationToken);
             decimal availableQty = b.OnHandQuantity - b.ReservedQuantity - b.AllocatedQuantity;
 
+            locationProductTotals.TryGetValue((b.CompanyId, b.InventoryLocationId, b.ProductId), out decimal totalLocAvailable);
+            policyMap.TryGetValue((b.CompanyId, b.InventoryLocationId, b.ProductId), out decimal minStock);
+            if (minStock == 0 && b.MinStockQuantity > 0)
+            {
+                minStock = b.MinStockQuantity;
+            }
+            if (minStock == 0 && product != null && product.MinOrderQty > 0)
+            {
+                minStock = product.MinOrderQty;
+            }
+
             dtos.Add(new InventoryBalanceDto(
                 b.Id,
                 b.CompanyId,
@@ -185,13 +229,17 @@ public class GetInventoryBalancesPagedQueryHandler : IRequestHandler<GetInventor
                 product?.Sku,
                 product?.BaseUomId ?? Guid.Empty,
                 product?.BaseUom?.Name,
+                b.BatchNumber,
+                b.ExpiryDate,
                 b.OnHandQuantity,
                 b.ReservedQuantity,
                 b.AllocatedQuantity,
                 availableQty,
                 b.LastMovementAtUtc,
                 b.CreatedAtUtc,
-                b.LastModifiedAtUtc));
+                b.LastModifiedAtUtc,
+                minStock,
+                totalLocAvailable));
         }
 
         var pagedDtos = dtos

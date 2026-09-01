@@ -44,13 +44,20 @@ public record SalesOrderDto(
     string? Notes,
     DateTime CreatedAtUtc,
     DateTime? LastModifiedAtUtc,
-    IReadOnlyList<SalesOrderItemDto> Items
+    IReadOnlyList<SalesOrderItemDto> Items,
+    double? CaptureLatitude = null,
+    double? CaptureLongitude = null,
+    double? CaptureAccuracyMeters = null,
+    double? DistanceToCustomerMeters = null,
+    bool IsGpsVerified = false,
+    bool IsFaceVerified = false,
+    DateTime? VerifiedAtUtc = null
 );
 
 public record CreateSalesOrderItemRequest(
     Guid ProductId,
     decimal Quantity,
-    decimal UnitPrice,
+    decimal? UnitPrice = null,
     decimal DiscountAmount = 0,
     decimal TaxAmount = 0
 );
@@ -62,7 +69,11 @@ public record CreateSalesOrderRequest(
     Guid? InventoryLocationId,
     DateTime? OrderDateUtc,
     string? Notes,
-    List<CreateSalesOrderItemRequest> Items
+    List<CreateSalesOrderItemRequest> Items,
+    double? CaptureLatitude = null,
+    double? CaptureLongitude = null,
+    double? CaptureAccuracyMeters = null,
+    string? VerificationProof = null
 );
 
 public record UpdateSalesOrderRequest(
@@ -71,4 +82,21 @@ public record UpdateSalesOrderRequest(
     DateTime? OrderDateUtc,
     string? Notes,
     List<CreateSalesOrderItemRequest> Items
+);
+
+public record VerifyFieldLocationRequest(
+    Guid CompanyId,
+    Guid CustomerId,
+    double CaptureLatitude,
+    double CaptureLongitude,
+    double? AccuracyMeters = null
+);
+
+public record VerifyFieldLocationResultDto(
+    bool Success,
+    double DistanceMeters,
+    bool IsWithinRange,
+    string Message,
+    string? CustomerName = null,
+    string? VerificationProof = null
 );

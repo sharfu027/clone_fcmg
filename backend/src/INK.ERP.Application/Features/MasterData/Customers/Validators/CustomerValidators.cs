@@ -24,6 +24,14 @@ public class CreateCustomerCommandValidator : AbstractValidator<CreateCustomerCo
 
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required.");
+
+        RuleFor(x => x.Latitude)
+            .InclusiveBetween(-90.0, 90.0).When(x => x.Latitude.HasValue)
+            .WithMessage("Latitude must be between -90 and 90 degrees.");
+
+        RuleFor(x => x.Longitude)
+            .InclusiveBetween(-180.0, 180.0).When(x => x.Longitude.HasValue)
+            .WithMessage("Longitude must be between -180 and 180 degrees.");
     }
 }
 
@@ -51,5 +59,13 @@ public class UpdateCustomerCommandValidator : AbstractValidator<UpdateCustomerCo
 
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required.");
+
+        RuleFor(x => x.Latitude)
+            .InclusiveBetween(-90.0, 90.0).When(x => x.Latitude.HasValue)
+            .WithMessage("Latitude must be between -90 and 90 degrees.");
+
+        RuleFor(x => x.Longitude)
+            .InclusiveBetween(-180.0, 180.0).When(x => x.Longitude.HasValue)
+            .WithMessage("Longitude must be between -180 and 180 degrees.");
     }
 }

@@ -52,12 +52,19 @@ export interface RealSalesOrder {
   createdAtUtc: string;
   lastModifiedAtUtc?: string | null;
   items: RealSalesOrderItem[];
+  captureLatitude?: number | null;
+  captureLongitude?: number | null;
+  captureAccuracyMeters?: number | null;
+  distanceToCustomerMeters?: number | null;
+  isGpsVerified?: boolean;
+  isFaceVerified?: boolean;
+  verifiedAtUtc?: string | null;
 }
 
 export interface CreateRealSalesOrderItemRequest {
   productId: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice?: number | null;
   discountAmount?: number;
   taxAmount?: number;
 }
@@ -70,4 +77,46 @@ export interface CreateRealSalesOrderRequest {
   orderDateUtc?: string | null;
   notes?: string | null;
   items: CreateRealSalesOrderItemRequest[];
+  captureLatitude?: number | null;
+  captureLongitude?: number | null;
+  captureAccuracyMeters?: number | null;
+  isFaceVerified?: boolean;
+}
+
+export interface UpdateRealSalesOrderRequest {
+  salesEmployeeId?: string | null;
+  inventoryLocationId?: string | null;
+  orderDateUtc?: string | null;
+  notes?: string | null;
+  items: CreateRealSalesOrderItemRequest[];
+}
+
+export interface VerifyFieldLocationRequest {
+  companyId: string;
+  customerId: string;
+  captureLatitude: number;
+  captureLongitude: number;
+  accuracyMeters?: number | null;
+}
+
+export interface VerifyFieldLocationResult {
+  success: boolean;
+  distanceMeters: number;
+  isWithinRange: boolean;
+  message: string;
+  customerName?: string | null;
+  verificationProof?: string | null;
+}
+
+export interface PriceResolutionResult {
+  resolvedPrice: number;
+  currency: string;
+  source: string;
+  priceListId?: string | null;
+  customerPriceId?: string | null;
+  effectiveDate: string;
+  minimumAllowedPrice: number;
+  priceListName?: string | null;
+  customerName?: string | null;
+  productName?: string | null;
 }

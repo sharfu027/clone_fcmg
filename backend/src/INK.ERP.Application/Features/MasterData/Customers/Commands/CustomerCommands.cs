@@ -28,7 +28,9 @@ public record CreateCustomerCommand(
     string Country,
     decimal CreditLimit,
     int CreditDays,
-    Guid? RouteId) : IRequest<Result<CustomerDto>>;
+    Guid? RouteId,
+    double? Latitude = null,
+    double? Longitude = null) : IRequest<Result<CustomerDto>>;
 
 public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerCommand, Result<CustomerDto>>
 {
@@ -58,6 +60,11 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
         }
 
         var targetCompanyId = authorizedCompanyId ?? request.CompanyId;
+        var accessResult = await _companyAccessResolver.ValidateCompanyAccessAsync(targetCompanyId, cancellationToken);
+        if (!accessResult.IsSuccess)
+        {
+            return Result<CustomerDto>.Failure(accessResult.Error);
+        }
 
         var company = await _companyRepository.GetByIdAsync(targetCompanyId, cancellationToken);
         if (company == null || company.IsDeleted)
@@ -72,11 +79,12 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
 
         var customer = new Customer
         {
+            Id = Guid.NewGuid(),
             CompanyId = targetCompanyId,
             Code = request.Code.ToUpperInvariant().Trim(),
             LegalName = request.LegalName.Trim(),
             TradeName = request.TradeName?.Trim(),
-            CustomerType = request.CustomerType,
+            CustomerType = string.IsNullOrWhiteSpace(request.CustomerType) ? "Retailer" : request.CustomerType.Trim(),
             Gstin = request.Gstin?.ToUpperInvariant().Trim(),
             Pan = request.Pan?.ToUpperInvariant().Trim(),
             Email = request.Email.Trim(),
@@ -85,6 +93,8 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             CreditLimit = request.CreditLimit,
             CreditDays = request.CreditDays,
             RouteId = request.RouteId,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             IsActive = true
         };
 
@@ -112,6 +122,8 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             customer.CreditLimit,
             customer.CreditDays,
             customer.RouteId,
+            customer.Latitude,
+            customer.Longitude,
             customer.IsActive,
             customer.CreatedAtUtc);
 
@@ -139,7 +151,9 @@ public record UpdateCustomerCommand(
     decimal CreditLimit,
     int CreditDays,
     Guid? RouteId,
-    bool IsActive) : IRequest<Result<CustomerDto>>;
+    double? Latitude = null,
+    double? Longitude = null,
+    bool IsActive = true) : IRequest<Result<CustomerDto>>;
 
 public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerCommand, Result<CustomerDto>>
 {
@@ -197,6 +211,8 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         customer.CreditLimit = request.CreditLimit;
         customer.CreditDays = request.CreditDays;
         customer.RouteId = request.RouteId;
+        customer.Latitude = request.Latitude;
+        customer.Longitude = request.Longitude;
         customer.IsActive = request.IsActive;
 
         await _customerRepository.UpdateAsync(customer, cancellationToken);
@@ -223,6 +239,8 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
             customer.CreditLimit,
             customer.CreditDays,
             customer.RouteId,
+            customer.Latitude,
+            customer.Longitude,
             customer.IsActive,
             customer.CreatedAtUtc);
 

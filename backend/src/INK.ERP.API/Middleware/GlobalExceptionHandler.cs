@@ -35,34 +35,76 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             problemDetails.Detail = validationException.Message;
             problemDetails.Extensions.Add("errors", validationException.Errors);
         }
-        else if (exception is DbUpdateException dbUpdateEx && dbUpdateEx.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+        else if (exception is DbUpdateException dbUpdateEx && dbUpdateEx.InnerException is PostgresException pgEx)
         {
-            problemDetails.Status = StatusCodes.Status409Conflict;
-            problemDetails.Title = "Duplicate Record Conflict";
+            if (pgEx.SqlState == "23505")
+            {
+                problemDetails.Status = StatusCodes.Status409Conflict;
+                problemDetails.Title = "Duplicate Record Conflict";
 
-            var constraint = pgEx.ConstraintName ?? string.Empty;
-            if (constraint.Contains("TaxRegistrationNumber", StringComparison.OrdinalIgnoreCase))
-            {
-                problemDetails.Detail = "A company with this Tax Registration (GSTIN) already exists.";
+                var constraint = pgEx.ConstraintName ?? string.Empty;
+                if (constraint.Contains("TaxRegistrationNumber", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "A company with this Tax Registration (GSTIN) already exists.";
+                }
+                else if (constraint.Contains("Code", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "A record with this Code identifier already exists.";
+                }
+                else if (constraint.Contains("LegalName", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "A record with this Legal Name already exists.";
+                }
+                else
+                {
+                    problemDetails.Detail = "A record with these unique details already exists in the system.";
+                }
             }
-            else if (constraint.Contains("Code", StringComparison.OrdinalIgnoreCase))
+            else if (pgEx.SqlState == "23503")
             {
-                problemDetails.Detail = "A record with this Code identifier already exists.";
-            }
-            else if (constraint.Contains("LegalName", StringComparison.OrdinalIgnoreCase))
-            {
-                problemDetails.Detail = "A record with this Legal Name already exists.";
+                problemDetails.Status = StatusCodes.Status409Conflict;
+                problemDetails.Title = "Record In Use Conflict";
+
+                var constraint = pgEx.ConstraintName ?? string.Empty;
+                if (constraint.Contains("employees", StringComparison.OrdinalIgnoreCase) || constraint.Contains("designation", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "Cannot delete this record because it is currently referenced by one or more employee records.";
+                }
+                else if (constraint.Contains("branch", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "Cannot delete this record because it is currently referenced by one or more branch records.";
+                }
+                else if (constraint.Contains("department", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "Cannot delete this record because it is currently referenced by one or more department records.";
+                }
+                else if (constraint.Contains("company", StringComparison.OrdinalIgnoreCase))
+                {
+                    problemDetails.Detail = "Cannot delete this record because it is currently referenced by one or more company records.";
+                }
+                else
+                {
+                    problemDetails.Detail = "Cannot delete this record because it is currently referenced by other active records in the system.";
+                }
             }
             else
             {
-                problemDetails.Detail = "A record with these unique details already exists in the system.";
+                problemDetails.Status = StatusCodes.Status400BadRequest;
+                problemDetails.Title = "Database Operation Error";
+                problemDetails.Detail = "A database constraint violation occurred while processing your request.";
             }
+        }
+        else if (exception is DbUpdateException)
+        {
+            problemDetails.Status = StatusCodes.Status500InternalServerError;
+            problemDetails.Title = "Database Operation Error";
+            problemDetails.Detail = "An unexpected error occurred while saving database changes. Please try again or contact support.";
         }
         else
         {
             problemDetails.Status = StatusCodes.Status500InternalServerError;
             problemDetails.Title = "Internal Server Error";
-            problemDetails.Detail = exception.Message;
+            problemDetails.Detail = "An unexpected server error occurred.";
         }
 
         httpContext.Response.StatusCode = problemDetails.Status.Value;

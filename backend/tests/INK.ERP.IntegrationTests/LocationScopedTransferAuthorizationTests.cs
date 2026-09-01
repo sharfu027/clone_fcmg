@@ -19,6 +19,7 @@ using INK.ERP.Domain.Entities.MasterData;
 using INK.ERP.Domain.Entities.IAM;
 using INK.ERP.Domain.ValueObjects;
 using INK.ERP.Persistence;
+using INK.ERP.IntegrationTests.Infrastructure;
 
 namespace INK.ERP.IntegrationTests;
 
@@ -33,12 +34,12 @@ public class TestCurrentUserService : ICurrentUserService
     public IReadOnlyList<System.Security.Claims.Claim> Claims { get; set; } = new List<System.Security.Claims.Claim>();
 }
 
-public class LocationScopedTransferAuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
+public class LocationScopedTransferAuthorizationTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory<Program> _factory;
     private readonly ITestOutputHelper _output;
 
-    public LocationScopedTransferAuthorizationTests(WebApplicationFactory<Program> factory, ITestOutputHelper output)
+    public LocationScopedTransferAuthorizationTests(CustomWebApplicationFactory<Program> factory, ITestOutputHelper output)
     {
         _factory = factory;
         _output = output;
@@ -73,6 +74,11 @@ public class LocationScopedTransferAuthorizationTests : IClassFixture<WebApplica
         var createdWarehouseIds = new List<Guid>();
         var createdBranchIds = new List<Guid>();
         var createdProductIds = new List<Guid>();
+        var createdCategoryIds = new List<Guid>();
+        var createdBrandIds = new List<Guid>();
+        var createdUomIds = new List<Guid>();
+        var createdDepartmentIds = new List<Guid>();
+        var createdDesignationIds = new List<Guid>();
         var createdCompanyIds = new List<Guid>();
 
         string runId = Guid.NewGuid().ToString("N")[..4].ToUpperInvariant();
@@ -80,8 +86,50 @@ public class LocationScopedTransferAuthorizationTests : IClassFixture<WebApplica
         try
         {
             // Setup Company A and Company B
-            var companyA = await db.Companies.FirstAsync();
-            var existingProd = await db.Products.FirstAsync();
+            var companyA = await db.Companies.FirstOrDefaultAsync();
+            if (companyA == null)
+            {
+                companyA = TestEntityFactory.CreateCompany($"CA{runId}", $"Company A {runId}");
+                db.Companies.Add(companyA);
+                await db.SaveChangesAsync();
+                createdCompanyIds.Add(companyA.Id);
+            }
+
+            var baseCat = await db.Categories.FirstOrDefaultAsync(c => c.CompanyId == companyA.Id);
+            if (baseCat == null)
+            {
+                baseCat = TestEntityFactory.CreateCategory(companyA.Id, $"CAT_{runId}", "General Category");
+                db.Categories.Add(baseCat);
+                await db.SaveChangesAsync();
+                createdCategoryIds.Add(baseCat.Id);
+            }
+
+            var baseBrand = await db.Brands.FirstOrDefaultAsync(b => b.CompanyId == companyA.Id);
+            if (baseBrand == null)
+            {
+                baseBrand = TestEntityFactory.CreateBrand(companyA.Id, $"BRD_{runId}", "General Brand");
+                db.Brands.Add(baseBrand);
+                await db.SaveChangesAsync();
+                createdBrandIds.Add(baseBrand.Id);
+            }
+
+            var baseUom = await db.UnitsOfMeasure.FirstOrDefaultAsync(u => u.CompanyId == companyA.Id);
+            if (baseUom == null)
+            {
+                baseUom = TestEntityFactory.CreateUnitOfMeasure(companyA.Id, $"PCS_{runId}", "Pieces");
+                db.UnitsOfMeasure.Add(baseUom);
+                await db.SaveChangesAsync();
+                createdUomIds.Add(baseUom.Id);
+            }
+
+            var existingProd = await db.Products.FirstOrDefaultAsync();
+            if (existingProd == null)
+            {
+                existingProd = TestEntityFactory.CreateProduct(companyA.Id, baseCat.Id, baseBrand.Id, baseUom.Id, $"PRD_{runId}", $"Test Product {runId}");
+                db.Products.Add(existingProd);
+                await db.SaveChangesAsync();
+                createdProductIds.Add(existingProd.Id);
+            }
 
             var companyB = new Company
             {
@@ -118,27 +166,51 @@ public class LocationScopedTransferAuthorizationTests : IClassFixture<WebApplica
             };
             var warehouseA1 = new Warehouse { Id = Guid.NewGuid(), CompanyId = companyA.Id, BranchId = branchA1.Id, Code = $"WA{runId}", Name = "Warehouse A1", IsActive = true };
             var warehouseA2 = new Warehouse { Id = Guid.NewGuid(), CompanyId = companyA.Id, BranchId = branchA2.Id, Code = $"WB{runId}", Name = "Warehouse A2", IsActive = true };
-            // Query or create Departments / Designations for testing
-            var existingDept = await db.Departments.FirstAsync();
-            var existingDesig = await db.Designations.FirstAsync();
 
             db.Branches.AddRange(branchA1, branchA2);
             db.Warehouses.AddRange(warehouseA1, warehouseA2);
+            await db.SaveChangesAsync();
             createdBranchIds.AddRange(new[] { branchA1.Id, branchA2.Id });
             createdWarehouseIds.AddRange(new[] { warehouseA1.Id, warehouseA2.Id });
 
-            // Create Test Product
-            var testProduct = new Product
+            // Query or create Departments / Designations for testing
+            var existingDept = await db.Departments.FirstOrDefaultAsync(d => d.CompanyId == companyA.Id);
+            if (existingDept == null)
             {
-                Id = Guid.NewGuid(),
-                CompanyId = companyA.Id,
-                Name = $"Transfer Matrix Product {runId}",
-                Code = $"PT{runId}",
-                Sku = $"SK{runId}",
-                BaseUomId = existingProd.BaseUomId,
-                IsActive = true
-            };
+                existingDept = new Department
+                {
+                    Id = Guid.NewGuid(),
+                    CompanyId = companyA.Id,
+                    BranchId = branchA1.Id,
+                    Code = $"DEPT_{runId}",
+                    Name = "General Operations",
+                    IsActive = true
+                };
+                db.Departments.Add(existingDept);
+                await db.SaveChangesAsync();
+                createdDepartmentIds.Add(existingDept.Id);
+            }
+
+            var existingDesig = await db.Designations.FirstOrDefaultAsync(d => d.CompanyId == companyA.Id);
+            if (existingDesig == null)
+            {
+                existingDesig = new Designation
+                {
+                    Id = Guid.NewGuid(),
+                    CompanyId = companyA.Id,
+                    Code = $"DESIG_{runId}",
+                    Title = "Operations Staff",
+                    IsActive = true
+                };
+                db.Designations.Add(existingDesig);
+                await db.SaveChangesAsync();
+                createdDesignationIds.Add(existingDesig.Id);
+            }
+
+            // Create Test Product
+            var testProduct = TestEntityFactory.CreateProduct(companyA.Id, baseCat.Id, baseBrand.Id, baseUom.Id, $"PT{runId}", $"Transfer Matrix Product {runId}");
             db.Products.Add(testProduct);
+            await db.SaveChangesAsync();
             createdProductIds.Add(testProduct.Id);
 
             // Create Test Locations:
@@ -555,69 +627,92 @@ public class LocationScopedTransferAuthorizationTests : IClassFixture<WebApplica
         {
             // CLEANUP TEST DATA - STRICT ZERO RESIDUE
             _output.WriteLine("\n=== PERFORMING STRICT ZERO-RESIDUE CLEANUP ===");
-            try
+            using var cleanScope = testFactory.Services.CreateScope();
+            var cleanDb = cleanScope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            if (createdTransferIds.Count > 0)
             {
-                using var cleanScope = testFactory.Services.CreateScope();
-                var cleanDb = cleanScope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                if (createdTransferIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM inventory.stock_transfer_lines WHERE stock_transfer_id = ANY({0})", createdTransferIds.ToArray());
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM inventory.stock_transfers WHERE id = ANY({0})", createdTransferIds.ToArray());
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM inventory.inventory_transactions WHERE reference_document_id = ANY({0})", createdTransferIds.ToArray());
-                }
-
-                if (createdBalanceIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM inventory.inventory_balances WHERE id = ANY({0})", createdBalanceIds.ToArray());
-                }
-
-                if (createdLocationIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM inventory.inventory_locations WHERE id = ANY({0})", createdLocationIds.ToArray());
-                }
-
-                if (createdEmployeeIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM hr.employees WHERE id = ANY({0})", createdEmployeeIds.ToArray());
-                }
-
-                if (createdWarehouseIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM masterdata.warehouses WHERE id = ANY({0})", createdWarehouseIds.ToArray());
-                }
-
-                if (createdBranchIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM organization.branches WHERE id = ANY({0})", createdBranchIds.ToArray());
-                }
-
-                if (createdProductIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM masterdata.products WHERE id = ANY({0})", createdProductIds.ToArray());
-                }
-
-                if (createdCompanyIds.Count > 0)
-                {
-                    await cleanDb.Database.ExecuteSqlRawAsync(
-                        "DELETE FROM masterdata.companies WHERE id = ANY({0})", createdCompanyIds.ToArray());
-                }
-
-                _output.WriteLine("✅ All temporary test records removed. Zero residue left in database.");
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM inventory.stock_transfer_lines WHERE \"StockTransferId\" = ANY({0})", createdTransferIds.ToArray());
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM inventory.stock_transfers WHERE \"Id\" = ANY({0})", createdTransferIds.ToArray());
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM inventory.inventory_transactions WHERE \"ReferenceDocumentId\" = ANY({0})", createdTransferIds.ToArray());
             }
-            catch (Exception cleanEx)
+
+            if (createdBalanceIds.Count > 0)
             {
-                _output.WriteLine($"Cleanup note: {cleanEx.Message}");
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM inventory.inventory_balances WHERE \"Id\" = ANY({0})", createdBalanceIds.ToArray());
             }
+
+            if (createdLocationIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM inventory.inventory_locations WHERE \"Id\" = ANY({0})", createdLocationIds.ToArray());
+            }
+
+            if (createdEmployeeIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM hr.employees WHERE \"Id\" = ANY({0})", createdEmployeeIds.ToArray());
+            }
+
+            if (createdDepartmentIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM organization.departments WHERE \"Id\" = ANY({0})", createdDepartmentIds.ToArray());
+            }
+
+            if (createdDesignationIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM organization.designations WHERE \"Id\" = ANY({0})", createdDesignationIds.ToArray());
+            }
+
+            if (createdWarehouseIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM warehouse.warehouses WHERE \"Id\" = ANY({0})", createdWarehouseIds.ToArray());
+            }
+
+            if (createdBranchIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM organization.branches WHERE \"Id\" = ANY({0})", createdBranchIds.ToArray());
+            }
+
+            if (createdProductIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM product.products WHERE \"Id\" = ANY({0})", createdProductIds.ToArray());
+            }
+
+            if (createdCategoryIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM product.categories WHERE \"Id\" = ANY({0})", createdCategoryIds.ToArray());
+            }
+
+            if (createdBrandIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM product.brands WHERE \"Id\" = ANY({0})", createdBrandIds.ToArray());
+            }
+
+            if (createdUomIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM product.units_of_measure WHERE \"Id\" = ANY({0})", createdUomIds.ToArray());
+            }
+
+            if (createdCompanyIds.Count > 0)
+            {
+                await cleanDb.Database.ExecuteSqlRawAsync(
+                    "DELETE FROM organization.companies WHERE \"Id\" = ANY({0})", createdCompanyIds.ToArray());
+            }
+
+            _output.WriteLine("✅ All temporary test records removed. Zero residue left in database.");
         }
     }
 }

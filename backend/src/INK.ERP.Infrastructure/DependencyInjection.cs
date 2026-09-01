@@ -13,6 +13,7 @@ using INK.ERP.Domain.Common;
 using INK.ERP.Infrastructure.Options;
 using INK.ERP.Infrastructure.Persistence.Repositories;
 using INK.ERP.Infrastructure.Persistence.Repositories.Security;
+using INK.ERP.Infrastructure.Persistence.Repositories.SFA;
 using INK.ERP.Infrastructure.Persistence.Outbox;
 using INK.ERP.Infrastructure.Services;
 using INK.ERP.Infrastructure.Security;
@@ -114,6 +115,9 @@ public static class DependencyInjection
                     errorCodesToAdd: null);
                 npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "iam");
             });
+
+            options.ConfigureWarnings(warnings =>
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
             if (databaseOptions.EnableSensitiveDataLogging)
             {
@@ -299,6 +303,7 @@ public static class DependencyInjection
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
         services.AddScoped<IInventoryLocationRepository, InventoryLocationRepository>();
         services.AddScoped<IInventoryBalanceRepository, InventoryBalanceRepository>();
+        services.AddScoped<IInventoryStockPolicyRepository, InventoryStockPolicyRepository>();
         services.AddScoped<IInventoryTransactionRepository, InventoryTransactionRepository>();
         services.AddScoped<IInventoryReservationRepository, InventoryReservationRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
@@ -325,6 +330,7 @@ public static class DependencyInjection
         services.AddScoped<IDiscountRuleRepository, DiscountRuleRepository>();
         services.AddScoped<IPricingResolutionService, PricingResolutionService>();
         services.AddScoped<IDiscountCalculationService, DiscountCalculationService>();
+        services.AddScoped<ISfaRepository, SfaRepository>();
 
         // 9. Register Current User Abstraction & Context Accessor
         services.AddHttpContextAccessor();

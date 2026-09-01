@@ -358,11 +358,161 @@ public static class IamDbSeeder
             logger.LogWarning(ex, "Table creation or seeding for pricing.currencies / pricing.exchange_rates skipped or handled.");
         }
 
-        // 0.8. Ensure PostgreSQL inventory fulfillment tables exist (PickTasks, PackTasks, Packages, Dispatches)
+        // 0.8. Ensure PostgreSQL inventory and fulfillment tables exist
         try
         {
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE SCHEMA IF NOT EXISTS inventory;
+
+                CREATE TABLE IF NOT EXISTS inventory.inventory_locations (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL,
+                    ""WarehouseId"" uuid NULL,
+                    ""BranchId"" uuid NULL,
+                    ""DepartmentId"" uuid NULL,
+                    ""Code"" character varying(50) NOT NULL,
+                    ""Name"" character varying(100) NOT NULL,
+                    ""LocationType"" character varying(30) NOT NULL DEFAULT 'Storage',
+                    ""Aisle"" character varying(20) NULL,
+                    ""Rack"" character varying(20) NULL,
+                    ""Shelf"" character varying(20) NULL,
+                    ""Bin"" character varying(20) NULL,
+                    ""CapacityVolume"" numeric(18,4) NULL,
+                    ""CapacityWeight"" numeric(18,4) NULL,
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS inventory.inventory_balances (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL,
+                    ""InventoryLocationId"" uuid NOT NULL,
+                    ""ProductId"" uuid NOT NULL,
+                    ""BatchNumber"" character varying(100) NULL,
+                    ""ExpiryDate"" date NULL,
+                    ""OnHandQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""AllocatedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""AvailableQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""ReservedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""LastMovementAtUtc"" timestamp with time zone NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                ALTER TABLE inventory.inventory_balances ADD COLUMN IF NOT EXISTS ""BatchNumber"" character varying(100) NULL;
+                ALTER TABLE inventory.inventory_balances ADD COLUMN IF NOT EXISTS ""ExpiryDate"" date NULL;
+
+                DO $$
+                DECLARE
+                    idx RECORD;
+                BEGIN
+                    FOR idx IN (
+                        SELECT indexname 
+                        FROM pg_indexes 
+                        WHERE schemaname = 'inventory' 
+                          AND tablename = 'inventory_balances' 
+                          AND indexname NOT IN ('inventory_balances_pkey', 'IX_inventory_balances_non_batch', 'IX_inventory_balances_batch')
+                          AND indexdef LIKE '%UNIQUE%'
+                    ) LOOP
+                        EXECUTE 'DROP INDEX IF EXISTS inventory.' || quote_ident(idx.indexname);
+                    END LOOP;
+                END $$;
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_inventory_balances_non_batch""
+                ON inventory.inventory_balances (""CompanyId"", ""InventoryLocationId"", ""ProductId"")
+                WHERE ""BatchNumber"" IS NULL;
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_inventory_balances_batch""
+                ON inventory.inventory_balances (""CompanyId"", ""InventoryLocationId"", ""ProductId"", ""BatchNumber"")
+                WHERE ""BatchNumber"" IS NOT NULL;
+
+                ALTER TABLE inventory.inventory_balances ADD COLUMN IF NOT EXISTS ""MinStockQuantity"" numeric(18,4) NOT NULL DEFAULT 0;
+
+                CREATE TABLE IF NOT EXISTS inventory.inventory_stock_policies (
+                    ""Id"" uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""CompanyId"" uuid NOT NULL,
+                    ""InventoryLocationId"" uuid NOT NULL,
+                    ""ProductId"" uuid NOT NULL,
+                    ""MinStockQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""ReorderPoint"" numeric(18,4) NULL,
+                    ""ReorderQuantity"" numeric(18,4) NULL,
+                    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_inventory_stock_policies_unique""
+                ON inventory.inventory_stock_policies (""CompanyId"", ""InventoryLocationId"", ""ProductId"");
+
+                CREATE TABLE IF NOT EXISTS inventory.stock_transfers (
+                    ""Id"" uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""CompanyId"" uuid NOT NULL,
+                    ""TransferNumber"" character varying(50) NOT NULL,
+                    ""SourceLocationId"" uuid NOT NULL,
+                    ""DestinationLocationId"" uuid NOT NULL,
+                    ""SalesOrderId"" uuid NULL,
+                    ""Status"" character varying(30) NOT NULL DEFAULT 'Requested',
+                    ""RequestedByEmployeeId"" uuid NOT NULL,
+                    ""ApprovedByEmployeeId"" uuid NULL,
+                    ""DispatchedAtUtc"" timestamp with time zone NULL,
+                    ""ReceivedAtUtc"" timestamp with time zone NULL,
+                    ""Notes"" character varying(1000) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS inventory.stock_transfer_lines (
+                    ""Id"" uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""StockTransferId"" uuid NOT NULL,
+                    ""ProductId"" uuid NOT NULL,
+                    ""RequestedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""ApprovedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""DispatchedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""ReceivedQuantity"" numeric(18,4) NOT NULL DEFAULT 0,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS inventory.inventory_transactions (
+                    ""Id"" uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""CompanyId"" uuid NOT NULL,
+                    ""InventoryLocationId"" uuid NOT NULL,
+                    ""ProductId"" uuid NOT NULL,
+                    ""TransactionType"" character varying(50) NOT NULL,
+                    ""Quantity"" numeric(18,4) NOT NULL,
+                    ""BalanceAfter"" numeric(18,4) NOT NULL,
+                    ""ReferenceDocumentType"" character varying(50) NULL,
+                    ""ReferenceDocumentId"" uuid NULL,
+                    ""ReferenceDocumentNumber"" character varying(100) NULL,
+                    ""BatchNumber"" character varying(100) NULL,
+                    ""ExpiryDate"" date NULL,
+                    ""PerformedByEmployeeId"" uuid NULL,
+                    ""Notes"" character varying(500) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                ALTER TABLE inventory.inventory_transactions ADD COLUMN IF NOT EXISTS ""BatchNumber"" character varying(100) NULL;
+                ALTER TABLE inventory.inventory_transactions ADD COLUMN IF NOT EXISTS ""ExpiryDate"" date NULL;
+
+                CREATE TABLE IF NOT EXISTS inventory.inventory_reservations (
+                    ""Id"" uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+                    ""CompanyId"" uuid NOT NULL,
+                    ""SalesOrderId"" uuid NULL,
+                    ""SalesOrderLineId"" uuid NULL,
+                    ""InventoryLocationId"" uuid NOT NULL,
+                    ""ProductId"" uuid NOT NULL,
+                    ""ReservedQuantity"" numeric(18,4) NOT NULL,
+                    ""Status"" character varying(30) NOT NULL DEFAULT 'Active',
+                    ""ReservedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""ReleasedAtUtc"" timestamp with time zone NULL,
+                    ""ExpiresAtUtc"" timestamp with time zone NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL
+                );
+
+                ALTER TABLE inventory.inventory_reservations ADD COLUMN IF NOT EXISTS ""BatchNumber"" character varying(100) NULL;
 
                 CREATE TABLE IF NOT EXISTS inventory.pick_tasks (
                     ""Id"" uuid NOT NULL PRIMARY KEY,
@@ -540,12 +690,117 @@ public static class IamDbSeeder
 
                 CREATE INDEX IF NOT EXISTS ""IX_dispatch_lines_DispatchId"" ON inventory.dispatch_lines (""DispatchId"");
                 CREATE INDEX IF NOT EXISTS ""IX_dispatch_lines_ProductId"" ON inventory.dispatch_lines (""ProductId"");
+
+                -- Customer GPS Columns
+                ALTER TABLE customer.customers ADD COLUMN IF NOT EXISTS ""Latitude"" double precision NULL;
+                ALTER TABLE customer.customers ADD COLUMN IF NOT EXISTS ""Longitude"" double precision NULL;
+
+                -- Sales Order Field-Verification Audit Columns
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""CaptureLatitude"" double precision NULL;
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""CaptureLongitude"" double precision NULL;
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""CaptureAccuracyMeters"" double precision NULL;
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""DistanceToCustomerMeters"" double precision NULL;
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""IsGpsVerified"" boolean NOT NULL DEFAULT FALSE;
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""IsFaceVerified"" boolean NOT NULL DEFAULT FALSE;
+                ALTER TABLE sales.sales_orders ADD COLUMN IF NOT EXISTS ""VerifiedAtUtc"" timestamp with time zone NULL;
+
+                -- SFA Schema and Tables
+                CREATE SCHEMA IF NOT EXISTS sfa;
+
+                CREATE TABLE IF NOT EXISTS sfa.sales_beats (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL REFERENCES organization.companies (""Id"") ON DELETE RESTRICT,
+                    ""SalesEmployeeId"" uuid NULL REFERENCES hr.employees (""Id"") ON DELETE SET NULL,
+                    ""Code"" character varying(50) NOT NULL,
+                    ""Name"" character varying(150) NOT NULL,
+                    ""Frequency"" character varying(30) NOT NULL DEFAULT 'Daily',
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS sfa.sales_beat_customers (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""SalesBeatId"" uuid NOT NULL REFERENCES sfa.sales_beats (""Id"") ON DELETE CASCADE,
+                    ""CustomerId"" uuid NOT NULL REFERENCES customer.customers (""Id"") ON DELETE RESTRICT,
+                    ""SequenceOrder"" integer NOT NULL DEFAULT 1,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS sfa.sales_rep_customer_assignments (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL REFERENCES organization.companies (""Id"") ON DELETE RESTRICT,
+                    ""EmployeeId"" uuid NOT NULL REFERENCES hr.employees (""Id"") ON DELETE RESTRICT,
+                    ""CustomerId"" uuid NOT NULL REFERENCES customer.customers (""Id"") ON DELETE RESTRICT,
+                    ""AssignedFromUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""AssignedToUtc"" timestamp with time zone NULL,
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS sfa.sales_visits (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL REFERENCES organization.companies (""Id"") ON DELETE RESTRICT,
+                    ""SalesEmployeeId"" uuid NOT NULL REFERENCES hr.employees (""Id"") ON DELETE RESTRICT,
+                    ""CustomerId"" uuid NOT NULL REFERENCES customer.customers (""Id"") ON DELETE RESTRICT,
+                    ""VisitDateUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CheckInLatitude"" double precision NOT NULL DEFAULT 0,
+                    ""CheckInLongitude"" double precision NOT NULL DEFAULT 0,
+                    ""DistanceToCustomerMeters"" double precision NOT NULL DEFAULT 0,
+                    ""IsGpsVerified"" boolean NOT NULL DEFAULT false,
+                    ""IsFaceVerified"" boolean NOT NULL DEFAULT false,
+                    ""CheckInAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CheckOutAtUtc"" timestamp with time zone NULL,
+                    ""Outcome"" character varying(50) NOT NULL DEFAULT 'Planned',
+                    ""Notes"" character varying(500) NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_sales_beats_CompanyId"" ON sfa.sales_beats (""CompanyId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_beats_SalesEmployeeId"" ON sfa.sales_beats (""SalesEmployeeId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_beat_customers_SalesBeatId"" ON sfa.sales_beat_customers (""SalesBeatId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_rep_customer_assignments_EmployeeId"" ON sfa.sales_rep_customer_assignments (""EmployeeId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_rep_customer_assignments_CustomerId"" ON sfa.sales_rep_customer_assignments (""CustomerId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_visits_CompanyId"" ON sfa.sales_visits (""CompanyId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_visits_SalesEmployeeId"" ON sfa.sales_visits (""SalesEmployeeId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_visits_CustomerId"" ON sfa.sales_visits (""CustomerId"");
             ");
-            logger.LogInformation("Ensured PostgreSQL fulfillment tables (pick_tasks, pack_tasks, packages, dispatches) exist.");
+            logger.LogInformation("Ensured PostgreSQL fulfillment, customer coordinates, sales, and SFA tables exist.");
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Table creation for inventory fulfillment skipped or handled.");
+            logger.LogWarning(ex, "Table creation or column addition skipped or handled.");
         }
 
         // 1. Seed Roles (13 Production Default Roles including Super Admin)
@@ -568,22 +823,29 @@ public static class IamDbSeeder
 
         foreach (var r in defaultRoles)
         {
-            if (!await roleManager.RoleExistsAsync(r.Name))
+            if (!await roleManager.RoleExistsAsync(r.Name) && !await context.Roles.AnyAsync(existing => existing.NormalizedName == r.Name.ToUpperInvariant()))
             {
-                var role = new ApplicationRole
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    Name = r.Name,
-                    NormalizedName = r.Name.ToUpperInvariant(),
-                    Code = r.Code,
-                    Description = r.Description,
-                    Priority = r.Priority,
-                    IsSystem = r.IsSystem,
-                    IsActive = true,
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-                await roleManager.CreateAsync(role);
-                logger.LogInformation("Seeded Role: {RoleName}", r.Name);
+                    var role = new ApplicationRole
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = r.Name,
+                        NormalizedName = r.Name.ToUpperInvariant(),
+                        Code = r.Code,
+                        Description = r.Description,
+                        Priority = r.Priority,
+                        IsSystem = r.IsSystem,
+                        IsActive = true,
+                        CreatedAtUtc = DateTime.UtcNow
+                    };
+                    await roleManager.CreateAsync(role);
+                    logger.LogInformation("Seeded Role: {RoleName}", r.Name);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Role {RoleName} already created or handled.", r.Name);
+                }
             }
         }
 
@@ -661,7 +923,7 @@ public static class IamDbSeeder
             ("BI", "bi:manage", "Executive BI & Analytics", "Access executive BI dashboards and financial charts", 17),
             // Action-level permission aliases
             ("INVENTORY", "inventory:view", "View Inventory", "View stock levels and warehouse data", 18),
-            ("SALES", "sales:view", "View Sales", "View sales orders and customer invoices", 19),
+            ("O2C", "sales:view", "View Sales", "View sales orders and customer invoices", 19),
             ("PROCUREMENT", "procurement:view", "View Procurement", "View purchase orders and supplier catalog", 20),
             ("FINANCE", "finance:view", "View Financial Statements", "View general ledger, balance sheet, P&L", 21),
             ("IAM", "security:user_management", "User Management", "Manage user accounts, locking, and status", 22),
@@ -677,7 +939,13 @@ public static class IamDbSeeder
             ("INVENTORY", "inventory:transfer:request", "Request Stock Transfer", "Create stock transfer requests for destination locations", 33),
             ("INVENTORY", "inventory:transfer:approve", "Approve Stock Transfer", "Approve transfer requests for source supply locations", 34),
             ("INVENTORY", "inventory:transfer:dispatch", "Dispatch Stock Transfer", "Dispatch stock from source supply locations", 35),
-            ("INVENTORY", "inventory:transfer:receive", "Receive Stock Transfer", "Receive stock at destination locations", 36)
+            ("INVENTORY", "inventory:transfer:receive", "Receive Stock Transfer", "Receive stock at destination locations", 36),
+            ("O2C", "sales:create", "Create Sales Order", "Create and draft sales orders", 37),
+            ("O2C", "sales:submit", "Submit Sales Order", "Submit sales orders and reserve inventory", 38),
+            ("O2C", "sales:cancel", "Cancel Sales Order", "Cancel sales orders and release inventory reservations", 39),
+            ("O2C", "sales:field-order", "Field Sales Order Capture", "Capture field sales orders with GPS and biometric face verification", 40),
+            ("SFA", "sfa:visit", "Record Store Visit", "Record geofenced store visits and GPS check-ins", 41),
+            ("SFA", "sfa:beat:manage", "Manage Sales Beats", "Create and assign sales beats and customer sequences", 42)
         };
 
         var allPermissionIds = new List<Guid>();
@@ -687,7 +955,10 @@ public static class IamDbSeeder
             var existingPerm = await context.Permissions.FirstOrDefaultAsync(perm => perm.Code == p.Code);
             if (existingPerm == null)
             {
-                var groupGuid = groupDict[p.GroupCode];
+                if (!groupDict.TryGetValue(p.GroupCode, out var groupGuid))
+                {
+                    groupGuid = groupDict.Values.FirstOrDefault();
+                }
                 var perm = new Permission
                 {
                     Id = Guid.NewGuid(),

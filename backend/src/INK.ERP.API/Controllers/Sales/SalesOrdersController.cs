@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using INK.ERP.API.Controllers;
+using INK.ERP.Application.Common.Interfaces;
 using INK.ERP.Application.Features.Sales.Orders.Commands;
 using INK.ERP.Application.Features.Sales.Orders.DTOs;
 using INK.ERP.Application.Features.Sales.Orders.Queries;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace INK.ERP.API.Controllers.Sales;
 
@@ -70,6 +72,59 @@ public class SalesOrdersController : BaseApiController
         var query = new GetSalesOrderByIdQuery(id);
         var result = await Mediator.Send(query, cancellationToken);
         return HandleResult(result);
+    }
+
+    [HttpPut("{id:guid}")]
+    [Authorize]
+    [ProducesResponseType(typeof(SalesOrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] UpdateSalesOrderRequest request, [FromQuery] Guid? companyId, CancellationToken cancellationToken)
+    {
+        var command = new UpdateSalesOrderCommand(
+            id,
+            request.SalesEmployeeId,
+            request.InventoryLocationId,
+            request.OrderDateUtc,
+            request.Notes,
+            request.Items,
+            companyId);
+
+        var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpPost("verify-field-location")]
+    [Authorize]
+    [ProducesResponseType(typeof(VerifyFieldLocationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyFieldLocation([FromBody] VerifyFieldLocationRequest request, CancellationToken cancellationToken)
+    {
+        var command = new VerifyFieldSalesOrderLocationCommand(
+            request.CompanyId,
+            request.CustomerId,
+            request.CaptureLatitude,
+            request.CaptureLongitude,
+            request.AccuracyMeters);
+
+        var result = await Mediator.Send(command, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpGet("resolve-price")]
+    [Authorize]
+    [ProducesResponseType(typeof(PriceResolutionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResolvePrice(
+        [FromQuery] Guid companyId,
+        [FromQuery] Guid productId,
+        [FromQuery] Guid? customerId,
+        [FromQuery] DateTime? targetDate,
+        CancellationToken cancellationToken)
+    {
+        var pricingService = HttpContext.RequestServices.GetRequiredService<INK.ERP.Application.Common.Interfaces.IPricingResolutionService>();
+        var result = await pricingService.ResolvePriceAsync(companyId, customerId, productId, targetDate, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost("{id:guid}/submit")]

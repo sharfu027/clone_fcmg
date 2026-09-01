@@ -110,7 +110,7 @@ export const NAVIGATION_MENU: NavItem[] = [
       { title: 'Overview', href: 'inventory/overview', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
       { title: 'Stock', href: 'inventory/stock', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
       { title: 'Locations', href: 'inventory/locations', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
-      { title: 'Stock Movements', href: 'inventory/movements', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
+      { title: 'Stock History', href: 'inventory/movements', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
       { title: 'Reservations', href: 'inventory/reservations', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
       { title: 'Transfers', href: 'inventory/transfers', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] },
       { title: 'Fulfillment', href: 'inventory/fulfillment', icon: 'Layers', requiredPermissions: ['inventory:manage', 'manage:inventory'] }

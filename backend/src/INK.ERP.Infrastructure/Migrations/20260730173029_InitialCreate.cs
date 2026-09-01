@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -243,8 +243,25 @@ namespace INK.ERP.Infrastructure.Migrations;
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    OrderNumber = table.Column<string>(type: "text", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "numeric", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CustomerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SalesEmployeeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    InventoryLocationId = table.Column<Guid>(type: "uuid", nullable: true),
+                    OrderNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    OrderStatus = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false, defaultValue: "Draft"),
+                    OrderDateUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Subtotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    DiscountAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    TaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    TotalAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CaptureLatitude = table.Column<double>(type: "double precision", nullable: true),
+                    CaptureLongitude = table.Column<double>(type: "double precision", nullable: true),
+                    CaptureAccuracyMeters = table.Column<double>(type: "double precision", nullable: true),
+                    DistanceToCustomerMeters = table.Column<double>(type: "double precision", nullable: true),
+                    IsGpsVerified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsFaceVerified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    VerifiedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     LastModifiedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -477,7 +494,8 @@ namespace INK.ERP.Infrastructure.Migrations;
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
                     DeletedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "text", nullable: false)
+                    ConcurrencyToken = table.Column<string>(type: "text", nullable: false),
+                    ManagerEmployeeId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1192,7 +1210,9 @@ namespace INK.ERP.Infrastructure.Migrations;
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    BranchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BranchId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ManagerEmployeeId = table.Column<Guid>(type: "uuid", nullable: true),
                     Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
@@ -1208,6 +1228,13 @@ namespace INK.ERP.Infrastructure.Migrations;
                         column: x => x.BranchId,
                         principalSchema: "organization",
                         principalTable: "branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_departments_companies_CompanyId",
+                        column: x => x.CompanyId,
+                        principalSchema: "organization",
+                        principalTable: "companies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -1314,9 +1341,11 @@ namespace INK.ERP.Infrastructure.Migrations;
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
-                    BranchId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BranchId = table.Column<Guid>(type: "uuid", nullable: true),
                     DepartmentId = table.Column<Guid>(type: "uuid", nullable: false),
                     DesignationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    EmployeeRoleId = table.Column<Guid>(type: "uuid", nullable: true),
+                    WarehouseId = table.Column<Guid>(type: "uuid", nullable: true),
                     EmployeeCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     FirstName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     LastName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),

@@ -48,6 +48,15 @@ public sealed class SalesOrder : BaseEntity
     public decimal TotalAmount { get; set; }
     public string? Notes { get; set; }
 
+    // Field-Sales Verification Audit (GPS & Face Liveness)
+    public double? CaptureLatitude { get; set; }
+    public double? CaptureLongitude { get; set; }
+    public double? CaptureAccuracyMeters { get; set; }
+    public double? DistanceToCustomerMeters { get; set; }
+    public bool IsGpsVerified { get; set; }
+    public bool IsFaceVerified { get; set; }
+    public DateTime? VerifiedAtUtc { get; set; }
+
     // Navigation Properties
     public Company? Company { get; set; }
     public Customer? Customer { get; set; }

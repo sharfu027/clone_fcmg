@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -127,14 +127,35 @@ public class PostInventoryTransactionCommandHandler : IRequestHandler<PostInvent
             }
         }
 
-        // 8. Validate Batch/Expiry
-        if (product.IsBatchTracked && string.IsNullOrWhiteSpace(request.BatchNumber))
+        // 8. Validate Batch/Expiry & Normalize
+        string? normalizedBatch = string.IsNullOrWhiteSpace(request.BatchNumber) ? null : request.BatchNumber.Trim().ToUpperInvariant();
+        DateTime? normalizedExpiry = request.ExpiryDate?.Date;
+
+        if (product.IsBatchTracked && string.IsNullOrWhiteSpace(normalizedBatch))
         {
             return Result<InventoryTransactionDto>.Failure(Error.Validation("InventoryTransaction.BatchRequired", $"Product '{product.Name}' is batch-tracked. A Batch Number is required."));
         }
 
-        // 9. Process atomic inventory update
-        var balance = await _balanceRepository.GetByLocationAndProductAsync(targetCompanyId, request.InventoryLocationId, request.ProductId, cancellationToken);
+        // Validate that if this batch already exists, it does not have a conflicting expiry date
+        if (!string.IsNullOrWhiteSpace(normalizedBatch) && normalizedExpiry.HasValue)
+        {
+            var existingTxns = await _transactionRepository.GetByBalanceContextAsync(targetCompanyId, request.InventoryLocationId, request.ProductId, cancellationToken);
+            var conflictingTxn = existingTxns.FirstOrDefault(t =>
+                !string.IsNullOrWhiteSpace(t.BatchNumber) &&
+                t.BatchNumber.Trim().ToUpperInvariant() == normalizedBatch &&
+                t.ExpiryDate.HasValue &&
+                t.ExpiryDate.Value.Date != normalizedExpiry.Value);
+
+            if (conflictingTxn != null && conflictingTxn.ExpiryDate.HasValue)
+            {
+                return Result<InventoryTransactionDto>.Failure(Error.Validation(
+                    "InventoryTransaction.ConflictingBatchExpiry",
+                    $"Batch '{normalizedBatch}' already exists with a different Expiry Date ({conflictingTxn.ExpiryDate.Value:yyyy-MM-dd})."));
+            }
+        }
+
+        // 9. Process atomic inventory update matching on (CompanyId, LocationId, ProductId, normalizedBatch)
+        var balance = await _balanceRepository.GetByLocationProductAndBatchAsync(targetCompanyId, request.InventoryLocationId, request.ProductId, normalizedBatch, cancellationToken);
 
         bool isNewBalance = false;
         if (balance == null)
@@ -144,6 +165,8 @@ public class PostInventoryTransactionCommandHandler : IRequestHandler<PostInvent
                 CompanyId = targetCompanyId,
                 InventoryLocationId = request.InventoryLocationId,
                 ProductId = request.ProductId,
+                BatchNumber = normalizedBatch,
+                ExpiryDate = normalizedExpiry,
                 OnHandQuantity = 0m,
                 ReservedQuantity = 0m,
                 AllocatedQuantity = 0m,
@@ -152,37 +175,25 @@ public class PostInventoryTransactionCommandHandler : IRequestHandler<PostInvent
             };
             isNewBalance = true;
         }
-
-        // Handle OpeningBalance check
-        if (normalizedType.Equals(InventoryTransactionTypes.OpeningBalance, StringComparison.OrdinalIgnoreCase))
+        else if (normalizedExpiry.HasValue && !balance.ExpiryDate.HasValue)
         {
-            if (!isNewBalance)
-            {
-                bool hasOpening = await _transactionRepository.HasOpeningBalanceAsync(targetCompanyId, request.InventoryLocationId, request.ProductId, cancellationToken);
-                if (hasOpening || balance.OnHandQuantity > 0)
-                {
-                    return Result<InventoryTransactionDto>.Failure(Error.Conflict("InventoryTransaction.DuplicateOpeningBalance", $"An Opening Balance has already been established for product '{product.Name}' at location '{location.Name}'."));
-                }
-            }
-
-            balance.OnHandQuantity = request.Quantity;
-        }
-        else
-        {
-            decimal signedFactor = InventoryTransactionTypes.GetSignedFactor(normalizedType);
-            decimal signedDelta = request.Quantity * signedFactor;
-            decimal newOnHand = balance.OnHandQuantity + signedDelta;
-
-            if (newOnHand < 0)
-            {
-                return Result<InventoryTransactionDto>.Failure(Error.Validation(
-                    "InventoryTransaction.InsufficientStock",
-                    $"Available stock is {balance.OnHandQuantity:0.####}, requested quantity is {request.Quantity:0.####}."));
-            }
-
-            balance.OnHandQuantity = newOnHand;
+            balance.ExpiryDate = normalizedExpiry;
         }
 
+        // Calculate additive / signed stock change
+        decimal signedFactor = InventoryTransactionTypes.GetSignedFactor(normalizedType);
+        decimal signedDelta = request.Quantity * signedFactor;
+        decimal newOnHand = balance.OnHandQuantity + signedDelta;
+
+        if (newOnHand < 0)
+        {
+            string batchDesc = normalizedBatch != null ? $" for batch '{normalizedBatch}'" : string.Empty;
+            return Result<InventoryTransactionDto>.Failure(Error.Validation(
+                "InventoryTransaction.InsufficientStock",
+                $"Available stock{batchDesc} is {balance.OnHandQuantity:0.####}, requested reduction is {request.Quantity:0.####}."));
+        }
+
+        balance.OnHandQuantity = newOnHand;
         balance.LastMovementAtUtc = DateTime.UtcNow;
 
         if (isNewBalance)
@@ -205,8 +216,8 @@ public class PostInventoryTransactionCommandHandler : IRequestHandler<PostInvent
             ReferenceDocumentType = request.ReferenceDocumentType?.Trim(),
             ReferenceDocumentId = request.ReferenceDocumentId,
             ReferenceDocumentNumber = request.ReferenceDocumentNumber?.Trim(),
-            BatchNumber = request.BatchNumber?.Trim(),
-            ExpiryDate = request.ExpiryDate,
+            BatchNumber = normalizedBatch,
+            ExpiryDate = normalizedExpiry ?? balance.ExpiryDate,
             PerformedByEmployeeId = request.PerformedByEmployeeId,
             Notes = request.Notes?.Trim(),
             CreatedAtUtc = DateTime.UtcNow

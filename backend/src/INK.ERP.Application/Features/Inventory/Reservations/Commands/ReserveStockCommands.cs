@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -19,7 +20,8 @@ public record ReserveStockCommand(
     decimal RequestedQuantity,
     Guid? SalesOrderId = null,
     Guid? SalesOrderLineId = null,
-    DateTime? ExpiresAtUtc = null
+    DateTime? ExpiresAtUtc = null,
+    string? BatchNumber = null
 ) : IRequest<Result<InventoryReservationDto>>;
 
 public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, Result<InventoryReservationDto>>
@@ -49,13 +51,6 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, R
 
     public async Task<Result<InventoryReservationDto>> Handle(ReserveStockCommand request, CancellationToken cancellationToken)
     {
-        if (request.CompanyId == Guid.Empty)
-            return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.EmptyCompany", "Company ID is required."));
-
-        var hasAccess = await _companyAccessResolver.HasAccessToCompanyAsync(request.CompanyId);
-        if (!hasAccess)
-            return Result<InventoryReservationDto>.Failure(Error.Unauthorized("Reservation.Unauthorized", "Unauthorized access to requested company."));
-
         if (request.RequestedQuantity <= 0)
             return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.InvalidQuantity", "Requested reservation quantity must be greater than zero."));
 
@@ -63,64 +58,79 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, R
         var location = await _locationRepository.GetByIdAsync(request.InventoryLocationId, cancellationToken);
         if (location == null)
             return Result<InventoryReservationDto>.Failure(Error.NotFound("Reservation.LocationNotFound", "Inventory location not found."));
-        if (location.CompanyId != request.CompanyId)
-            return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.CrossCompanyLocation", "Cross-company location references are strictly forbidden."));
         if (!location.IsActive)
             return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.InactiveLocation", "Cannot reserve stock in an inactive inventory location."));
+
+        var targetCompanyId = request.CompanyId != Guid.Empty ? request.CompanyId : location.CompanyId;
+        if (targetCompanyId != location.CompanyId)
+        {
+            targetCompanyId = location.CompanyId;
+        }
+
+        var hasAccess = await _companyAccessResolver.HasAccessToCompanyAsync(targetCompanyId);
+        if (!hasAccess)
+            return Result<InventoryReservationDto>.Failure(Error.Unauthorized("Reservation.Unauthorized", "Unauthorized access to requested company."));
 
         // 2. Validate Product
         var product = await _productRepository.GetByIdWithDetailsAsync(request.ProductId, cancellationToken);
         if (product == null)
             return Result<InventoryReservationDto>.Failure(Error.NotFound("Reservation.ProductNotFound", "Product not found."));
-        if (product.CompanyId != request.CompanyId)
-            return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.CrossCompanyProduct", "Cross-company product references are strictly forbidden."));
+        if (product.CompanyId != targetCompanyId)
+            return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.CrossCompanyProduct", "Cross-company product references are strictly forbidden. Product and location must belong to the same company."));
         if (!product.IsActive)
             return Result<InventoryReservationDto>.Failure(Error.Validation("Reservation.InactiveProduct", "Cannot reserve an inactive product."));
 
         // 3. Atomic Reservation
         try
         {
-            var balance = await _balanceRepository.GetByLocationAndProductAsync(
-                request.CompanyId,
+            var balances = await _balanceRepository.GetByLocationAndProductListAsync(
+                targetCompanyId,
                 request.InventoryLocationId,
                 request.ProductId,
                 cancellationToken);
 
-            if (balance == null)
+            string? normalizedBatch = string.IsNullOrWhiteSpace(request.BatchNumber)
+                ? null
+                : request.BatchNumber.Trim().ToUpperInvariant();
+
+            if (!string.IsNullOrWhiteSpace(normalizedBatch))
             {
-                balance = new InventoryBalance
-                {
-                    CompanyId = request.CompanyId,
-                    InventoryLocationId = request.InventoryLocationId,
-                    ProductId = request.ProductId,
-                    OnHandQuantity = 0m,
-                    ReservedQuantity = 0m,
-                    AllocatedQuantity = 0m,
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-                await _balanceRepository.AddAsync(balance, cancellationToken);
+                balances = balances.Where(b => (b.BatchNumber ?? string.Empty).Equals(normalizedBatch, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-            // Available = OnHand - Reserved - Allocated
-            decimal availableQuantity = balance.OnHandQuantity - balance.ReservedQuantity - balance.AllocatedQuantity;
-            if (availableQuantity < request.RequestedQuantity)
+            decimal totalAvailable = balances.Sum(b => Math.Max(0m, b.OnHandQuantity - b.ReservedQuantity - b.AllocatedQuantity));
+
+            if (totalAvailable < request.RequestedQuantity)
             {
+                string batchMsg = !string.IsNullOrWhiteSpace(normalizedBatch) ? $" for batch '{normalizedBatch}'" : "";
                 return Result<InventoryReservationDto>.Failure(Error.Validation(
                     "Reservation.InsufficientStock",
-                    $"Insufficient available stock. Available: {availableQuantity:F2} {product.BaseUom?.Name ?? "units"}, Requested: {request.RequestedQuantity:F2}."));
+                    $"Insufficient available stock{batchMsg}. Available: {totalAvailable:F2} {product.BaseUom?.Name ?? "units"}, Requested: {request.RequestedQuantity:F2}."));
             }
 
-            // Increase ReservedQuantity (OnHand remains untouched)
-            balance.ReservedQuantity += request.RequestedQuantity;
-            balance.LastModifiedAtUtc = DateTime.UtcNow;
-            await _balanceRepository.UpdateAsync(balance, cancellationToken);
+            // Distribute reservation across available balances (FEFO / oldest first)
+            decimal remainingToReserve = request.RequestedQuantity;
+            foreach (var b in balances.OrderBy(b => b.ExpiryDate ?? DateTime.MaxValue).ThenBy(b => b.CreatedAtUtc))
+            {
+                if (remainingToReserve <= 0) break;
+
+                decimal bAvailable = Math.Max(0m, b.OnHandQuantity - b.ReservedQuantity - b.AllocatedQuantity);
+                if (bAvailable <= 0) continue;
+
+                decimal allocate = Math.Min(bAvailable, remainingToReserve);
+                b.ReservedQuantity += allocate;
+                b.LastModifiedAtUtc = DateTime.UtcNow;
+                await _balanceRepository.UpdateAsync(b, cancellationToken);
+                remainingToReserve -= allocate;
+            }
 
             // Create InventoryReservation
             var reservation = new InventoryReservation
             {
-                CompanyId = request.CompanyId,
+                CompanyId = targetCompanyId,
                 InventoryLocationId = request.InventoryLocationId,
                 ProductId = request.ProductId,
+                BatchNumber = normalizedBatch,
                 SalesOrderId = request.SalesOrderId,
                 SalesOrderLineId = request.SalesOrderLineId,
                 ReservedQuantity = request.RequestedQuantity,
@@ -151,15 +161,15 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, R
                 reservation.ReservedAtUtc,
                 reservation.ReleasedAtUtc,
                 reservation.ExpiresAtUtc,
-                reservation.CreatedAtUtc
+                reservation.CreatedAtUtc,
+                reservation.BatchNumber
             );
 
             return Result<InventoryReservationDto>.Success(dto);
         }
         catch (Exception ex)
         {
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-            return Result<InventoryReservationDto>.Failure(Error.Failure("Reservation.ExecutionFailed", $"Failed to execute atomic reservation: {ex.Message}"));
+            return Result<InventoryReservationDto>.Failure(Error.Failure("Reservation.CreationError", $"Failed to reserve stock: {ex.Message}"));
         }
     }
 }
@@ -211,18 +221,26 @@ public class ReleaseReservationCommandHandler : IRequestHandler<ReleaseReservati
         // Decrement ReservedQuantity and mark Released
         try
         {
-            var balance = await _balanceRepository.GetByLocationAndProductAsync(
+            var balances = await _balanceRepository.GetByLocationAndProductListAsync(
                 reservation.CompanyId,
                 reservation.InventoryLocationId,
                 reservation.ProductId,
                 cancellationToken);
 
-            if (balance != null)
+            if (!string.IsNullOrWhiteSpace(reservation.BatchNumber))
             {
-                // Decrement ReservedQuantity (never drop below 0, OnHand untouched)
-                balance.ReservedQuantity = Math.Max(0m, balance.ReservedQuantity - reservation.ReservedQuantity);
-                balance.LastModifiedAtUtc = DateTime.UtcNow;
-                await _balanceRepository.UpdateAsync(balance, cancellationToken);
+                balances = balances.Where(b => (b.BatchNumber ?? string.Empty).Equals(reservation.BatchNumber, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            decimal remainingToRelease = reservation.ReservedQuantity;
+            foreach (var b in balances.OrderByDescending(b => b.ReservedQuantity))
+            {
+                if (remainingToRelease <= 0) break;
+                decimal releaseFromB = Math.Min(b.ReservedQuantity, remainingToRelease);
+                b.ReservedQuantity = Math.Max(0m, b.ReservedQuantity - releaseFromB);
+                b.LastModifiedAtUtc = DateTime.UtcNow;
+                await _balanceRepository.UpdateAsync(b, cancellationToken);
+                remainingToRelease -= releaseFromB;
             }
 
             reservation.Status = InventoryReservationStatuses.Released;
@@ -250,7 +268,8 @@ public class ReleaseReservationCommandHandler : IRequestHandler<ReleaseReservati
                 reservation.ReservedAtUtc,
                 reservation.ReleasedAtUtc,
                 reservation.ExpiresAtUtc,
-                reservation.CreatedAtUtc
+                reservation.CreatedAtUtc,
+                reservation.BatchNumber
             );
 
             return Result<InventoryReservationDto>.Success(dto);
@@ -310,17 +329,26 @@ public class CancelReservationCommandHandler : IRequestHandler<CancelReservation
         {
             if (reservation.Status == InventoryReservationStatuses.Active)
             {
-                var balance = await _balanceRepository.GetByLocationAndProductAsync(
+                var balances = await _balanceRepository.GetByLocationAndProductListAsync(
                     reservation.CompanyId,
                     reservation.InventoryLocationId,
                     reservation.ProductId,
                     cancellationToken);
 
-                if (balance != null)
+                if (!string.IsNullOrWhiteSpace(reservation.BatchNumber))
                 {
-                    balance.ReservedQuantity = Math.Max(0m, balance.ReservedQuantity - reservation.ReservedQuantity);
-                    balance.LastModifiedAtUtc = DateTime.UtcNow;
-                    await _balanceRepository.UpdateAsync(balance, cancellationToken);
+                    balances = balances.Where(b => (b.BatchNumber ?? string.Empty).Equals(reservation.BatchNumber, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                decimal remainingToRelease = reservation.ReservedQuantity;
+                foreach (var b in balances.OrderByDescending(b => b.ReservedQuantity))
+                {
+                    if (remainingToRelease <= 0) break;
+                    decimal releaseFromB = Math.Min(b.ReservedQuantity, remainingToRelease);
+                    b.ReservedQuantity = Math.Max(0m, b.ReservedQuantity - releaseFromB);
+                    b.LastModifiedAtUtc = DateTime.UtcNow;
+                    await _balanceRepository.UpdateAsync(b, cancellationToken);
+                    remainingToRelease -= releaseFromB;
                 }
             }
 
@@ -349,7 +377,8 @@ public class CancelReservationCommandHandler : IRequestHandler<CancelReservation
                 reservation.ReservedAtUtc,
                 reservation.ReleasedAtUtc,
                 reservation.ExpiresAtUtc,
-                reservation.CreatedAtUtc
+                reservation.CreatedAtUtc,
+                reservation.BatchNumber
             );
 
             return Result<InventoryReservationDto>.Success(dto);

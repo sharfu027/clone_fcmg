@@ -2,6 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Boxes,
   Layers,
+  Folder,
+  FolderTree,
+  CornerDownRight,
   Tag,
   Tags,
   ChevronDown,
@@ -308,9 +311,14 @@ export default function ProductClassificationHierarchy({
   // Total Summary Stats
   const stats = useMemo(() => {
     const totalCategories = categories.length;
+    const rootCategories = categories.filter(c => {
+      const pId = normalizeId(c.parentCategoryId);
+      return !pId || !categories.some(parent => normalizeId(parent.id) === pId);
+    }).length;
+    const subcategories = totalCategories - rootCategories;
     const totalProducts = products.length;
     const totalBrands = brands.length;
-    return { totalCategories, totalProducts, totalBrands };
+    return { totalCategories, rootCategories, subcategories, totalProducts, totalBrands };
   }, [categories, products, brands]);
 
   // Helper to render product leaf row
@@ -353,18 +361,28 @@ export default function ProductClassificationHierarchy({
     );
   };
 
-  // Recursive Category Node Renderer
+  // Recursive Category / Subcategory Node Renderer
   const renderCategoryNode = (node: CategoryTreeNode) => {
     const isCatExpanded = expandedCategoryIds.has(normalizeId(node.id));
     const hasChildren = node.children.length > 0 || node.directBrandGroups.length > 0 || node.directUnbrandedProducts.length > 0;
+    const isSubcategory = node.depth > 0 || !!node.parentCategoryId;
 
     return (
-      <div key={node.id} className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-xs">
-        {/* CATEGORY HEADER */}
+      <div
+        key={node.id}
+        className={`border rounded-lg overflow-hidden transition shadow-xs ${
+          isSubcategory
+            ? 'border-blue-200/90 bg-white shadow-2xs'
+            : 'border-slate-200 bg-white'
+        }`}
+      >
+        {/* CATEGORY / SUBCATEGORY HEADER */}
         <div
           onClick={(e) => toggleCategory(node.id, e)}
           className={`flex items-center justify-between p-2.5 transition cursor-pointer select-none ${
-            isCatExpanded ? 'bg-slate-50 border-b border-slate-200' : 'bg-white hover:bg-slate-50/80'
+            isCatExpanded
+              ? isSubcategory ? 'bg-blue-50/40 border-b border-blue-100' : 'bg-slate-50 border-b border-slate-200'
+              : isSubcategory ? 'bg-white hover:bg-blue-50/20' : 'bg-white hover:bg-slate-50/80'
           }`}
         >
           <div className="flex items-center gap-2 min-w-0">
@@ -375,18 +393,46 @@ export default function ProductClassificationHierarchy({
             ) : (
               <span className="w-[15px]" />
             )}
+
+            {/* Visual Tree Connector for Subcategories */}
+            {isSubcategory && (
+              <span className="font-mono text-blue-500/80 font-bold select-none text-xs shrink-0" title="Subcategory">
+                └──
+              </span>
+            )}
+
+            {/* Semantic Icon Box */}
             <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 border ${
-              node.depth === 0
-                ? 'bg-amber-50 text-amber-700 border-amber-200/60'
+              !isSubcategory
+                ? 'bg-amber-50 text-amber-700 border-amber-200/70'
                 : node.depth === 1
-                  ? 'bg-blue-50 text-blue-700 border-blue-200/60'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200/70'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200/70'
             }`}>
-              <Layers size={13} />
+              {!isSubcategory ? <Folder size={13} /> : <FolderTree size={13} />}
             </div>
-            <div className="truncate flex items-center gap-2 min-w-0">
+
+            {/* Category / Subcategory Title, Code & Badge */}
+            <div className="truncate flex items-center gap-2 min-w-0 flex-wrap">
               <span className="font-bold text-xs text-brand-text-primary truncate">{node.name}</span>
-              <span className="font-mono text-[11px] text-slate-400 font-normal">({node.code || 'CAT'})</span>
+              <span className="font-mono text-[11px] text-slate-400 font-normal">
+                ({node.code || (isSubcategory ? 'SUBCAT' : 'CAT')})
+              </span>
+              
+              {/* Semantic Hierarchy Badge */}
+              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold tracking-tight shrink-0 border ${
+                !isSubcategory
+                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                  : node.depth > 1
+                    ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                    : 'bg-blue-50 text-blue-800 border-blue-200'
+              }`}>
+                {!isSubcategory
+                  ? 'Category'
+                  : node.depth > 1
+                    ? `Subcategory · Level ${node.depth}`
+                    : 'Subcategory'}
+              </span>
             </div>
           </div>
 
@@ -397,11 +443,11 @@ export default function ProductClassificationHierarchy({
           </div>
         </div>
 
-        {/* EXPANDED CONTENT: DIRECT PRODUCTS, BRANDS & CHILDREN */}
+        {/* EXPANDED CONTENT: DIRECT PRODUCTS, BRANDS & CHILD SUBCATEGORIES */}
         {isCatExpanded && (
-          <div className="p-2.5 space-y-2.5 bg-slate-50/40">
+          <div className={`p-2.5 space-y-2.5 ${isSubcategory ? 'bg-blue-50/10' : 'bg-slate-50/40'}`}>
             
-            {/* 1. DIRECT UNBRANDED PRODUCTS UNDER THIS CATEGORY NODE */}
+            {/* 1. DIRECT UNBRANDED PRODUCTS UNDER THIS NODE */}
             {node.directUnbrandedProducts.length > 0 && (
               <div className="ml-3 sm:ml-4 p-2 space-y-1 bg-white border border-slate-200/60 rounded shadow-2xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-0.5 mb-1 flex items-center gap-1.5">
@@ -411,7 +457,7 @@ export default function ProductClassificationHierarchy({
               </div>
             )}
 
-            {/* 2. DIRECT BRAND GROUPS UNDER THIS CATEGORY NODE */}
+            {/* 2. DIRECT BRAND GROUPS UNDER THIS NODE */}
             {node.directBrandGroups.map(bg => {
               const brandCompositeKey = `${normalizeId(node.id)}_${normalizeId(bg.brand.id)}`;
               const isBrandExpanded = expandedBrandKeys.has(brandCompositeKey);
@@ -450,9 +496,12 @@ export default function ProductClassificationHierarchy({
               );
             })}
 
-            {/* 3. RECURSIVE CHILD CATEGORIES */}
+            {/* 3. RECURSIVE CHILD SUBCATEGORIES */}
             {node.children.length > 0 && (
-              <div className="ml-3 sm:ml-4 space-y-2 border-l-2 border-slate-200 pl-2">
+              <div className="ml-3 sm:ml-4 space-y-2 border-l-2 border-blue-300/80 pl-2.5 pt-1">
+                <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider px-1 py-0.5 flex items-center gap-1.5">
+                  <FolderTree size={11} /> Subcategories of {node.name} ({node.children.length})
+                </div>
                 {node.children.map(child => renderCategoryNode(child))}
               </div>
             )}
@@ -460,7 +509,7 @@ export default function ProductClassificationHierarchy({
             {/* EMPTY STATE FOR NODE */}
             {!hasChildren && (
               <div className="py-2.5 px-4 text-center text-[11px] text-slate-400 italic bg-white rounded border border-dashed border-slate-200">
-                No child categories or products registered under {node.name}.
+                No subcategories or products registered under {node.name}.
               </div>
             )}
           </div>
@@ -475,11 +524,16 @@ export default function ProductClassificationHierarchy({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-brand-border shadow-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
-            <Layers size={16} />
+            <Folder size={16} />
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Category Nodes</span>
-            <span className="text-sm font-bold text-brand-text-primary">{stats.totalCategories}</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-sm font-bold text-brand-text-primary">{stats.totalCategories}</span>
+              <span className="text-[10px] font-medium text-slate-500">
+                ({stats.rootCategories} Cat / {stats.subcategories} Sub)
+              </span>
+            </div>
           </div>
         </div>
 
@@ -704,13 +758,26 @@ export default function ProductClassificationHierarchy({
                       <div className="flex flex-wrap items-center gap-1.5">
                         {productCategoryAncestry.map((cat, idx) => {
                           const isLast = idx === productCategoryAncestry.length - 1;
+                          const isSubcat = idx > 0 || !!cat.parentCategoryId;
                           return (
                             <React.Fragment key={cat.id}>
-                              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                                isLast ? 'bg-blue-100 text-blue-800 border border-blue-200 font-bold' : 'bg-slate-100 text-slate-700'
+                              <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                                isLast
+                                  ? 'bg-blue-100 text-blue-900 border-blue-300 font-bold shadow-2xs'
+                                  : 'bg-white text-slate-700 border-slate-200'
                               }`}>
-                                {cat.name}
-                              </span>
+                                <span className={`px-1 py-0.2 rounded text-[9px] font-extrabold uppercase ${
+                                  !isSubcat
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                    : 'bg-blue-200/80 text-blue-800 border border-blue-300'
+                                }`}>
+                                  {!isSubcat ? 'Category' : idx > 1 ? `Subcat L${idx}` : 'Subcat'}
+                                </span>
+                                <span>{cat.name}</span>
+                                <span className="font-mono text-[10px] text-slate-400 font-normal">
+                                  ({cat.code})
+                                </span>
+                              </div>
                               {!isLast && <span className="text-slate-400 text-xs font-bold">›</span>}
                             </React.Fragment>
                           );

@@ -52,6 +52,8 @@ public class GetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery,
             customer.CreditLimit,
             customer.CreditDays,
             customer.RouteId,
+            customer.Latitude,
+            customer.Longitude,
             customer.IsActive,
             customer.CreatedAtUtc);
 
@@ -132,6 +134,8 @@ public class GetCustomersPagedQueryHandler : IRequestHandler<GetCustomersPagedQu
                 customer.CreditLimit,
                 customer.CreditDays,
                 customer.RouteId,
+                customer.Latitude,
+                customer.Longitude,
                 customer.IsActive,
                 customer.CreatedAtUtc))
             .ToList();

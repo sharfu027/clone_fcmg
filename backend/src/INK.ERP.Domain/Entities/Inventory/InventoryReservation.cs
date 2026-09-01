@@ -36,6 +36,7 @@ public sealed class InventoryReservation : BaseEntity
     public Guid? SalesOrderLineId { get; set; }
     public Guid InventoryLocationId { get; set; }
     public Guid ProductId { get; set; }
+    public string? BatchNumber { get; set; }
     public decimal ReservedQuantity { get; set; }
     public string Status { get; set; } = InventoryReservationStatuses.Active;
     public DateTime ReservedAtUtc { get; set; } = DateTime.UtcNow;

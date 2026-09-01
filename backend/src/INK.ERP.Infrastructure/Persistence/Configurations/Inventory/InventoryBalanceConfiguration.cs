@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using INK.ERP.Domain.Entities.Inventory;
 
@@ -21,6 +21,14 @@ public class InventoryBalanceConfiguration : IEntityTypeConfiguration<InventoryB
         builder.Property(x => x.ProductId)
             .IsRequired();
 
+        builder.Property(x => x.BatchNumber)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(x => x.ExpiryDate)
+            .HasColumnType("date")
+            .IsRequired(false);
+
         builder.Property(x => x.OnHandQuantity)
             .HasPrecision(18, 4)
             .HasDefaultValue(0m)
@@ -32,6 +40,11 @@ public class InventoryBalanceConfiguration : IEntityTypeConfiguration<InventoryB
             .IsRequired();
 
         builder.Property(x => x.AllocatedQuantity)
+            .HasPrecision(18, 4)
+            .HasDefaultValue(0m)
+            .IsRequired();
+
+        builder.Property(x => x.MinStockQuantity)
             .HasPrecision(18, 4)
             .HasDefaultValue(0m)
             .IsRequired();
@@ -68,7 +81,15 @@ public class InventoryBalanceConfiguration : IEntityTypeConfiguration<InventoryB
         builder.HasIndex(x => new { x.CompanyId, x.ProductId });
         builder.HasIndex(x => new { x.CompanyId, x.InventoryLocationId });
 
-        // Unique Constraint: One balance per Product per Location in a Company
-        builder.HasIndex(x => new { x.CompanyId, x.InventoryLocationId, x.ProductId }).IsUnique();
+        // Partial Unique Indexes:
+        // 1. Non-batch-tracked stock: Exactly one record per Product per Location where BatchNumber IS NULL
+        builder.HasIndex(x => new { x.CompanyId, x.InventoryLocationId, x.ProductId })
+            .HasFilter("\"BatchNumber\" IS NULL")
+            .IsUnique();
+
+        // 2. Batch-tracked stock: Exactly one record per Product per Location per Batch where BatchNumber IS NOT NULL
+        builder.HasIndex(x => new { x.CompanyId, x.InventoryLocationId, x.ProductId, x.BatchNumber })
+            .HasFilter("\"BatchNumber\" IS NOT NULL")
+            .IsUnique();
     }
 }

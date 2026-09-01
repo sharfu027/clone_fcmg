@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using FluentAssertions;
 using Xunit;
 
+using INK.ERP.IntegrationTests.Infrastructure;
+
 namespace INK.ERP.IntegrationTests;
 
-public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthEndpointTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
-    public HealthEndpointTests(WebApplicationFactory<Program> factory)
+    public HealthEndpointTests(CustomWebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
     }
@@ -18,7 +20,7 @@ public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Pr
     public async Task HealthCheck_ShouldReturnOk_AndHealthyStatus()
     {
         // Act
-        var response = await _client.GetAsync("/health");
+        var response = await _client.GetAsync("/health/live");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

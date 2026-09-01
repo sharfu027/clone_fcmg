@@ -9,6 +9,7 @@ using INK.ERP.Domain.Entities.Pricing;
 using INK.ERP.Domain.Entities.Inventory;
 using INK.ERP.Domain.Entities.Inventory.Fulfillment;
 using INK.ERP.Domain.Entities.Sales;
+using INK.ERP.Domain.Entities.SFA;
 
 namespace INK.ERP.Persistence;
 
@@ -134,6 +135,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<INK.ERP.Infrastructure.Persistence.Outbox.OutboxMessage> OutboxMessages => Set<INK.ERP.Infrastructure.Persistence.Outbox.OutboxMessage>();
     public DbSet<InventoryLocation> InventoryLocations => Set<InventoryLocation>();
     public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+    public DbSet<InventoryStockPolicy> InventoryStockPolicies => Set<InventoryStockPolicy>();
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
     public DbSet<InventoryReservation> InventoryReservations => Set<InventoryReservation>();
     public DbSet<INK.ERP.Domain.Entities.Warehouse> Warehouses => Set<INK.ERP.Domain.Entities.Warehouse>();
@@ -150,6 +152,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<PackageItem> PackageItems => Set<PackageItem>();
     public DbSet<Dispatch> Dispatches => Set<Dispatch>();
     public DbSet<DispatchLine> DispatchLines => Set<DispatchLine>();
+
+    // SFA DB Sets
+    public DbSet<SalesBeat> SalesBeats => Set<SalesBeat>();
+    public DbSet<SalesBeatCustomer> SalesBeatCustomers => Set<SalesBeatCustomer>();
+    public DbSet<SalesRepCustomerAssignment> SalesRepCustomerAssignments => Set<SalesRepCustomerAssignment>();
+    public DbSet<SalesVisit> SalesVisits => Set<SalesVisit>();
 
     // Procurement DB Sets
     public DbSet<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition> PurchaseRequisitions => Set<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition>();

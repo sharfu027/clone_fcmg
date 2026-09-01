@@ -309,7 +309,8 @@ public class GetInventoryReservationsPagedQueryHandler : IRequestHandler<GetInve
             r.ReservedAtUtc,
             r.ReleasedAtUtc,
             r.ExpiresAtUtc,
-            r.CreatedAtUtc
+            r.CreatedAtUtc,
+            r.BatchNumber
         )).ToList();
 
         return Result.Success<IReadOnlyList<InventoryReservationDto>>(dtos);
@@ -365,7 +366,8 @@ public class GetInventoryReservationByIdQueryHandler : IRequestHandler<GetInvent
             r.ReservedAtUtc,
             r.ReleasedAtUtc,
             r.ExpiresAtUtc,
-            r.CreatedAtUtc
+            r.CreatedAtUtc,
+            r.BatchNumber
         );
 
         return Result<InventoryReservationDto>.Success(dto);

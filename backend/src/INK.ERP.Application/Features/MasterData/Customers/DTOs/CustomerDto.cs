@@ -21,5 +21,7 @@ public record CustomerDto(
     decimal CreditLimit,
     int CreditDays,
     Guid? RouteId,
+    double? Latitude,
+    double? Longitude,
     bool IsActive,
     DateTime CreatedAtUtc);

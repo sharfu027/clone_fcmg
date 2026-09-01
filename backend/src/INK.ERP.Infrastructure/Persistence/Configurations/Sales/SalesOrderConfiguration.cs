@@ -33,6 +33,15 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.Property(x => x.TotalAmount).HasPrecision(18, 4).IsRequired();
 
         builder.Property(x => x.Notes).HasMaxLength(1000).IsRequired(false);
+
+        builder.Property(x => x.CaptureLatitude);
+        builder.Property(x => x.CaptureLongitude);
+        builder.Property(x => x.CaptureAccuracyMeters);
+        builder.Property(x => x.DistanceToCustomerMeters);
+        builder.Property(x => x.IsGpsVerified).HasDefaultValue(false);
+        builder.Property(x => x.IsFaceVerified).HasDefaultValue(false);
+        builder.Property(x => x.VerifiedAtUtc);
+
         builder.Property(x => x.CreatedAtUtc).IsRequired();
         builder.Property(x => x.LastModifiedAtUtc).IsRequired(false);
 

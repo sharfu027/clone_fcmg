@@ -189,7 +189,7 @@ export default function EnterpriseLayout({
     'inventory/overview': 'Overview',
     'inventory/stock': 'Stock',
     'inventory/locations': 'Locations',
-    'inventory/movements': 'Stock Movements',
+    'inventory/movements': 'Stock History',
     'inventory/reservations': 'Reservations',
     'inventory/transfers': 'Transfers',
     'inventory/fulfillment': 'Fulfillment',

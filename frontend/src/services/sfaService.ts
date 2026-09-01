@@ -1,88 +1,94 @@
 import { apiClient } from '../api/apiClient';
 import {
-  SalesRepMaster,
-  Territory,
-  BeatPlan,
-  CustomerVisit,
-  GpsCheckin,
-  FaceAttendanceRecord,
-  SfaOrderBooking,
-  CollectionRecord,
-  DailyCallReport,
-  SfaExpense,
-  CustomerFeedbackRecord,
-  SalesTarget,
-  SfaMetrics
+  SfaSalesRep,
+  SalesBeat,
+  SalesRepCustomerAssignment,
+  SalesVisit,
+  SfaDashboardMetrics,
+  CreateSalesBeatPayload,
+  UpdateSalesBeatPayload,
+  AssignCustomerPayload,
+  CheckInVisitPayload,
+  CheckOutVisitPayload
 } from '../types/sfa';
 
 export const sfaService = {
-  // Sales Reps
-  async getSalesReps(): Promise<SalesRepMaster[]> {
-    return apiClient.get<SalesRepMaster[]>('/api/v1/sfa/reps');
+  // Sales Reps (derived from Master Data Employees)
+  async getSalesReps(companyId?: string, search?: string): Promise<SfaSalesRep[]> {
+    const params = new URLSearchParams();
+    if (companyId) params.append('companyId', companyId);
+    if (search) params.append('search', search);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<SfaSalesRep[]>(`/api/v1/sfa/reps${queryString}`);
   },
 
-  // Territories & Beats
-  async getTerritories(): Promise<Territory[]> {
-    return apiClient.get<Territory[]>('/api/v1/sfa/territories');
+  // Beats & Routes
+  async getBeats(companyId?: string, salesEmployeeId?: string, search?: string): Promise<SalesBeat[]> {
+    const params = new URLSearchParams();
+    if (companyId) params.append('companyId', companyId);
+    if (salesEmployeeId) params.append('salesEmployeeId', salesEmployeeId);
+    if (search) params.append('search', search);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<SalesBeat[]>(`/api/v1/sfa/beats${queryString}`);
   },
 
-  async getBeatPlans(): Promise<BeatPlan[]> {
-    return apiClient.get<BeatPlan[]>('/api/v1/sfa/beat-plans');
+  async createBeat(payload: CreateSalesBeatPayload): Promise<SalesBeat> {
+    return apiClient.post<SalesBeat>('/api/v1/sfa/beats', payload);
   },
 
-  // Visits & GPS
-  async getVisits(): Promise<CustomerVisit[]> {
-    return apiClient.get<CustomerVisit[]>('/api/v1/sfa/visits');
+  async updateBeat(id: string, payload: UpdateSalesBeatPayload): Promise<SalesBeat> {
+    return apiClient.put<SalesBeat>(`/api/v1/sfa/beats/${id}`, payload);
   },
 
-  async recordVisit(payload: Partial<CustomerVisit>): Promise<CustomerVisit> {
-    return apiClient.post<CustomerVisit>('/api/v1/sfa/visits', payload);
+  async deleteBeat(id: string): Promise<void> {
+    return apiClient.delete(`/api/v1/sfa/beats/${id}`);
   },
 
-  async checkinGps(payload: Partial<GpsCheckin>): Promise<GpsCheckin> {
-    return apiClient.post<GpsCheckin>('/api/v1/sfa/gps-checkin', payload);
+  // Customer Assignments
+  async getCustomerAssignments(companyId?: string, employeeId?: string, customerId?: string): Promise<SalesRepCustomerAssignment[]> {
+    const params = new URLSearchParams();
+    if (companyId) params.append('companyId', companyId);
+    if (employeeId) params.append('employeeId', employeeId);
+    if (customerId) params.append('customerId', customerId);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<SalesRepCustomerAssignment[]>(`/api/v1/sfa/customer-assignments${queryString}`);
   },
 
-  // Face Attendance
-  async checkinFace(payload: Partial<FaceAttendanceRecord>): Promise<FaceAttendanceRecord> {
-    return apiClient.post<FaceAttendanceRecord>('/api/v1/sfa/face-checkin', payload);
+  async assignCustomer(payload: AssignCustomerPayload): Promise<SalesRepCustomerAssignment> {
+    return apiClient.post<SalesRepCustomerAssignment>('/api/v1/sfa/customer-assignments', payload);
   },
 
-  // Field Order Booking
-  async getOrders(): Promise<SfaOrderBooking[]> {
-    return apiClient.get<SfaOrderBooking[]>('/api/v1/sfa/orders');
+  async removeCustomerAssignment(id: string): Promise<void> {
+    return apiClient.delete(`/api/v1/sfa/customer-assignments/${id}`);
   },
 
-  async bookOrder(payload: Partial<SfaOrderBooking>): Promise<SfaOrderBooking> {
-    return apiClient.post<SfaOrderBooking>('/api/v1/sfa/orders', payload);
+  // Store Visits & GPS Check-in
+  async getVisits(companyId?: string, salesEmployeeId?: string, customerId?: string, fromDate?: string, toDate?: string, outcome?: string): Promise<SalesVisit[]> {
+    const params = new URLSearchParams();
+    if (companyId) params.append('companyId', companyId);
+    if (salesEmployeeId) params.append('salesEmployeeId', salesEmployeeId);
+    if (customerId) params.append('customerId', customerId);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    if (outcome) params.append('outcome', outcome);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<SalesVisit[]>(`/api/v1/sfa/visits${queryString}`);
   },
 
-  // Collections & Receipts
-  async getCollections(): Promise<CollectionRecord[]> {
-    return apiClient.get<CollectionRecord[]>('/api/v1/sfa/collections');
+  async checkInVisit(payload: CheckInVisitPayload): Promise<SalesVisit> {
+    return apiClient.post<SalesVisit>('/api/v1/sfa/visits/checkin', payload);
   },
 
-  async recordCollection(payload: Partial<CollectionRecord>): Promise<CollectionRecord> {
-    return apiClient.post<CollectionRecord>('/api/v1/sfa/collections', payload);
+  async checkOutVisit(id: string, payload: CheckOutVisitPayload): Promise<SalesVisit> {
+    return apiClient.post<SalesVisit>(`/api/v1/sfa/visits/${id}/checkout`, payload);
   },
 
-  // DCR
-  async getDCRs(): Promise<DailyCallReport[]> {
-    return apiClient.get<DailyCallReport[]>('/api/v1/sfa/dcr');
-  },
-
-  // Expenses
-  async getExpenses(): Promise<SfaExpense[]> {
-    return apiClient.get<SfaExpense[]>('/api/v1/sfa/expenses');
-  },
-
-  // Targets
-  async getSalesTargets(): Promise<SalesTarget[]> {
-    return apiClient.get<SalesTarget[]>('/api/v1/sfa/targets');
-  },
-
-  // SFA Metrics
-  async getSfaMetrics(): Promise<SfaMetrics> {
-    return apiClient.get<SfaMetrics>('/api/v1/sfa/metrics');
+  // Dashboard Metrics
+  async getDashboardMetrics(companyId?: string, salesEmployeeId?: string): Promise<SfaDashboardMetrics> {
+    const params = new URLSearchParams();
+    if (companyId) params.append('companyId', companyId);
+    if (salesEmployeeId) params.append('salesEmployeeId', salesEmployeeId);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<SfaDashboardMetrics>(`/api/v1/sfa/dashboard/metrics${queryString}`);
   }
 };

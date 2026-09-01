@@ -18,6 +18,8 @@ public sealed class Customer : BaseEntity
     public decimal CreditLimit { get; set; } = 50000.00m;
     public int CreditDays { get; set; } = 30;
     public Guid? RouteId { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public bool IsActive { get; set; } = true;
 
     // Navigation Property

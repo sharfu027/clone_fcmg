@@ -85,6 +85,49 @@ export const inventoryService = {
     return apiClient.get<InventoryBalance>(`/api/v1/inventory/balances/${id}`);
   },
 
+  async adjustInventoryBalance(id: string, payload: {
+    newOnHandQuantity: number;
+    batchNumber?: string | null;
+    expiryDate?: string | null;
+    reason?: string;
+    releaseExcessReservations?: boolean;
+    minStockQuantity?: number;
+  }): Promise<InventoryBalance> {
+    return apiClient.put<InventoryBalance>(`/api/v1/inventory/balances/${id}`, {
+      releaseExcessReservations: true,
+      ...payload
+    });
+  },
+
+  async deleteInventoryBalance(id: string, reason?: string, releaseReservations = true): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/inventory/balances/${id}`, {
+      params: {
+        reason: reason || undefined,
+        releaseReservations
+      }
+    });
+  },
+
+  // Inventory Stock Policies (Safety Stock / Reorder Thresholds)
+  async fetchStockPolicies(params?: {
+    companyId?: string;
+    inventoryLocationId?: string;
+    productId?: string;
+  }): Promise<any[]> {
+    return apiClient.get<any[]>('/api/v1/inventory/policies', { params });
+  },
+
+  async upsertStockPolicy(payload: {
+    companyId: string;
+    inventoryLocationId: string;
+    productId: string;
+    minStockQuantity: number;
+    reorderPoint?: number | null;
+    reorderQuantity?: number | null;
+  }): Promise<any> {
+    return apiClient.put<any>('/api/v1/inventory/policies', payload);
+  },
+
   // Inventory Transactions Ledger (Phase 1 Foundation - Stock Ledger)
   async postInventoryTransaction(payload: PostInventoryTransactionRequest): Promise<InventoryTransaction> {
     return apiClient.post<InventoryTransaction>('/api/v1/inventory/transactions', payload);

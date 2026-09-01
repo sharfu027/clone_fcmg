@@ -28,7 +28,9 @@ import {
   ShoppingCart,
   Lock,
   Info,
-  RotateCcw
+  RotateCcw,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import {
   InventoryLocation,
@@ -136,6 +138,9 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
   const [filterProductId, setFilterProductId] = useState<string>('');
   const [filterTxnType, setFilterTxnType] = useState<string>('');
   const [filterReservationStatus, setFilterReservationStatus] = useState<string>('');
+  const [reservationSubTab, setReservationSubTab] = useState<'active' | 'history'>('active');
+  const [filterReservationType, setFilterReservationType] = useState<string>('');
+  const [filterHistoryStatus, setFilterHistoryStatus] = useState<string>('');
 
   // Modals & Drawers
   const [isOpeningModalOpen, setIsOpeningModalOpen] = useState<boolean>(false);
@@ -160,6 +165,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     companyId: '',
     inventoryLocationId: '',
     productId: '',
+    batchNumber: '',
     requestedQuantity: 1,
     salesOrderId: '',
     salesOrderLineId: '',
@@ -180,6 +186,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     inventoryLocationId: '',
     productId: '',
     openingQuantity: 0,
+    minStockQuantity: 0,
     batchNumber: '',
     expiryDate: '',
     notes: ''
@@ -215,11 +222,21 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     companyId: '',
     sourceLocationId: '',
     destinationLocationId: '',
-    salesOrderId: '',
     requestedByEmployeeId: '',
     notes: '',
-    productId: '',
-    requestedQuantity: 10
+    lines: [
+      { productId: '', requestedQuantity: 1, batchNumber: '' }
+    ]
+  });
+
+  const [transferApprovalForm, setTransferApprovalForm] = useState<{
+    approvedByEmployeeId: string;
+    notes: string;
+    lineApprovals: { [lineId: string]: number };
+  }>({
+    approvedByEmployeeId: '',
+    notes: '',
+    lineApprovals: {}
   });
 
   const [receiveForm, setReceiveForm] = useState<{ lineReceipts: { [lineId: string]: number | string } }>({
@@ -229,6 +246,24 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
   const [approveForm, setApproveForm] = useState<{ lineApprovals: { [lineId: string]: number } }>({
     lineApprovals: {}
   });
+
+  // Edit / Adjust Balance State
+  const [isEditBalanceModalOpen, setIsEditBalanceModalOpen] = useState<boolean>(false);
+  const [editingBalance, setEditingBalance] = useState<InventoryBalance | null>(null);
+  const [editBalanceForm, setEditBalanceForm] = useState({
+    newOnHandQuantity: 0,
+    minStockQuantity: 0,
+    batchNumber: '',
+    expiryDate: '',
+    reason: ''
+  });
+  const [isSubmittingEditBalance, setIsSubmittingEditBalance] = useState<boolean>(false);
+
+  // Remove Balance State
+  const [isRemoveBalanceModalOpen, setIsRemoveBalanceModalOpen] = useState<boolean>(false);
+  const [deletingBalance, setDeletingBalance] = useState<InventoryBalance | null>(null);
+  const [removeBalanceReason, setRemoveBalanceReason] = useState<string>('Mistakenly added stock balance removed');
+  const [isSubmittingRemoveBalance, setIsSubmittingRemoveBalance] = useState<boolean>(false);
 
   // Company-scoped helper lists for robust modal selection & validation
   const transferCompanyId = transferForm.companyId || filterCompanyId || (companies[0]?.id ?? '');
@@ -384,6 +419,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       inventoryLocationId: locations.length > 0 ? locations[0].id : '',
       productId: products.length > 0 ? products[0].id : '',
       openingQuantity: 10,
+      minStockQuantity: 0,
       batchNumber: '',
       expiryDate: '',
       notes: ''
@@ -402,8 +438,10 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
 
     try {
       const selectedProd = products.find(p => p.id === openingForm.productId);
+      const targetCompId = effectiveCompanyId || (selectedProd?.companyId ?? '');
+
       const req: PostInventoryTransactionRequest = {
-        companyId: effectiveCompanyId || (selectedProd?.companyId ?? ''),
+        companyId: targetCompId,
         inventoryLocationId: openingForm.inventoryLocationId,
         productId: openingForm.productId,
         transactionType: 'OpeningBalance',
@@ -414,12 +452,105 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       };
 
       await inventoryService.postInventoryTransaction(req);
+
+      const minStockVal = Number(openingForm.minStockQuantity);
+      if (!isNaN(minStockVal) && minStockVal >= 0) {
+        try {
+          await inventoryService.upsertStockPolicy({
+            companyId: targetCompId,
+            inventoryLocationId: openingForm.inventoryLocationId,
+            productId: openingForm.productId,
+            minStockQuantity: minStockVal
+          });
+        } catch (policyErr) {
+          console.warn('Policy upsert warning:', policyErr);
+        }
+      }
+
       setIsOpeningModalOpen(false);
       onTriggerToast('success', 'Opening Balance Established', 'Initial stock balance recorded in immutable ledger.');
       loadInventoryData(true);
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to establish opening balance.';
       onTriggerToast('error', 'Transaction Failed', msg);
+    }
+  };
+
+  const handleOpenEditBalance = (b: InventoryBalance) => {
+    setEditingBalance(b);
+    setEditBalanceForm({
+      newOnHandQuantity: Number(b.onHandQuantity),
+      minStockQuantity: Number(b.minStockQuantity || 0),
+      batchNumber: b.batchNumber || '',
+      expiryDate: b.expiryDate ? b.expiryDate.split('T')[0] : '',
+      reason: ''
+    });
+    setIsEditBalanceModalOpen(true);
+  };
+
+  const handleSubmitEditBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBalance) return;
+
+    const newQty = Number(editBalanceForm.newOnHandQuantity);
+    if (isNaN(newQty) || newQty < 0) {
+      onTriggerToast('warning', 'Validation Error', 'Total stock quantity cannot be negative.');
+      return;
+    }
+
+    const allocatedStock = editingBalance.allocatedQuantity || 0;
+    if (newQty < allocatedStock) {
+      onTriggerToast('warning', 'Cannot Reduce Below Pick Allocations', `New stock (${newQty.toFixed(2)}) cannot be less than active pick allocations (${allocatedStock.toFixed(2)}).`);
+      return;
+    }
+
+    try {
+      setIsSubmittingEditBalance(true);
+      await inventoryService.adjustInventoryBalance(editingBalance.id, {
+        newOnHandQuantity: newQty,
+        batchNumber: editBalanceForm.batchNumber?.trim() || null,
+        expiryDate: editBalanceForm.expiryDate ? `${editBalanceForm.expiryDate}T00:00:00Z` : null,
+        reason: editBalanceForm.reason?.trim() || `Manual stock correction: ${editingBalance.onHandQuantity} -> ${newQty}`,
+        releaseExcessReservations: true,
+        minStockQuantity: Number(editBalanceForm.minStockQuantity) || 0
+      });
+
+      setIsEditBalanceModalOpen(false);
+      setEditingBalance(null);
+      onTriggerToast('success', 'Stock Balance Updated', `Stock adjusted to ${newQty.toFixed(2)} and recorded in immutable ledger.`);
+      loadInventoryData(true);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to adjust stock balance.';
+      onTriggerToast('error', 'Adjustment Failed', msg);
+    } finally {
+      setIsSubmittingEditBalance(false);
+    }
+  };
+
+  const handleOpenDeleteBalance = (b: InventoryBalance) => {
+    if ((b.allocatedQuantity || 0) > 0) {
+      onTriggerToast('warning', 'Cannot Remove Stock', `Cannot remove a balance record that has active pick allocations (${b.allocatedQuantity}). Please complete or cancel pending pick/pack tasks first.`);
+      return;
+    }
+    setDeletingBalance(b);
+    setRemoveBalanceReason('Mistakenly added stock balance removed');
+    setIsRemoveBalanceModalOpen(true);
+  };
+
+  const handleConfirmDeleteBalance = async () => {
+    if (!deletingBalance) return;
+    try {
+      setIsSubmittingRemoveBalance(true);
+      await inventoryService.deleteInventoryBalance(deletingBalance.id, removeBalanceReason, true);
+      setIsRemoveBalanceModalOpen(false);
+      setDeletingBalance(null);
+      onTriggerToast('success', 'Stock Balance Removed', 'The stock balance record has been removed and ledger cleared.');
+      loadInventoryData(true);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to remove stock balance.';
+      onTriggerToast('error', 'Removal Failed', msg);
+    } finally {
+      setIsSubmittingRemoveBalance(false);
     }
   };
 
@@ -629,6 +760,37 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
     }
   };
 
+  // Active vs Historical Reservation Selectors
+  const activeLockingStatuses = useMemo(() => ['Active', 'Allocated', 'Pending'], []);
+  const historicalStatuses = useMemo(() => ['Released', 'Cancelled', 'Fulfilled', 'Expired'], []);
+
+  const activeReservations = useMemo(() => {
+    return reservations.filter(r => {
+      if (!activeLockingStatuses.includes(r.status)) return false;
+      if (filterReservationType === 'sales_order' && !r.salesOrderId) return false;
+      if (filterReservationType === 'manual' && !!r.salesOrderId) return false;
+      return true;
+    });
+  }, [reservations, activeLockingStatuses, filterReservationType]);
+
+  const historyReservations = useMemo(() => {
+    return reservations.filter(r => {
+      if (!historicalStatuses.includes(r.status)) return false;
+      if (filterHistoryStatus && r.status !== filterHistoryStatus) return false;
+      if (filterReservationType === 'sales_order' && !r.salesOrderId) return false;
+      if (filterReservationType === 'manual' && !!r.salesOrderId) return false;
+      return true;
+    });
+  }, [reservations, historicalStatuses, filterHistoryStatus, filterReservationType]);
+
+  const totalActiveReservationsCount = useMemo(() => {
+    return reservations.filter(r => activeLockingStatuses.includes(r.status)).length;
+  }, [reservations, activeLockingStatuses]);
+
+  const totalHistoryReservationsCount = useMemo(() => {
+    return reservations.filter(r => historicalStatuses.includes(r.status)).length;
+  }, [reservations, historicalStatuses]);
+
   const handleReserveStock = async (e: React.FormEvent) => {
     e.preventDefault();
     const qty = Number(reserveForm.requestedQuantity);
@@ -637,40 +799,61 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       return;
     }
 
-    const selectedBal = balances.find(
+    const matchingBals = balances.filter(
       b => b.inventoryLocationId === reserveForm.inventoryLocationId && b.productId === reserveForm.productId
     );
-    const onHandQty = selectedBal?.onHandQuantity ?? 0;
-    const reservedQty = selectedBal?.reservedQuantity ?? 0;
-    const allocatedQty = selectedBal?.allocatedQuantity ?? 0;
-    const availableQty = Math.max(0, onHandQty - reservedQty - allocatedQty);
+
+    let onHandQty = 0;
+    let reservedQty = 0;
+    let availableQty = 0;
+
+    if (reserveForm.batchNumber) {
+      const batchBal = matchingBals.find(b => (b.batchNumber || '') === reserveForm.batchNumber);
+      onHandQty = Number(batchBal?.onHandQuantity || 0);
+      reservedQty = Number(batchBal?.reservedQuantity || 0);
+      const allocatedQty = Number(batchBal?.allocatedQuantity || 0);
+      availableQty = Math.max(0, onHandQty - reservedQty - allocatedQty);
+    } else {
+      onHandQty = matchingBals.reduce((sum, b) => sum + Number(b.onHandQuantity || 0), 0);
+      reservedQty = matchingBals.reduce((sum, b) => sum + Number(b.reservedQuantity || 0), 0);
+      const allocatedQty = matchingBals.reduce((sum, b) => sum + Number(b.allocatedQuantity || 0), 0);
+      availableQty = Math.max(0, onHandQty - reservedQty - allocatedQty);
+    }
 
     if (qty > availableQty) {
+      const batchLabel = reserveForm.batchNumber ? ` for batch '${reserveForm.batchNumber}'` : '';
       onTriggerToast(
         'error',
         'Insufficient Available Stock',
-        `Cannot reserve ${qty} units. Only ${availableQty} units are currently available (On Hand: ${onHandQty}, Reserved: ${reservedQty}).`
+        `Cannot reserve ${qty} units${batchLabel}. Only ${availableQty.toFixed(2)} units are currently available (On Hand: ${onHandQty.toFixed(2)}, Reserved: ${reservedQty.toFixed(2)}).`
       );
       return;
     }
 
     setIsSubmittingReservation(true);
     try {
+      const selectedLoc = locations.find(l => l.id === reserveForm.inventoryLocationId);
+      const selectedProd = products.find(p => p.id === reserveForm.productId);
+      const effectiveCompanyId = reserveForm.companyId || selectedLoc?.companyId || selectedProd?.companyId || filterCompanyId || (companies[0]?.id ?? '');
+
       const res = await inventoryService.reserveStock({
-        companyId: reserveForm.companyId || filterCompanyId || (companies[0]?.id ?? ''),
+        companyId: effectiveCompanyId,
         inventoryLocationId: reserveForm.inventoryLocationId,
         productId: reserveForm.productId,
+        batchNumber: reserveForm.batchNumber ? reserveForm.batchNumber.trim() : null,
         requestedQuantity: qty,
         salesOrderId: reserveForm.salesOrderId || undefined,
         salesOrderLineId: reserveForm.salesOrderLineId || undefined,
         expiresAtUtc: reserveForm.expiresAtUtc ? new Date(reserveForm.expiresAtUtc).toISOString() : undefined
       });
-      onTriggerToast('success', 'Stock Reserved', `Reserved ${res.reservedQuantity} units. Available stock updated.`);
+      const batchNotice = res.batchNumber ? ` (Batch: ${res.batchNumber})` : '';
+      onTriggerToast('success', 'Stock Reserved', `Reserved ${res.reservedQuantity} units${batchNotice}. Available stock updated.`);
       setIsReserveModalOpen(false);
       setReserveForm({
         companyId: '',
         inventoryLocationId: '',
         productId: '',
+        batchNumber: '',
         requestedQuantity: 1,
         salesOrderId: '',
         salesOrderLineId: '',
@@ -927,7 +1110,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 {activeTab === 'overview' && 'Inventory Overview'}
                 {activeTab === 'stock' && 'Stock Balances'}
                 {activeTab === 'locations' && 'Inventory Locations'}
-                {activeTab === 'movements' && 'Stock Movement Ledger'}
+                {activeTab === 'movements' && 'Stock History'}
                 {activeTab === 'reservations' && 'Stock Reservations'}
                 {activeTab === 'transfers' && 'Stock Transfers'}
               </h1>
@@ -1157,7 +1340,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <History size={16} className="text-blue-600" />
-                  <h3 className="text-sm font-bold text-slate-900">Recent Stock Movements</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Recent Stock History</h3>
                 </div>
                 <button
                   onClick={() => handleTabChange('movements')}
@@ -1434,6 +1617,38 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
             </div>
           </div>
 
+          {/* Low Stock Alert Warning Banner */}
+          {(() => {
+            const lowStockItems = balances.filter(b => {
+              const min = Number(b.minStockQuantity || 0);
+              const avail = Number(b.availableQuantity ?? (Number(b.OnHandQuantity ?? b.onHandQuantity ?? 0) - Number(b.ReservedQuantity ?? b.reservedQuantity ?? 0) - Number(b.AllocatedQuantity ?? b.allocatedQuantity ?? 0)));
+              return (min > 0 && avail < min) || avail <= 0;
+            });
+
+            if (lowStockItems.length === 0) return null;
+
+            return (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-rose-900 shadow-xs animate-in fade-in duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-rose-100 text-rose-600 rounded-lg shrink-0">
+                    <AlertTriangle size={20} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-rose-900 flex items-center gap-2">
+                      <span>Critical Low-Stock &amp; Zero Stock Alert</span>
+                      <span className="px-2 py-0.5 bg-rose-200 text-rose-800 text-[10px] rounded-full font-extrabold">
+                        {lowStockItems.length} {lowStockItems.length === 1 ? 'batch/item' : 'batches/items'} requiring attention
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-rose-700 mt-0.5">
+                      Available inventory has dropped below the minimum safety threshold or is fully reserved. Immediate replenishment recommended.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Balances Table */}
           {isLoading ? (
             <div className="p-12 text-center text-xs text-slate-400">Loading real inventory balances...</div>
@@ -1460,68 +1675,153 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                     <th className="p-3">Product</th>
                     <th className="p-3">Inventory Location</th>
                     <th className="p-3">Scope</th>
-                    <th className="p-3 text-right">On Hand</th>
+                    <th className="p-3 text-right">Total Stock</th>
                     <th className="p-3 text-right">Reserved</th>
                     <th className="p-3 text-right">Allocated</th>
                     <th className="p-3 text-right">Available</th>
                     <th className="p-3">UOM</th>
                     <th className="p-3">Last Movement</th>
-                    <th className="p-3 text-center">Ledger</th>
+                    <th className="p-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {balances.map(b => (
-                    <tr key={b.id} className="hover:bg-slate-50/70 transition">
-                      <td className="p-3 font-mono font-bold text-blue-600">{b.sku || b.productCode}</td>
-                      <td className="p-3 font-semibold text-slate-900">
-                        <div>{b.productName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{b.productCode}</div>
-                      </td>
-                      <td className="p-3 text-slate-700">
-                        <div className="font-medium">{b.inventoryLocationName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{b.inventoryLocationCode}</div>
-                      </td>
-                      <td className="p-3">{renderHierarchyTag(b as any)}</td>
-                      <td className="p-3 text-right font-mono font-bold text-slate-900">
-                        {Number(b.onHandQuantity).toFixed(2)}
-                      </td>
-                      <td className="p-3 text-right font-mono text-amber-600 font-medium">
-                        {Number(b.reservedQuantity).toFixed(2)}
-                      </td>
-                      <td className="p-3 text-right font-mono text-purple-600 font-medium">
-                        {Number(b.allocatedQuantity).toFixed(2)}
-                      </td>
-                      <td className="p-3 text-right font-mono font-bold text-emerald-600">
-                        {Number(b.availableQuantity).toFixed(2)}
-                      </td>
-                      <td className="p-3 text-slate-500 font-mono">{b.baseUomName || 'unit'}</td>
-                      <td className="p-3 text-slate-500 font-mono text-[11px]">
-                        {b.lastMovementAtUtc
-                          ? new Date(b.lastMovementAtUtc).toLocaleString('en-IN', {
-                              month: 'short',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
-                          : 'None'}
-                      </td>
-                      <td className="p-3 text-center">
-                        <Tooltip content="View ledger audit history for this balance">
-                          <button
-                            onClick={() => {
-                              setFilterLocationId(b.inventoryLocationId);
-                              setFilterProductId(b.productId);
-                              handleTabChange('movements');
-                            }}
-                            aria-label="View ledger"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition cursor-pointer"
-                          >
-                            <History size={14} />
-                          </button>
-                        </Tooltip>
-                      </td>
-                    </tr>
-                  ))}
+                  {balances.map(b => {
+                    const bAvail = Number(b.availableQuantity ?? (Number(b.onHandQuantity || 0) - Number(b.reservedQuantity || 0) - Number(b.allocatedQuantity || 0)));
+                    const minStock = Number(b.minStockQuantity || 0);
+                    const isZeroAvailable = bAvail <= 0;
+                    const isBelowMin = minStock > 0 && bAvail < minStock;
+                    const isLowStock = isZeroAvailable || isBelowMin;
+
+                    return (
+                      <tr
+                        key={b.id}
+                        className={`hover:bg-slate-50/70 transition ${
+                          isZeroAvailable
+                            ? 'bg-rose-50/40 border-l-4 border-l-rose-500'
+                            : isBelowMin
+                            ? 'bg-amber-50/30 border-l-4 border-l-amber-500'
+                            : ''
+                        }`}
+                      >
+                        <td className="p-3 font-mono font-bold text-blue-600">{b.sku || b.productCode}</td>
+                        <td className="p-3 font-semibold text-slate-900">
+                          <div>{b.productName}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-[10px] text-slate-400 font-mono">{b.sku || b.productCode}</span>
+                            {b.batchNumber && (
+                              <span className="inline-flex items-center px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 text-[10px] rounded font-mono font-bold">
+                                Batch: {b.batchNumber}{b.expiryDate ? ` (Exp: ${b.expiryDate.split('T')[0]})` : ''}
+                              </span>
+                            )}
+                            {isZeroAvailable ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 text-[10px] rounded font-extrabold animate-pulse">
+                                <AlertTriangle size={11} className="text-rose-600 shrink-0" />
+                                {minStock > 0
+                                  ? `ZERO AVAILABLE (0.00 < Min ${minStock.toFixed(2)})`
+                                  : 'ZERO AVAILABLE (Fully Reserved / Out of Stock)'}
+                              </span>
+                            ) : isBelowMin ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[10px] rounded font-bold animate-pulse">
+                                <AlertTriangle size={11} className="text-amber-600 shrink-0" />
+                                LOW STOCK: Avail {bAvail.toFixed(2)} &lt; Min {minStock.toFixed(2)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="p-3 text-slate-700">
+                          <div className="font-medium">{b.inventoryLocationName}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{b.inventoryLocationCode}</div>
+                        </td>
+                        <td className="p-3">{renderHierarchyTag(b as any)}</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-900">
+                          {Number(b.onHandQuantity).toFixed(2)}
+                        </td>
+                        <td className="p-3 text-right font-mono text-amber-600 font-medium">
+                          {Number(b.reservedQuantity).toFixed(2)}
+                        </td>
+                        <td className="p-3 text-right font-mono text-purple-600 font-medium">
+                          {Number(b.allocatedQuantity).toFixed(2)}
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold">
+                          {isZeroAvailable ? (
+                            <div className="inline-flex flex-col items-end">
+                              <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300 text-[11px] font-extrabold shadow-2xs animate-pulse">
+                                <AlertTriangle size={12} className="text-rose-600" />
+                                0.00
+                              </span>
+                              {minStock > 0 ? (
+                                <span className="text-[10px] text-rose-600 font-bold mt-0.5">
+                                  Min: {minStock.toFixed(2)}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-rose-500 font-normal mt-0.5">
+                                  Out of Stock
+                                </span>
+                              )}
+                            </div>
+                          ) : isBelowMin ? (
+                            <div className="inline-flex flex-col items-end">
+                              <span className="text-rose-600 flex items-center gap-1 font-bold">
+                                <AlertTriangle size={12} className="text-rose-600 animate-bounce" />
+                                {bAvail.toFixed(2)}
+                              </span>
+                              <span className="text-[10px] text-rose-600 font-semibold bg-rose-50 px-1 rounded border border-rose-200 mt-0.5">
+                                Min: {minStock.toFixed(2)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-emerald-600 font-bold">{bAvail.toFixed(2)}</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-slate-500 font-mono">{b.baseUomName || 'unit'}</td>
+                        <td className="p-3 text-slate-500 font-mono text-[11px]">
+                          {b.lastMovementAtUtc
+                            ? new Date(b.lastMovementAtUtc).toLocaleString('en-IN', {
+                                month: 'short',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'None'}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="inline-flex items-center justify-center gap-1">
+                            <Tooltip content="Edit / adjust stock quantity or batch">
+                              <button
+                                onClick={() => handleOpenEditBalance(b)}
+                                aria-label="Edit stock"
+                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition cursor-pointer"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Remove / clear mistakenly added stock balance">
+                              <button
+                                onClick={() => handleOpenDeleteBalance(b)}
+                                aria-label="Remove stock"
+                                className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="View ledger audit history for this balance">
+                              <button
+                                onClick={() => {
+                                  setFilterLocationId(b.inventoryLocationId);
+                                  setFilterProductId(b.productId);
+                                  handleTabChange('movements');
+                                }}
+                                aria-label="View ledger"
+                                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer"
+                              >
+                                <History size={14} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1786,19 +2086,21 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       {/* TAB 5: STOCK RESERVATIONS */}
       {activeTab === 'reservations' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs space-y-4">
+          {/* Header & Main Actions */}
           <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Stock Reservations Ledger</h2>
-              <p className="text-xs text-slate-500">Authoritative stock reservation commitments against inventory balances.</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900">Stock Reservations</h2>
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+                  Authoritative Locks
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Current active stock commitments and historical reservation audit records.
+              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-              <div className="text-[11px] text-slate-500 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
-                <Info size={13} className="text-indigo-500 shrink-0" />
-                <span>
-                  <b>Tip:</b> For customer orders, create and submit a <b>Sales Order</b>. Inventory will reserve available stock automatically and move the order to Fulfillment.
-                </span>
-              </div>
               <button
                 onClick={() => {
                   setReserveForm({
@@ -1820,234 +2122,504 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
             </div>
           </div>
 
-          {/* RESERVATIONS FILTERS */}
-          <div className="p-4 pt-0 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
-            <div className="flex flex-wrap items-center gap-2 flex-1 max-w-3xl">
-              <SearchInput
-                placeholder="Search by product code, name, or location..."
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onClear={() => setSearchQuery('')}
-                className="w-64 text-xs"
-              />
-
-              <select
-                value={filterLocationId}
-                onChange={e => setFilterLocationId(e.target.value)}
-                className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
-              >
-                <option value="">All Locations</option>
-                {locations.map(l => (
-                  <option key={l.id} value={l.id}>{l.name} ({l.code})</option>
-                ))}
-              </select>
-
-              <select
-                value={filterProductId}
-                onChange={e => setFilterProductId(e.target.value)}
-                className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
-              >
-                <option value="">All Products</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} [{p.sku || p.code}]</option>
-                ))}
-              </select>
-
-              <select
-                value={filterReservationStatus}
-                onChange={e => setFilterReservationStatus(e.target.value)}
-                className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
-              >
-                <option value="">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Allocated">Allocated</option>
-                <option value="Fulfilled">Fulfilled</option>
-                <option value="Released">Released</option>
-                <option value="Cancelled">Cancelled</option>
-                <option value="Expired">Expired</option>
-              </select>
-
-              {(filterLocationId || filterProductId || filterReservationStatus || searchQuery) && (
-                <button
-                  onClick={() => {
-                    setFilterLocationId('');
-                    setFilterProductId('');
-                    setFilterReservationStatus('');
-                    setSearchQuery('');
-                  }}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-200 rounded-lg cursor-pointer"
-                >
-                  Clear Filters
-                </button>
-              )}
-            </div>
-
-            <div className="text-xs text-slate-500 font-mono">
-              Total Reservations: <span className="font-bold text-slate-900">{reservations.length}</span>
+          {/* Professional Information Banner */}
+          <div className="mx-4 p-3 bg-blue-50/70 border border-blue-200/80 rounded-lg flex items-start gap-2.5 text-xs text-blue-900">
+            <Info size={15} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <span className="font-semibold">Stock Reservation Semantics:</span> Active reservations currently lock inventory. Released, cancelled, fulfilled, and expired reservations are historical records and do not reduce current stock availability.
             </div>
           </div>
 
-          {isLoading ? (
-            <div className="p-12 text-center text-xs text-slate-400">Loading stock reservations...</div>
-          ) : reservations.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 space-y-3">
-              <BookmarkCheck size={36} className="mx-auto text-slate-300" />
-              <div className="font-bold text-slate-800 text-sm">No stock reservations found.</div>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                No active or historical reservations match the selected filter criteria.
-              </p>
+          {/* Sub-Tabs: [ Active Reservations ] [ History ] */}
+          <div className="flex items-center justify-between border-b border-slate-200 px-4">
+            <div className="flex items-center gap-1">
               <button
-                onClick={() => {
-                  setReserveForm({
-                    companyId: filterCompanyId || (companies[0]?.id ?? ''),
-                    inventoryLocationId: filterLocationId || locations[0]?.id || '',
-                    productId: filterProductId || products[0]?.id || '',
-                    requestedQuantity: 1,
-                    salesOrderId: '',
-                    salesOrderLineId: '',
-                    expiresAtUtc: ''
-                  });
-                  setIsReserveModalOpen(true);
-                }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg cursor-pointer shadow-xs"
+                onClick={() => setReservationSubTab('active')}
+                className={`pb-3 px-3.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+                  reservationSubTab === 'active'
+                    ? 'border-indigo-600 text-indigo-600 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
               >
-                Reserve Stock Now
+                <Lock size={13} />
+                <span>Active Reservations</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  reservationSubTab === 'active'
+                    ? 'bg-indigo-100 text-indigo-800'
+                    : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {totalActiveReservationsCount}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setReservationSubTab('history')}
+                className={`pb-3 px-3.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+                  reservationSubTab === 'history'
+                    ? 'border-indigo-600 text-indigo-600 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <History size={13} />
+                <span>Reservation History</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  reservationSubTab === 'history'
+                    ? 'bg-indigo-100 text-indigo-800'
+                    : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {totalHistoryReservationsCount}
+                </span>
               </button>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  <tr>
-                    <th className="p-3">Reservation Ref</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Product</th>
-                    <th className="p-3">Location</th>
-                    <th className="p-3 text-right">Reserved Qty</th>
-                    <th className="p-3 text-center">Status</th>
-                    <th className="p-3">Order Ref</th>
-                    <th className="p-3">Reserved At</th>
-                    <th className="p-3">Expires At</th>
-                    <th className="p-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {reservations.map(resv => (
-                    <tr key={resv.id} className="hover:bg-slate-50/70 transition">
-                      <td className="p-3 font-mono text-[11px] font-semibold text-indigo-700">
-                        {resv.id.substring(0, 8)}...
-                      </td>
-                      <td className="p-3">
-                        {resv.salesOrderId ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            <ShoppingCart size={11} />
-                            <span>Sales Order</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            <Lock size={11} />
-                            <span>Manual / Internal</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 font-semibold text-slate-900">
-                        <div>{resv.productName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{resv.sku || resv.productCode}</div>
-                      </td>
-                      <td className="p-3 text-slate-700">
-                        <div>{resv.inventoryLocationName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{resv.inventoryLocationCode}</div>
-                      </td>
-                      <td className="p-3 text-right font-mono font-bold text-indigo-900 text-sm">
-                        {Number(resv.reservedQuantity).toFixed(2)} {resv.baseUomName || 'units'}
-                      </td>
-                      <td className="p-3 text-center">
-                        {getReservationStatusBadge(resv.status)}
-                      </td>
-                      <td className="p-3 font-mono text-[11px]">
-                        {resv.salesOrderId ? (
-                          <span className="bg-indigo-50 text-indigo-800 font-semibold px-2 py-0.5 rounded border border-indigo-200 inline-block">
-                            SO: {resv.salesOrderNumber || resv.salesOrderId.substring(0, 8)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 font-sans italic text-[11px]">
-                            Manual / Internal
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 font-mono text-[11px] text-slate-500">
-                        {new Date(resv.reservedAtUtc).toLocaleString('en-IN', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="p-3 font-mono text-[11px] text-slate-500">
-                        {resv.expiresAtUtc ? (
-                          <span className="inline-flex items-center gap-1 text-amber-700">
-                            <Clock size={11} />
-                            {new Date(resv.expiresAtUtc).toLocaleDateString('en-IN')}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">No Expiry</span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {(resv.status === 'Active' || resv.status === 'Allocated') && (
-                            <Tooltip content="Release internal hold and restore quantity to available stock in real time">
-                              <button
-                                onClick={() => handleReleaseReservation(resv)}
-                                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                              >
-                                <RotateCcw size={12} />
-                                <span>Restore Stock</span>
-                              </button>
-                            </Tooltip>
-                          )}
-                          {(resv.status === 'Active' || resv.status === 'Pending') && (
-                            <Tooltip content="Cancel reservation">
-                              <button
-                                onClick={() => handleCancelReservation(resv)}
-                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-semibold transition cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                            </Tooltip>
-                          )}
-                          {!resv.salesOrderId && (resv.status === 'Released' || resv.status === 'Cancelled' || resv.status === 'Expired') && (
-                            <Tooltip content="Re-apply internal stock reservation hold for this product & location">
-                              <button
-                                onClick={() => {
-                                  setReserveForm({
-                                    companyId: resv.companyId || filterCompanyId || (companies[0]?.id ?? ''),
-                                    inventoryLocationId: resv.inventoryLocationId,
-                                    productId: resv.productId,
-                                    requestedQuantity: Number(resv.reservedQuantity),
-                                    salesOrderId: '',
-                                    salesOrderLineId: '',
-                                    expiresAtUtc: ''
-                                  });
-                                  setIsReserveModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                              >
-                                <BookmarkCheck size={12} />
-                                <span>Re-Reserve</span>
-                              </button>
-                            </Tooltip>
-                          )}
-                          {resv.salesOrderId && resv.status !== 'Active' && resv.status !== 'Allocated' && resv.status !== 'Pending' && (
-                            <span className="text-[11px] text-slate-400 italic">Locked</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <div className="text-[11px] text-slate-500 font-mono hidden sm:flex items-center gap-3 pb-2">
+              <span>Active: <b className="text-slate-900">{totalActiveReservationsCount}</b></span>
+              <span className="text-slate-300">•</span>
+              <span>History: <b className="text-slate-600">{totalHistoryReservationsCount}</b></span>
+            </div>
+          </div>
+
+          {/* VIEW 1: ACTIVE RESERVATIONS */}
+          {reservationSubTab === 'active' && (
+            <div className="space-y-4">
+              {/* Active Filters */}
+              <div className="px-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 flex-1 max-w-4xl">
+                  <SearchInput
+                    placeholder="Search active reservations..."
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    onClear={() => setSearchQuery('')}
+                    className="w-56 text-xs"
+                  />
+
+                  <select
+                    value={filterLocationId}
+                    onChange={e => setFilterLocationId(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All Locations</option>
+                    {locations.map(l => (
+                      <option key={l.id} value={l.id}>{l.name} ({l.code})</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filterProductId}
+                    onChange={e => setFilterProductId(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All Products</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} [{p.sku || p.code}]</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filterReservationType}
+                    onChange={e => setFilterReservationType(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All Types</option>
+                    <option value="manual">Manual / Internal</option>
+                    <option value="sales_order">Sales Order</option>
+                  </select>
+
+                  {(filterLocationId || filterProductId || filterReservationType || searchQuery) && (
+                    <button
+                      onClick={() => {
+                        setFilterLocationId('');
+                        setFilterProductId('');
+                        setFilterReservationType('');
+                        setSearchQuery('');
+                      }}
+                      className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-xs text-slate-500 font-mono">
+                  Active Reservations: <span className="font-bold text-slate-900">{activeReservations.length}</span>
+                </div>
+              </div>
+
+              {/* Active Reservations Table */}
+              {isLoading ? (
+                <div className="p-12 text-center text-xs text-slate-400">Loading active stock reservations...</div>
+              ) : activeReservations.length === 0 ? (
+                <div className="p-12 text-center text-xs text-slate-500 space-y-3">
+                  <Lock size={36} className="mx-auto text-slate-300" />
+                  <div className="font-bold text-slate-800 text-sm">No active reservations</div>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Reservations currently locking inventory will appear here.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setReserveForm({
+                        companyId: filterCompanyId || (companies[0]?.id ?? ''),
+                        inventoryLocationId: filterLocationId || locations[0]?.id || '',
+                        productId: filterProductId || products[0]?.id || '',
+                        requestedQuantity: 1,
+                        salesOrderId: '',
+                        salesOrderLineId: '',
+                        expiresAtUtc: ''
+                      });
+                      setIsReserveModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg cursor-pointer shadow-xs"
+                  >
+                    Reserve Stock Now
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50 border-y border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="p-3">Reservation Ref</th>
+                        <th className="p-3">Type</th>
+                        <th className="p-3">Product</th>
+                        <th className="p-3">Location</th>
+                        <th className="p-3 text-right">
+                          <Tooltip content="Stock currently held for an active reservation">
+                            <span className="cursor-help border-b border-dotted border-slate-400">Reserved Qty</span>
+                          </Tooltip>
+                        </th>
+                        <th className="p-3 text-center">Status</th>
+                        <th className="p-3">Order Ref</th>
+                        <th className="p-3">Reserved At</th>
+                        <th className="p-3">Expires At</th>
+                        <th className="p-3 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {activeReservations.map(resv => (
+                        <tr key={resv.id} className="hover:bg-slate-50/70 transition">
+                          <td className="p-3 font-mono text-[11px] font-semibold text-indigo-700">
+                            {resv.id.substring(0, 8)}...
+                          </td>
+                          <td className="p-3">
+                            {resv.salesOrderId ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                <ShoppingCart size={11} />
+                                <span>Sales Order</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                <Lock size={11} />
+                                <span>Manual / Internal</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 font-semibold text-slate-900">
+                            <div>{resv.productName}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-slate-400 font-mono">{resv.sku || resv.productCode}</span>
+                              {resv.batchNumber && (
+                                <span className="inline-flex items-center px-1.5 py-0.2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] rounded font-mono font-bold">
+                                  Batch: {resv.batchNumber}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-slate-700">
+                            <div>{resv.inventoryLocationName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{resv.inventoryLocationCode}</div>
+                          </td>
+                          <td className="p-3 text-right font-mono font-bold text-indigo-900 text-sm">
+                            {Number(resv.reservedQuantity).toFixed(2)} {resv.baseUomName || 'units'}
+                          </td>
+                          <td className="p-3 text-center">
+                            {getReservationStatusBadge(resv.status)}
+                          </td>
+                          <td className="p-3 font-mono text-[11px]">
+                            {resv.salesOrderId ? (
+                              <span className="bg-indigo-50 text-indigo-800 font-semibold px-2 py-0.5 rounded border border-indigo-200 inline-block">
+                                SO: {resv.salesOrderNumber || resv.salesOrderId.substring(0, 8)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-sans italic text-[11px]">
+                                Manual / Internal
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-slate-500">
+                            {new Date(resv.reservedAtUtc).toLocaleString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-slate-500">
+                            {resv.expiresAtUtc ? (
+                              <span className="inline-flex items-center gap-1 text-amber-700">
+                                <Clock size={11} />
+                                {new Date(resv.expiresAtUtc).toLocaleDateString('en-IN')}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">No Expiry</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {!resv.salesOrderId ? (
+                                <>
+                                  <Tooltip content="Release internal reservation hold and restore available stock in real time">
+                                    <button
+                                      onClick={() => handleReleaseReservation(resv)}
+                                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                                    >
+                                      <RotateCcw size={12} />
+                                      <span>Release</span>
+                                    </button>
+                                  </Tooltip>
+                                  <Tooltip content="Cancel reservation hold">
+                                    <button
+                                      onClick={() => handleCancelReservation(resv)}
+                                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-semibold transition cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </Tooltip>
+                                </>
+                              ) : (
+                                <Tooltip content="Controlled automatically by Sales Order lifecycle (Fulfillment / Dispatch or Cancellation)">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200 cursor-help">
+                                    SO Lifecycle
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW 2: RESERVATION HISTORY */}
+          {reservationSubTab === 'history' && (
+            <div className="space-y-4">
+              {/* History Filters */}
+              <div className="px-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 flex-1 max-w-4xl">
+                  <SearchInput
+                    placeholder="Search history records..."
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    onClear={() => setSearchQuery('')}
+                    className="w-56 text-xs"
+                  />
+
+                  <select
+                    value={filterLocationId}
+                    onChange={e => setFilterLocationId(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All Locations</option>
+                    {locations.map(l => (
+                      <option key={l.id} value={l.id}>{l.name} ({l.code})</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filterProductId}
+                    onChange={e => setFilterProductId(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All Products</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} [{p.sku || p.code}]</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filterReservationType}
+                    onChange={e => setFilterReservationType(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All Types</option>
+                    <option value="manual">Manual / Internal</option>
+                    <option value="sales_order">Sales Order</option>
+                  </select>
+
+                  <select
+                    value={filterHistoryStatus}
+                    onChange={e => setFilterHistoryStatus(e.target.value)}
+                    className="p-2 border rounded-lg border-slate-300 text-xs bg-white text-slate-700"
+                  >
+                    <option value="">All History Statuses</option>
+                    <option value="Released">Released</option>
+                    <option value="Cancelled">Cancelled</option>
+                    <option value="Fulfilled">Fulfilled</option>
+                    <option value="Expired">Expired</option>
+                  </select>
+
+                  {(filterLocationId || filterProductId || filterReservationType || filterHistoryStatus || searchQuery) && (
+                    <button
+                      onClick={() => {
+                        setFilterLocationId('');
+                        setFilterProductId('');
+                        setFilterReservationType('');
+                        setFilterHistoryStatus('');
+                        setSearchQuery('');
+                      }}
+                      className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-xs text-slate-500 font-mono">
+                  History Records: <span className="font-bold text-slate-900">{historyReservations.length}</span>
+                </div>
+              </div>
+
+              {/* History Table */}
+              {isLoading ? (
+                <div className="p-12 text-center text-xs text-slate-400">Loading reservation history...</div>
+              ) : historyReservations.length === 0 ? (
+                <div className="p-12 text-center text-xs text-slate-500 space-y-3">
+                  <History size={36} className="mx-auto text-slate-300" />
+                  <div className="font-bold text-slate-800 text-sm">No reservation history</div>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Released, cancelled, fulfilled, and expired reservations will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50 border-y border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="p-3">Reservation Ref</th>
+                        <th className="p-3">Type</th>
+                        <th className="p-3">Product</th>
+                        <th className="p-3">Location</th>
+                        <th className="p-3 text-right">
+                          <Tooltip content="Historical reservation records do not affect current stock availability">
+                            <span className="cursor-help border-b border-dotted border-slate-400">Quantity</span>
+                          </Tooltip>
+                        </th>
+                        <th className="p-3 text-center">Status</th>
+                        <th className="p-3">Order Ref</th>
+                        <th className="p-3">Reserved At</th>
+                        <th className="p-3">Released / Completed At</th>
+                        <th className="p-3">Lifecycle / Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {historyReservations.map(resv => (
+                        <tr key={resv.id} className="hover:bg-slate-50/70 transition opacity-90">
+                          <td className="p-3 font-mono text-[11px] font-semibold text-slate-600">
+                            {resv.id.substring(0, 8)}...
+                          </td>
+                          <td className="p-3">
+                            {resv.salesOrderId ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                <ShoppingCart size={11} />
+                                <span>Sales Order</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                <Lock size={11} />
+                                <span>Manual / Internal</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-slate-800">
+                            <div className="font-semibold">{resv.productName}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-slate-400 font-mono">{resv.sku || resv.productCode}</span>
+                              {resv.batchNumber && (
+                                <span className="inline-flex items-center px-1.5 py-0.2 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] rounded font-mono font-medium">
+                                  Batch: {resv.batchNumber}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-slate-600">
+                            <div>{resv.inventoryLocationName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{resv.inventoryLocationCode}</div>
+                          </td>
+                          <td className="p-3 text-right font-mono font-semibold text-slate-600 text-sm">
+                            {Number(resv.reservedQuantity).toFixed(2)} {resv.baseUomName || 'units'}
+                          </td>
+                          <td className="p-3 text-center">
+                            {getReservationStatusBadge(resv.status)}
+                          </td>
+                          <td className="p-3 font-mono text-[11px]">
+                            {resv.salesOrderId ? (
+                              <span className="bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded border border-slate-200 inline-block">
+                                SO: {resv.salesOrderNumber || resv.salesOrderId.substring(0, 8)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-sans italic text-[11px]">
+                                Manual / Internal
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-slate-500">
+                            {new Date(resv.reservedAtUtc).toLocaleString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-slate-500">
+                            {resv.releasedAtUtc ? (
+                              new Date(resv.releasedAtUtc).toLocaleString('en-IN', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-xs text-slate-500">
+                            {resv.status === 'Released' && (
+                              <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                                <RotateCcw size={12} className="text-slate-400" />
+                                <span>Released back to available stock</span>
+                              </span>
+                            )}
+                            {resv.status === 'Fulfilled' && (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                                <CheckCircle2 size={12} className="text-emerald-500" />
+                                <span>Fulfilled via dispatch</span>
+                              </span>
+                            )}
+                            {resv.status === 'Cancelled' && (
+                              <span className="inline-flex items-center gap-1 text-rose-700 font-medium">
+                                <X size={12} className="text-rose-400" />
+                                <span>Reservation cancelled</span>
+                              </span>
+                            )}
+                            {resv.status === 'Expired' && (
+                              <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                                <Clock size={12} className="text-amber-500" />
+                                <span>Hold expired</span>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2795,18 +3367,37 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 </select>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Opening Stock Quantity *</label>
-                <input
-                  type="number"
-                  min="0.0001"
-                  step="0.0001"
-                  value={openingForm.openingQuantity}
-                  onChange={e => setOpeningForm({ ...openingForm, openingQuantity: parseFloat(e.target.value) || 0 })}
-                  required
-                  className="w-full p-2 border rounded-lg border-slate-300 font-mono font-bold"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Opening Stock Quantity *</label>
+                  <input
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    value={openingForm.openingQuantity}
+                    onChange={e => setOpeningForm({ ...openingForm, openingQuantity: parseFloat(e.target.value) || 0 })}
+                    required
+                    className="w-full p-2 border rounded-lg border-slate-300 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Minimum Stock (Alert Level)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={openingForm.minStockQuantity}
+                    onChange={e => setOpeningForm({ ...openingForm, minStockQuantity: parseFloat(e.target.value) || 0 })}
+                    placeholder="e.g. 20 (Red alert if < min)"
+                    className="w-full p-2 border rounded-lg border-slate-300 font-mono font-bold text-rose-700"
+                  />
+                </div>
               </div>
+              <p className="text-[11px] text-slate-500 -mt-2">
+                Set minimum safety stock for this location. The system immediately displays an eye-catching <span className="text-rose-600 font-bold">RED ALERT</span> if available stock falls below this quantity.
+              </p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -2862,8 +3453,238 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
       )}
 
       {/* ---------------------------------------------------- */}
-      {/* MODAL 2: ADD / EDIT INVENTORY LOCATION */}
+      {/* MODAL 1B: EDIT / ADJUST STOCK BALANCE */}
       {/* ---------------------------------------------------- */}
+      {isEditBalanceModalOpen && editingBalance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Edit / Adjust Stock Balance</h3>
+                <p className="text-xs text-slate-500">Adjust on-hand stock or batch metadata. All changes are logged in the ledger.</p>
+              </div>
+              <button
+                onClick={() => { setIsEditBalanceModalOpen(false); setEditingBalance(null); }}
+                aria-label="Close modal"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Context Summary */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-700">Product:</span>
+                <span className="font-bold text-slate-900">{editingBalance.productName} <span className="font-mono text-slate-500 font-normal">({editingBalance.sku || editingBalance.productCode})</span></span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-700">Location:</span>
+                <span className="text-slate-900">{editingBalance.inventoryLocationName} <span className="font-mono text-slate-500">({editingBalance.inventoryLocationCode})</span></span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200 text-center font-mono">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase font-sans">Current Total</div>
+                  <div className="font-bold text-slate-900">{Number(editingBalance.onHandQuantity).toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-amber-600 uppercase font-sans">Reserved</div>
+                  <div className="font-bold text-amber-600">{Number(editingBalance.reservedQuantity).toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-purple-600 uppercase font-sans">Allocated</div>
+                  <div className="font-bold text-purple-600">{Number(editingBalance.allocatedQuantity).toFixed(2)}</div>
+                </div>
+                {(() => {
+                  const editAvail = Number(editingBalance.availableQuantity ?? (Number(editingBalance.onHandQuantity || 0) - Number(editingBalance.reservedQuantity || 0) - Number(editingBalance.allocatedQuantity || 0)));
+                  const editMin = Number(editingBalance.minStockQuantity || 0);
+                  const isEditZero = editAvail <= 0;
+                  const isEditLow = isEditZero || (editMin > 0 && editAvail < editMin);
+
+                  return (
+                    <div>
+                      <div className={`text-[10px] uppercase font-sans font-bold ${isEditZero ? 'text-rose-600' : isEditLow ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        Available
+                      </div>
+                      <div className={`font-bold flex items-center justify-center gap-1 ${isEditZero ? 'text-rose-600 font-extrabold' : isEditLow ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {isEditZero && <AlertTriangle size={11} className="text-rose-600" />}
+                        {editAvail.toFixed(2)}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitEditBalance} className="space-y-4 text-xs">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-slate-700">New Total Stock Quantity *</label>
+                  {(() => {
+                    const delta = Number(editBalanceForm.newOnHandQuantity || 0) - Number(editingBalance.onHandQuantity);
+                    if (delta > 0) {
+                      return <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-mono font-bold text-[11px]">+{delta.toFixed(2)} units (Increase)</span>;
+                    } else if (delta < 0) {
+                      return <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-mono font-bold text-[11px]">{delta.toFixed(2)} units (Decrease)</span>;
+                    }
+                    return <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-mono text-[11px]">No quantity change</span>;
+                  })()}
+                </div>
+                <input
+                  type="number"
+                  min={(editingBalance.reservedQuantity || 0) + (editingBalance.allocatedQuantity || 0)}
+                  step="0.0001"
+                  value={editBalanceForm.newOnHandQuantity}
+                  onChange={e => setEditBalanceForm({ ...editBalanceForm, newOnHandQuantity: parseFloat(e.target.value) || 0 })}
+                  required
+                  className="w-full p-2 border rounded-lg border-slate-300 font-mono font-bold text-slate-900"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Minimum allowed stock is {((editingBalance.reservedQuantity || 0) + (editingBalance.allocatedQuantity || 0)).toFixed(2)} {editingBalance.baseUomName || 'units'} (locked by reservations/allocations).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Batch Number</label>
+                  <input
+                    type="text"
+                    value={editBalanceForm.batchNumber}
+                    onChange={e => setEditBalanceForm({ ...editBalanceForm, batchNumber: e.target.value })}
+                    placeholder="Batch code..."
+                    className="w-full p-2 border rounded-lg border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={editBalanceForm.expiryDate}
+                    onChange={e => setEditBalanceForm({ ...editBalanceForm, expiryDate: e.target.value })}
+                    className="w-full p-2 border rounded-lg border-slate-300"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Minimum Stock Threshold (Safety Alert Level)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={editBalanceForm.minStockQuantity}
+                  onChange={e => setEditBalanceForm({ ...editBalanceForm, minStockQuantity: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g. 20 (Red alert appears if available stock < min)"
+                  className="w-full p-2 border rounded-lg border-slate-300 font-mono font-bold text-rose-700"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  When total available stock at this location drops below this threshold, a red alert is triggered.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Adjustment Reason / Audit Notes</label>
+                <input
+                  type="text"
+                  value={editBalanceForm.reason}
+                  onChange={e => setEditBalanceForm({ ...editBalanceForm, reason: e.target.value })}
+                  placeholder="e.g. Physical inventory count correction, entry error..."
+                  className="w-full p-2 border rounded-lg border-slate-300"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => { setIsEditBalanceModalOpen(false); setEditingBalance(null); }}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEditBalance}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSubmittingEditBalance && <RefreshCw size={14} className="animate-spin" />}
+                  <span>Save Stock Adjustment</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL 1C: REMOVE STOCK BALANCE CONFIRMATION */}
+      {/* ---------------------------------------------------- */}
+      {isRemoveBalanceModalOpen && deletingBalance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl border border-rose-200 max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="p-2.5 bg-rose-100 text-rose-600 rounded-lg">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Remove Stock Balance</h3>
+                <p className="text-xs text-slate-500">Remove mistakenly created stock balance.</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-lg text-xs space-y-2 text-slate-800">
+              <div>
+                <span className="font-semibold">Product:</span> {deletingBalance.productName} <span className="font-mono text-slate-500">({deletingBalance.sku || deletingBalance.productCode})</span>
+              </div>
+              <div>
+                <span className="font-semibold">Location:</span> {deletingBalance.inventoryLocationName}
+              </div>
+              {deletingBalance.batchNumber && (
+                <div>
+                  <span className="font-semibold">Batch:</span> <span className="font-mono">{deletingBalance.batchNumber}</span>
+                </div>
+              )}
+              {(deletingBalance.reservedQuantity || 0) > 0 && (
+                <div className="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 font-medium">
+                  ⚠️ <strong>Active Reservations ({Number(deletingBalance.reservedQuantity).toFixed(2)} {deletingBalance.baseUomName || 'units'}):</strong> This balance currently has reserved stock. Confirming removal will automatically release and clear these reservations.
+                </div>
+              )}
+              <div className="pt-1.5 border-t border-rose-200 text-rose-900 font-medium">
+                This will clear <span className="font-bold font-mono">{Number(deletingBalance.onHandQuantity).toFixed(2)} {deletingBalance.baseUomName || 'units'}</span> from inventory, record an adjustment transaction in the ledger, and remove the balance record.
+              </div>
+            </div>
+
+            <div className="text-xs">
+              <label className="block font-semibold text-slate-700 mb-1">Reason for Removal</label>
+              <input
+                type="text"
+                value={removeBalanceReason}
+                onChange={e => setRemoveBalanceReason(e.target.value)}
+                placeholder="Why is this stock balance being removed?"
+                className="w-full p-2 border rounded-lg border-slate-300"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 text-xs">
+              <button
+                type="button"
+                onClick={() => { setIsRemoveBalanceModalOpen(false); setDeletingBalance(null); }}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteBalance}
+                disabled={isSubmittingRemoveBalance}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSubmittingRemoveBalance && <RefreshCw size={14} className="animate-spin" />}
+                <span>Confirm & Remove Stock</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isLocationModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 space-y-4 shadow-xl">
@@ -3294,7 +4115,15 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 <label className="block font-semibold text-slate-700 mb-1">Inventory Location *</label>
                 <select
                   value={reserveForm.inventoryLocationId}
-                  onChange={e => setReserveForm({ ...reserveForm, inventoryLocationId: e.target.value })}
+                  onChange={e => {
+                    const locId = e.target.value;
+                    const loc = locations.find(l => l.id === locId);
+                    setReserveForm(prev => ({
+                      ...prev,
+                      inventoryLocationId: locId,
+                      companyId: loc?.companyId || prev.companyId
+                    }));
+                  }}
                   required
                   className="w-full p-2 border rounded-lg border-slate-300 bg-white"
                 >
@@ -3309,7 +4138,16 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 <label className="block font-semibold text-slate-700 mb-1">Product (SKU) *</label>
                 <select
                   value={reserveForm.productId}
-                  onChange={e => setReserveForm({ ...reserveForm, productId: e.target.value })}
+                  onChange={e => {
+                    const prodId = e.target.value;
+                    const prod = products.find(p => p.id === prodId);
+                    setReserveForm(prev => ({
+                      ...prev,
+                      productId: prodId,
+                      batchNumber: '',
+                      companyId: prod?.companyId || prev.companyId
+                    }));
+                  }}
                   required
                   className="w-full p-2 border rounded-lg border-slate-300 bg-white"
                 >
@@ -3320,14 +4158,65 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                 </select>
               </div>
 
-              {/* Live Location Stock Metrics */}
+              {/* Batch / Lot Selection */}
               {(() => {
-                const selectedBal = balances.find(
+                const productBatches = balances.filter(
                   b => b.inventoryLocationId === reserveForm.inventoryLocationId && b.productId === reserveForm.productId
                 );
-                const onHandQty = selectedBal?.onHandQuantity ?? 0;
-                const reservedQty = selectedBal?.reservedQuantity ?? 0;
-                const allocatedQty = selectedBal?.allocatedQuantity ?? 0;
+
+                if (!reserveForm.productId || !reserveForm.inventoryLocationId || productBatches.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Batch / Lot Selection
+                    </label>
+                    <select
+                      value={reserveForm.batchNumber}
+                      onChange={e => setReserveForm(prev => ({ ...prev, batchNumber: e.target.value }))}
+                      className="w-full p-2 border rounded-lg border-slate-300 bg-white font-mono text-xs"
+                    >
+                      <option value="">All Batches (Auto-assign / FEFO oldest first)</option>
+                      {productBatches.map(b => {
+                        const bAvail = Math.max(0, Number(b.onHandQuantity) - Number(b.reservedQuantity) - Number(b.allocatedQuantity));
+                        const expStr = b.expiryDate ? ` | Exp: ${b.expiryDate.split('T')[0]}` : '';
+                        return (
+                          <option key={b.id} value={b.batchNumber || ''}>
+                            {b.batchNumber ? `Batch: ${b.batchNumber}` : 'Standard / No Batch'} — {bAvail.toFixed(2)} available{expStr}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Choose a specific batch to reserve from, or leave as &apos;All Batches&apos; to auto-distribute across inventory.
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Live Location Stock Metrics */}
+              {(() => {
+                const matchingBals = balances.filter(
+                  b => b.inventoryLocationId === reserveForm.inventoryLocationId && b.productId === reserveForm.productId
+                );
+
+                let onHandQty = 0;
+                let reservedQty = 0;
+                let allocatedQty = 0;
+
+                if (reserveForm.batchNumber) {
+                  const bBal = matchingBals.find(b => (b.batchNumber || '') === reserveForm.batchNumber);
+                  onHandQty = Number(bBal?.onHandQuantity || 0);
+                  reservedQty = Number(bBal?.reservedQuantity || 0);
+                  allocatedQty = Number(bBal?.allocatedQuantity || 0);
+                } else {
+                  onHandQty = matchingBals.reduce((sum, b) => sum + Number(b.onHandQuantity || 0), 0);
+                  reservedQty = matchingBals.reduce((sum, b) => sum + Number(b.reservedQuantity || 0), 0);
+                  allocatedQty = matchingBals.reduce((sum, b) => sum + Number(b.allocatedQuantity || 0), 0);
+                }
+
                 const availableQty = Math.max(0, onHandQty - reservedQty - allocatedQty);
                 const isExcessiveQty = reserveForm.productId && reserveForm.inventoryLocationId && (Number(reserveForm.requestedQuantity) > availableQty);
 
@@ -3336,17 +4225,23 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                     {reserveForm.inventoryLocationId && reserveForm.productId && (
                       <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-3 gap-2 text-center text-xs">
                         <div>
-                          <span className="text-[10px] text-slate-500 uppercase block font-medium">On Hand</span>
-                          <span className="font-bold text-slate-800">{onHandQty}</span>
+                          <span className="text-[10px] text-slate-500 uppercase block font-medium">
+                            {reserveForm.batchNumber ? 'Batch On Hand' : 'Total On Hand'}
+                          </span>
+                          <span className="font-bold text-slate-800">{onHandQty.toFixed(2)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-500 uppercase block font-medium">Reserved</span>
-                          <span className="font-bold text-amber-700">{reservedQty}</span>
+                          <span className="text-[10px] text-slate-500 uppercase block font-medium">
+                            {reserveForm.batchNumber ? 'Batch Reserved' : 'Total Reserved'}
+                          </span>
+                          <span className="font-bold text-amber-700">{reservedQty.toFixed(2)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-500 uppercase block font-medium">Available to Reserve</span>
+                          <span className="text-[10px] text-slate-500 uppercase block font-medium">
+                            Available to Reserve
+                          </span>
                           <span className={`font-bold ${availableQty > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                            {availableQty}
+                            {availableQty.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -3354,7 +4249,7 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                     {isExcessiveQty && (
                       <div className="p-2 bg-rose-50 border border-rose-200 rounded-md text-[11px] text-rose-700 font-semibold flex items-center gap-1.5">
                         <AlertTriangle size={13} className="shrink-0" />
-                        <span>Requested quantity exceeds available unreserved stock ({availableQty} units).</span>
+                        <span>Requested quantity exceeds available unreserved stock ({availableQty.toFixed(2)} units).</span>
                       </div>
                     )}
                   </>

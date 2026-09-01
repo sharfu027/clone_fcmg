@@ -235,6 +235,8 @@ export interface CustomerDto {
   creditLimit: number;
   creditDays: number;
   routeId?: string;
+  latitude?: number;
+  longitude?: number;
   isActive: boolean;
   createdAtUtc: string;
 }

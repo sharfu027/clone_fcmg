@@ -1180,7 +1180,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       prefix = 'PROD';
       currentList = dbProducts;
     } else if (module === 'categories' || module === 'masters/categories') {
-      prefix = 'CAT';
+      prefix = catParentId ? 'SUBCAT' : 'CAT';
       currentList = dbCategories;
     } else if (module === 'brands' || module === 'masters/brands') {
       prefix = 'BRD';
@@ -1973,15 +1973,20 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
       status: e.status
     }));
     if (module === 'products' || module === 'masters/products') return dbProducts.map(p => ({ id: p.id, code: p.code, name: p.name, detail1: p.categoryName || 'Unclassified', detail2: p.brandName || 'Unbranded', numericText: `₹${p.basePrice ?? p.price ?? 0}`, status: p.isActive ? 'Active' : 'Inactive' }));
-    if (module === 'categories' || module === 'masters/categories') return dbCategories.map(c => ({
-      id: c.id,
-      code: c.code,
-      name: c.name,
-      detail1: c.parentCategoryName ? `Sub of: ${c.parentCategoryName}` : 'Root Category',
-      detail2: `GST: ${c.gstTaxRatePercent ?? 5}% | HSN: ${c.hsnCodeDefault || '1006.30'}`,
-      numericText: `${c.productCount || 0} SKUs`,
-      status: c.status
-    }));
+    if (module === 'categories' || module === 'masters/categories') return dbCategories.map(c => {
+      const isSub = !!c.parentCategoryId;
+      return {
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        detail1: isSub
+          ? `Subcategory${c.parentCategoryName ? ` (Parent: ${c.parentCategoryName})` : ''}`
+          : 'Top-Level Category',
+        detail2: `GST: ${c.gstTaxRatePercent ?? 5}% | HSN: ${c.hsnCodeDefault || '1006.30'}`,
+        numericText: `${c.productCount || 0} SKUs`,
+        status: c.status
+      };
+    });
     if (module === 'brands' || module === 'masters/brands') return dbBrands.map(b => ({ id: b.id, code: b.code, name: b.name, detail1: b.origin, detail2: '', numericText: `${b.productCount} SKUs`, status: b.status }));
     if (module === 'units' || module === 'masters/units') return dbUnits.map(u => ({ id: u.id, code: u.code, name: u.name, detail1: u.baseUnit, detail2: '', numericText: `Factor: ${u.conversionFactor}`, status: u.status }));
     if (module === 'warehouses' || module === 'masters/warehouses') return dbWarehouses.map(w => {
@@ -2640,7 +2645,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     <ChevronLeft size={14} /> Back to Master Registry List
                   </button>
                   <h2 className="text-lg font-bold text-brand-text-primary">
-                    {config.singular} Read-Only Master Record Profile
+                    {(module === 'categories' || module === 'masters/categories') ? (catParentId ? 'Subcategory' : 'Category') : config.singular} Read-Only Master Record Profile
                   </h2>
                   <p className="text-xs text-brand-text-secondary">Official ERP Master Registry specifications and metadata.</p>
                 </div>
@@ -3230,6 +3235,20 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           </span>
                         </div>
                       )}
+                      {(module === 'categories' || module === 'masters/categories') && (
+                        <div>
+                          <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Hierarchy Classification</span>
+                          <span className="font-medium text-brand-text-primary">
+                            {catParentId ? (
+                              <span className="inline-flex items-center gap-1 text-blue-700 font-bold text-xs">
+                                <span>Subcategory (Parent: {dbCategories.find(c => c.id === catParentId)?.name || 'Parent Category'})</span>
+                              </span>
+                            ) : (
+                              <span className="text-amber-800 font-bold text-xs">Top-Level Category</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                       <div>
                         <span className="text-brand-text-secondary font-semibold block text-[10px] uppercase">Status</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${formStatus === 'Active' ? 'bg-green-50 text-brand-success border border-green-200' : 'bg-gray-50 text-brand-text-secondary border'}`}>
@@ -3326,7 +3345,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                     <ChevronLeft size={14} /> Back to Master Registry List
                   </button>
                   <h2 className="text-lg font-bold text-brand-text-primary">
-                    {mode === 'create' ? 'Create New' : 'Edit'} {config.singular} Master Record
+                    {mode === 'create' ? 'Create New' : 'Edit'} {(module === 'categories' || module === 'masters/categories') ? (catParentId ? 'Subcategory' : 'Category') : config.singular} Master Record
                   </h2>
                   <p className="text-xs text-brand-text-secondary">Configure specific business attributes in accordance with FMCG ERP Business Blueprint.</p>
                 </div>
@@ -4033,14 +4052,18 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           roots.forEach(r => traverse(r, 0));
                           return options.map(opt => (
                             <option key={opt.id} value={opt.id}>
-                              {'\u00A0\u00A0'.repeat(opt.depth)}{opt.depth > 0 ? '└─ ' : ''}{opt.name} ({opt.code})
+                              {'\u00A0\u00A0'.repeat(opt.depth)}
+                              {opt.depth === 0
+                                ? `📁 [Category] ${opt.name} (${opt.code})`
+                                : opt.depth === 1
+                                  ? `└── 📂 [Subcategory] ${opt.name} (${opt.code})`
+                                  : `└── 📄 [Subcategory · L${opt.depth}] ${opt.name} (${opt.code})`}
                             </option>
                           ));
                         })()}
                       </select>
                     </div>
 
-                    {/* 2. Brand */}
                     {/* 2. Brand (Optional) */}
                     <div className="space-y-1">
                       <label className="font-bold text-brand-text-primary">
@@ -4130,7 +4153,7 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                 </div>
               )}
 
-              {/* 7. CATEGORY FORM */}
+              {/* 7. CATEGORY / SUBCATEGORY FORM */}
               {(module === 'categories' || module === 'masters/categories') && (
                 <div className="space-y-6 text-xs">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -4147,36 +4170,74 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                       {formErrors.catCompanyId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catCompanyId}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label htmlFor="code" className="font-bold text-brand-text-primary">Category Code <span className="text-red-500">*</span></label>
-                      <input id="code" type="text" value={formCode} readOnly disabled={true} title="Code is auto-generated and cannot be changed manually." className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`} placeholder="CAT-001" />
+                      <label htmlFor="code" className="font-bold text-brand-text-primary">
+                        {catParentId ? 'Subcategory Code' : 'Category Code'} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="code"
+                        type="text"
+                        value={formCode}
+                        readOnly
+                        disabled={true}
+                        title="Code is auto-generated and cannot be changed manually."
+                        className={`w-full p-2 border rounded font-mono font-bold bg-gray-100/80 text-brand-text-primary cursor-not-allowed ${formErrors.code ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
+                        placeholder={catParentId ? 'SUBCAT-001' : 'CAT-001'}
+                      />
                       {formErrors.code && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.code}</p>}
                     </div>
                     <div className="space-y-1">
-                      <label htmlFor="catName" className="font-bold text-brand-text-primary">Category Name <span className="text-red-500">*</span></label>
+                      <label htmlFor="catName" className="font-bold text-brand-text-primary">
+                        {catParentId ? 'Subcategory Name' : 'Category Name'} <span className="text-red-500">*</span>
+                      </label>
                       <input
                         id="catName"
                         type="text"
                         value={catName}
                         onChange={e => { setCatName(e.target.value); setFormErrors(p => ({ ...p, catName: '' })); }}
                         className={`w-full p-2 border rounded ${formErrors.catName ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
-                        placeholder="Beverages or Carbonated Drinks"
+                        placeholder={catParentId ? 'Mobile, Soft Drinks, Biscuits' : 'Beverages, Electronics, Bakery'}
                       />
                       {formErrors.catName && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catName}</p>}
                     </div>
                   </div>
 
-                  {/* Classification Hierarchy Level: Root vs Subcategory */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-amber-50/30 p-4 rounded-lg border border-amber-200/60">
+                  {/* Classification Hierarchy Level: Root Category vs Subcategory */}
+                  <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border ${
+                    catParentId ? 'bg-blue-50/40 border-blue-200' : 'bg-amber-50/30 border-amber-200/60'
+                  }`}>
                     <div className="space-y-1 md:col-span-2">
                       <label className="font-bold text-brand-text-primary flex items-center justify-between">
                         <span>Parent Category (Optional)</span>
-                        <span className="text-[10px] text-brand-text-secondary font-normal">
-                          {catParentId ? 'Child Category' : 'Top-Level Root Category'}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                          catParentId ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}>
+                          {catParentId ? 'Child Subcategory' : 'Top-Level Root Category'}
                         </span>
                       </label>
                       <select
                         value={catParentId}
-                        onChange={e => { setCatParentId(e.target.value); setFormErrors(p => ({ ...p, catParentId: '' })); }}
+                        onChange={e => {
+                          const newParentId = e.target.value;
+                          setCatParentId(newParentId);
+                          setFormErrors(p => ({ ...p, catParentId: '' }));
+
+                          // Only adjust auto-generated code prefix for newly created records if not customized
+                          if (mode === 'create' && (/^CAT-\d+$/i.test(formCode) || /^SUBCAT-\d+$/i.test(formCode))) {
+                            const prefix = newParentId ? 'SUBCAT' : 'CAT';
+                            const existingCodes = new Set(
+                              dbCategories.map(item => String(item.code || '').toUpperCase().trim())
+                            );
+                            let counter = 1;
+                            while (counter < 10000) {
+                              const candidate = `${prefix}-${String(counter).padStart(3, '0')}`;
+                              if (!existingCodes.has(candidate)) {
+                                setFormCode(candidate);
+                                break;
+                              }
+                              counter++;
+                            }
+                          }
+                        }}
                         className={`w-full p-2 border rounded bg-white font-medium ${formErrors.catParentId ? 'border-red-500 bg-red-50/30' : 'border-brand-border'}`}
                       >
                         <option value="">-- None / Top-Level (Root Category) --</option>
@@ -4211,14 +4272,19 @@ export default function MasterDataModule({ module, onTriggerToast }: MasterDataM
                           roots.forEach(r => traverse(r, 0));
                           return options.map(opt => (
                             <option key={opt.id} value={opt.id}>
-                              {'\u00A0\u00A0'.repeat(opt.depth)}{opt.depth > 0 ? '└─ ' : ''}{opt.name} ({opt.code})
+                              {'\u00A0\u00A0'.repeat(opt.depth)}
+                              {opt.depth === 0
+                                ? `📁 [Category] ${opt.name} (${opt.code})`
+                                : opt.depth === 1
+                                  ? `└── 📂 [Subcategory] ${opt.name} (${opt.code})`
+                                  : `└── 📄 [Subcategory · L${opt.depth}] ${opt.name} (${opt.code})`}
                             </option>
                           ));
                         })()}
                       </select>
                       {formErrors.catParentId && <p className="text-[11px] text-red-500 font-semibold mt-0.5">{formErrors.catParentId}</p>}
                       <p className="text-[11px] text-brand-text-secondary mt-0.5">
-                        Leave as &quot;None / Top-Level&quot; to create a primary Root Category. Select any existing Category to nest under it at arbitrary depth.
+                        Leave as &quot;None / Top-Level&quot; to create a primary Category. Select any existing Category to configure as a nested Subcategory.
                       </p>
                     </div>
                   </div>

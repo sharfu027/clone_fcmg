@@ -51,6 +51,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired()
             .HasDefaultValue(30);
 
+        builder.Property(c => c.Latitude);
+        builder.Property(c => c.Longitude);
+
         builder.OwnsOne(c => c.Address, address =>
         {
             address.Property(a => a.AddressLine1).HasColumnName("address_line1").HasMaxLength(150).IsRequired();

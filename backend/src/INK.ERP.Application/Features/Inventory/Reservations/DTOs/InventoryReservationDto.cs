@@ -20,5 +20,6 @@ public record InventoryReservationDto(
     DateTime ReservedAtUtc,
     DateTime? ReleasedAtUtc,
     DateTime? ExpiresAtUtc,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    string? BatchNumber = null
 );

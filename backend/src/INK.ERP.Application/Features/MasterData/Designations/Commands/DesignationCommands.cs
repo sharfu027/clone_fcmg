@@ -166,15 +166,18 @@ public record DeleteDesignationCommand(Guid Id) : IRequest<Result<Unit>>;
 public class DeleteDesignationCommandHandler : IRequestHandler<DeleteDesignationCommand, Result<Unit>>
 {
     private readonly IDesignationRepository _designationRepository;
+    private readonly IEmployeeRepository _employeeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public DeleteDesignationCommandHandler(
         IDesignationRepository designationRepository,
+        IEmployeeRepository employeeRepository,
         IUnitOfWork unitOfWork,
         ICompanyAccessResolver companyAccessResolver)
     {
         _designationRepository = designationRepository;
+        _employeeRepository = employeeRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
     }
@@ -191,6 +194,17 @@ public class DeleteDesignationCommandHandler : IRequestHandler<DeleteDesignation
         if (!accessResult.IsSuccess)
         {
             return Result<Unit>.Failure(accessResult.Error);
+        }
+
+        // Prevent deletion if designation is currently assigned to one or more employees
+        var assignedEmployees = await _employeeRepository.FindAsync(e => e.DesignationId == request.Id, cancellationToken);
+        if (assignedEmployees.Count > 0)
+        {
+            var count = assignedEmployees.Count;
+            var employeeWord = count == 1 ? "employee" : "employees";
+            return Result<Unit>.Failure(Error.Conflict(
+                "Designation.InUse",
+                $"Cannot delete designation '{designation.Title}'. It is currently assigned to {count} {employeeWord}."));
         }
 
         await _designationRepository.DeleteAsync(designation, cancellationToken);

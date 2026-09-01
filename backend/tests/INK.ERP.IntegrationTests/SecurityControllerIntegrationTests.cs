@@ -6,13 +6,15 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
+using INK.ERP.IntegrationTests.Infrastructure;
+
 namespace INK.ERP.IntegrationTests;
 
-public class SecurityControllerIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class SecurityControllerIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
-    public SecurityControllerIntegrationTests(WebApplicationFactory<Program> factory)
+    public SecurityControllerIntegrationTests(CustomWebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
     }

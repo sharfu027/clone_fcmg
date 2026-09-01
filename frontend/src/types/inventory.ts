@@ -31,11 +31,34 @@ export interface InventoryBalance {
   sku?: string;
   baseUomId: string;
   baseUomName?: string;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
   onHandQuantity: number;
   reservedQuantity: number;
   allocatedQuantity: number;
   availableQuantity: number;
   lastMovementAtUtc?: string | null;
+  createdAtUtc: string;
+  lastModifiedAtUtc?: string | null;
+  minStockQuantity?: number;
+  totalLocationAvailableQuantity?: number;
+}
+
+export interface InventoryStockPolicy {
+  id: string;
+  companyId: string;
+  companyName?: string;
+  inventoryLocationId: string;
+  inventoryLocationName?: string;
+  inventoryLocationCode?: string;
+  productId: string;
+  productName?: string;
+  productCode?: string;
+  sku?: string;
+  minStockQuantity: number;
+  reorderPoint?: number | null;
+  reorderQuantity?: number | null;
+  isActive: boolean;
   createdAtUtc: string;
   lastModifiedAtUtc?: string | null;
 }
@@ -221,6 +244,7 @@ export interface InventoryReservation {
   releasedAtUtc?: string | null;
   expiresAtUtc?: string | null;
   createdAtUtc: string;
+  batchNumber?: string | null;
 }
 
 export type InventoryReservationDto = InventoryReservation;
@@ -233,6 +257,7 @@ export interface ReserveStockRequest {
   salesOrderId?: string | null;
   salesOrderLineId?: string | null;
   expiresAtUtc?: string | null;
+  batchNumber?: string | null;
 }
 
 export interface InventoryAvailabilityDto {

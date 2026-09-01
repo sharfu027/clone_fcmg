@@ -8,6 +8,7 @@ using Asp.Versioning;
 using Hangfire;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -305,27 +306,48 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 // 11. Map Endpoints
 app.MapControllers();
 
-// 10.5. Seed Database
-using (var scope = app.Services.CreateScope())
+// 10.5. Seed & Migrate Database
+lock (Program.StartupDbLock)
 {
-    var services = scope.ServiceProvider;
-    try
+    using (var scope = app.Services.CreateScope())
     {
-        var context = services.GetRequiredService<INK.ERP.Persistence.AppDbContext>();
-        var userManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<INK.ERP.Domain.Common.ApplicationUser>>();
-        var roleManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.RoleManager<INK.ERP.Domain.Common.ApplicationRole>>();
-        var logger = services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
-        
-        // Seed IAM data
-        INK.ERP.Infrastructure.Persistence.Seeding.IamDbSeeder.SeedAsync(context, userManager, roleManager, logger).GetAwaiter().GetResult();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during database migration or seeding.");
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<INK.ERP.Persistence.AppDbContext>();
+            var userManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<INK.ERP.Domain.Common.ApplicationUser>>();
+            var roleManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.RoleManager<INK.ERP.Domain.Common.ApplicationRole>>();
+            var logger = services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
+            
+            if (app.Environment.IsEnvironment("Testing"))
+            {
+                var config = services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+                string? connStr = config.GetConnectionString("Database") ?? config["Database:ConnectionString"];
+                if (string.IsNullOrWhiteSpace(connStr) || !connStr.Contains("ink_fmcg_erp_test", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("[CRITICAL DATABASE SAFETY GUARD TRIGGERED] Automated tests must connect exclusively to 'ink_fmcg_erp_test'.");
+                }
+                context.Database.Migrate();
+            }
+
+            // Seed IAM data
+            INK.ERP.Infrastructure.Persistence.Seeding.IamDbSeeder.SeedAsync(context, userManager, roleManager, logger).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
+            logger.LogError(ex, "An error occurred during database migration or seeding.");
+            if (app.Environment.IsEnvironment("Testing"))
+            {
+                throw;
+            }
+        }
     }
 }
 
 app.Run();
 
-public partial class Program { }
+public partial class Program
+{
+    public static readonly object StartupDbLock = new();
+}
