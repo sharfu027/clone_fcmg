@@ -23,7 +23,7 @@ import {
   WarehouseBin,
   ReceivingOperation,
   PutawayTask,
-  StockTransfer,
+  WarehouseStockTransfer,
   PickList,
   PackingSlip,
   DispatchOrder,
@@ -64,7 +64,7 @@ export default function WarehouseModule({ onTriggerToast }: WarehouseModuleProps
   ]);
 
   // Mock Stock Transfers
-  const [transfers, setTransfers] = useState<StockTransfer[]>([
+  const [transfers, setTransfers] = useState<WarehouseStockTransfer[]>([
     { id: 'TRF-101', code: 'TRF-2026-042', fromWarehouse: 'Delhi Central Depot', toWarehouse: 'Gurgaon Express Hub', transferDate: '2026-07-23', itemsCount: 300, status: 'In Transit' }
   ]);
 

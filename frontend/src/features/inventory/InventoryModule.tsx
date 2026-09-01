@@ -2189,7 +2189,6 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                     placeholder="Search active reservations..."
                     value={searchQuery}
                     onChange={setSearchQuery}
-                    onClear={() => setSearchQuery('')}
                     className="w-56 text-xs"
                   />
 
@@ -2414,7 +2413,6 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                     placeholder="Search history records..."
                     value={searchQuery}
                     onChange={setSearchQuery}
-                    onClear={() => setSearchQuery('')}
                     className="w-56 text-xs"
                   />
 
@@ -2635,30 +2633,30 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
             <StatCard
               title="Total Transfers"
               value={transfers.length}
-              icon={ArrowLeftRight}
-              color="indigo"
-              description="Lifetime transfer requests"
+              badgeText="Transfers"
+              badgeVariant="primary"
+              subLabel="Lifetime transfer requests"
             />
             <StatCard
               title="Action Required"
               value={transfers.filter(t => t.status === 'Requested' || t.status === 'Approved').length}
-              icon={Clock}
-              color="amber"
-              description="Awaiting approval or dispatch"
+              badgeText="Pending"
+              badgeVariant="warning"
+              subLabel="Awaiting approval or dispatch"
             />
             <StatCard
               title="In Transit"
               value={transfers.filter(t => t.status === 'InTransit' || t.status === 'Dispatched').length}
-              icon={Truck}
-              color="blue"
-              description="Stock dispatched, en route"
+              badgeText="In Transit"
+              badgeVariant="info"
+              subLabel="Stock dispatched, en route"
             />
             <StatCard
               title="Completed"
               value={transfers.filter(t => t.status === 'Completed').length}
-              icon={CheckCircle2}
-              color="emerald"
-              description="Fully received at destination"
+              badgeText="Completed"
+              badgeVariant="success"
+              subLabel="Fully received at destination"
             />
           </div>
 
@@ -2687,8 +2685,14 @@ export default function InventoryModule({ onTriggerToast }: InventoryModuleProps
                   icon={Truck}
                   title="No Stock Transfers Found"
                   description="There are no active or historical stock transfer requests between inventory locations."
-                  actionLabel="Create Transfer Request"
-                  onAction={() => setIsCreateTransferModalOpen(true)}
+                  action={
+                    <button
+                      onClick={() => setIsCreateTransferModalOpen(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition"
+                    >
+                      Create Transfer Request
+                    </button>
+                  }
                 />
               </div>
             ) : (

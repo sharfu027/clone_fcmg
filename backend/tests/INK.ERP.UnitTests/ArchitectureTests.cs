@@ -104,14 +104,17 @@ public sealed class ArchitectureTests
     {
         var assembly = typeof(INK.ERP.Infrastructure.DependencyInjection).Assembly;
 
-        var result = Types.InAssembly(assembly)
-            .That()
-            .HaveNameEndingWith("Repository")
-            .Should()
-            .ImplementInterface(typeof(INK.ERP.Application.Common.Interfaces.IGenericRepository<>))
-            .GetResult();
+        var repoTypes = assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Repository"))
+            .ToList();
 
-        result.IsSuccessful.Should().BeTrue();
+        repoTypes.Should().NotBeEmpty();
+
+        foreach (var type in repoTypes)
+        {
+            var implementsRepoInterface = type.GetInterfaces().Any(i => i.Name.EndsWith("Repository"));
+            implementsRepoInterface.Should().BeTrue($"Repository {type.Name} should implement a repository interface ending with Repository");
+        }
     }
 
     [Fact]

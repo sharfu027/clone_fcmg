@@ -85,8 +85,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
   const getNextAutoAdminCode = async (): Promise<string> => {
     try {
-      const res = await adminService.getUsers({ pageNumber: 1, pageSize: 100 });
-      const apiList = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : [];
+      const res = await adminService.getUsers();
+      const apiList = Array.isArray(res) ? res : [];
       const combinedList = [...apiList, ...existingUsers];
 
       const savedCodesRaw = localStorage.getItem('erp_admin_codes');

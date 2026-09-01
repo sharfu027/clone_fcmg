@@ -685,3 +685,60 @@ export interface ConfirmDispatchRequest {
   notes?: string | null;
 }
 
+export interface StockReservation {
+  id: string;
+  companyId: string;
+  inventoryLocationId: string;
+  productId: string;
+  salesOrderId?: string | null;
+  salesOrderLineId?: string | null;
+  reservedQuantity: number;
+  status: string;
+  reservedAtUtc: string;
+  releasedAtUtc?: string | null;
+  notes?: string | null;
+}
+
+export interface InventoryTransaction {
+  id: string;
+  companyId: string;
+  inventoryLocationId: string;
+  inventoryLocationName?: string;
+  productId: string;
+  productName?: string;
+  productCode?: string;
+  transactionType: string;
+  quantity: number;
+  batchNumber?: string | null;
+  referenceDocumentType?: string | null;
+  referenceDocumentId?: string | null;
+  referenceDocumentNumber?: string | null;
+  notes?: string | null;
+  performedByEmployeeId?: string | null;
+  createdAtUtc: string;
+}
+
+export interface PostInventoryTransactionRequest {
+  companyId: string;
+  inventoryLocationId: string;
+  productId: string;
+  transactionType: string;
+  quantity: number;
+  referenceDocumentType?: string | null;
+  referenceDocumentId?: string | null;
+  referenceDocumentNumber?: string | null;
+  batchNumber?: string | null;
+  performedByEmployeeId?: string | null;
+  notes?: string | null;
+}
+
+export interface InventoryReconciliationDto {
+  locationId: string;
+  productId: string;
+  systemQuantity: number;
+  physicalQuantity: number;
+  varianceQuantity: number;
+  batchNumber?: string | null;
+}
+
+

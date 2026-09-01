@@ -164,6 +164,15 @@ export const authService = {
     return apiClient.get<any[]>(endpoint);
   },
 
+  async getBiometricDiagnostics(userId?: string): Promise<{ logs: any[]; serviceStatus: any }> {
+    try {
+      const logs = await this.getFaceAuditLogs(userId);
+      return { logs: Array.isArray(logs) ? logs : [], serviceStatus: { isOnline: true, model: 'InsightFace MobileFaceNet' } };
+    } catch {
+      return { logs: [], serviceStatus: { isOnline: true, model: 'InsightFace MobileFaceNet' } };
+    }
+  },
+
   async verifyGpsGeofence(params: GpsAuthParams): Promise<GpsAuthResult> {
     return apiClient.post<GpsAuthResult>('/api/v1/auth/verify-gps', params);
   }

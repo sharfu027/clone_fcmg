@@ -37,8 +37,8 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
             return Result.Failure<UserDto>(IamErrors.User.NotFound(request.UserId));
         }
 
-        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
-        var isSubAdmin = _currentUserService.Roles.Contains("Administrator");
+        var isSuperAdmin = _currentUserService.Roles.Any(r => r.Contains("Super Admin", StringComparison.OrdinalIgnoreCase) || r.Contains("Super Administrator", StringComparison.OrdinalIgnoreCase));
+        var isSubAdmin = _currentUserService.Roles.Any(r => r.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
         var currentUserIdGuid = Guid.TryParse(_currentUserService.UserId, out var parsedId) ? parsedId : Guid.Empty;
 
         var targetUserRoles = await userRoleRepo.FindAsync(ur => ur.UserId == user.Id && !ur.IsDeleted, cancellationToken);
@@ -50,7 +50,7 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
         // Sub-Admins CANNOT view Super Admins or OTHER Admins (unless it's their own account)
         if (isSubAdmin && !isSuperAdmin && user.Id != currentUserIdGuid)
         {
-            if (targetRoleNames.Contains("Super Administrator") || targetRoleNames.Contains("Administrator"))
+            if (targetRoleNames.Any(r => r.Contains("Super Admin", StringComparison.OrdinalIgnoreCase) || r.Contains("Super Administrator", StringComparison.OrdinalIgnoreCase) || r.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || r.Equals("Admin", StringComparison.OrdinalIgnoreCase) || r.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase)))
             {
                 return Result.Failure<UserDto>(IamErrors.User.NotFound(request.UserId));
             }
@@ -59,12 +59,15 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
         var assignmentRepo = _unitOfWork.Repository<AdminCompanyAssignment>();
         var companyRepo = _unitOfWork.Repository<INK.ERP.Domain.Entities.MasterData.Company>();
 
-        var assignmentList = await assignmentRepo.FindAsync(a => a.AdminUserId == user.Id && a.IsActive, cancellationToken);
-        var activeAssignment = assignmentList.FirstOrDefault();
         INK.ERP.Domain.Entities.MasterData.Company? company = null;
-        if (activeAssignment != null)
+        if (assignmentRepo != null && companyRepo != null)
         {
-            company = await companyRepo.GetByIdAsync(activeAssignment.CompanyId, cancellationToken);
+            var assignmentList = await assignmentRepo.FindAsync(a => a.AdminUserId == user.Id && a.IsActive, cancellationToken);
+            var activeAssignment = assignmentList?.FirstOrDefault();
+            if (activeAssignment != null)
+            {
+                company = await companyRepo.GetByIdAsync(activeAssignment.CompanyId, cancellationToken);
+            }
         }
 
         var dto = new UserDto(

@@ -27,7 +27,8 @@ import {
   GitFork,
   Building2,
   Mail,
-  UserCheck
+  UserCheck,
+  CreditCard
 } from 'lucide-react';
 
 import { 

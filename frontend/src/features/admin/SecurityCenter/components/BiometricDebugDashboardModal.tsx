@@ -100,7 +100,7 @@ export const BiometricDebugDashboardModal: React.FC<BiometricDebugDashboardModal
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
           <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-1">
             <span>Recent Forensic Verification Telemetry Stream ({logs.length} entries)</span>
-            <button onClick={fetchDiagnostics} className="hover:text-emerald-400 flex items-center gap-1 cursor-pointer">
+            <button onClick={loadData} className="hover:text-emerald-400 flex items-center gap-1 cursor-pointer">
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} /> Refresh
             </button>
           </div>

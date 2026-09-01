@@ -39,9 +39,11 @@ import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import AssignRoleModal from './AssignRoleModal';
 import AssignCompanyModal from './AssignCompanyModal';
+import { AdminTeamInspectorModal } from './AdminTeamInspectorModal';
 import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../SecurityCenter/components/EmployeeSecurityDetailsDrawer';
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
+import { LocationEnrollmentModal } from '../SecurityCenter/components/LocationEnrollmentModal';
 import { getUserAccessSettings } from '../../../services/userPermissionsService';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -68,6 +70,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
   // Face biometrics status cache per user ID
   const [faceStatusMap, setFaceStatusMap] = useState<Record<string, { status: string; version?: number }>>({});
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   // Subordinates data map for expanded admins
   const [subordinatesMap, setSubordinatesMap] = useState<Record<string, { loading: boolean; error?: string; data?: any }>>({});

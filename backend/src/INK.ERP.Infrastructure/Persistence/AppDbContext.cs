@@ -203,6 +203,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<SecurityAuditLog> SecurityAuditLogs => Set<SecurityAuditLog>();
 
     // Enterprise Security DB Sets
+    public DbSet<TemporaryAuthorizationPin> TemporaryAuthorizationPins => Set<TemporaryAuthorizationPin>();
     public DbSet<FaceProfile> FaceProfiles => Set<FaceProfile>();
     public DbSet<FaceTemplate> FaceTemplates => Set<FaceTemplate>();
     public DbSet<FaceVerificationLog> FaceVerificationLogs => Set<FaceVerificationLog>();
@@ -211,6 +212,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<UserSecurityPolicy> UserSecurityPolicies => Set<UserSecurityPolicy>();
     public DbSet<RegisteredDevice> RegisteredDevices => Set<RegisteredDevice>();
     public DbSet<SecurityIncident> SecurityIncidents => Set<SecurityIncident>();
+
+    // Sales Invoicing & Delivery DB Sets
+    public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
+    public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
+    public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();
+    public DbSet<DeliveryTracking> DeliveryTrackings => Set<DeliveryTracking>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

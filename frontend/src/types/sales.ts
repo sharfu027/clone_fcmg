@@ -120,3 +120,129 @@ export interface PriceResolutionResult {
   customerName?: string | null;
   productName?: string | null;
 }
+
+export type SalesInvoiceStatus = 'Draft' | 'Issued' | 'Paid' | 'PartiallyPaid' | 'Cancelled' | string;
+export type EInvoiceStatus = 'NotGenerated' | 'Pending' | 'Generated' | 'Failed' | 'Cancelled' | string;
+export type PaymentStatus = 'Unpaid' | 'PartiallyPaid' | 'Paid' | 'Overdue' | string;
+export type DeliveryStatus = 'Dispatched' | 'InTransit' | 'OutForDelivery' | 'Delivered' | 'Failed' | string;
+
+export interface SalesInvoiceItem {
+  id: string;
+  salesInvoiceId: string;
+  productId: string;
+  productName: string;
+  productCode: string;
+  sku?: string | null;
+  unitOfMeasure?: string | null;
+  quantity: number;
+  unitPrice: number;
+  discountAmount: number;
+  taxAmount: number;
+  lineTotal: number;
+  batchNumber?: string | null;
+}
+
+export interface InvoicePayment {
+  id: string;
+  salesInvoiceId: string;
+  paymentNumber: string;
+  paymentDateUtc: string;
+  amount: number;
+  paymentMode: string;
+  referenceNumber?: string | null;
+  notes?: string | null;
+  receivedByEmployeeId?: string | null;
+  receivedByEmployeeName?: string | null;
+}
+
+export interface SalesInvoice {
+  id: string;
+  companyId: string;
+  companyName: string;
+  customerId: string;
+  customerName: string;
+  customerCode: string;
+  salesOrderId: string;
+  salesOrderNumber: string;
+  dispatchId?: string | null;
+  invoiceNumber: string;
+  status: SalesInvoiceStatus;
+  invoiceDateUtc: string;
+  dueDateUtc: string;
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  paymentStatus: PaymentStatus;
+  paymentTerms?: string | null;
+  notes?: string | null;
+  eInvoiceStatus: EInvoiceStatus;
+  irn?: string | null;
+  ackNo?: string | null;
+  ackDateUtc?: string | null;
+  qrCodeData?: string | null;
+  signedInvoiceData?: string | null;
+  eInvoiceFailureReason?: string | null;
+  createdAtUtc: string;
+  lastModifiedAtUtc?: string | null;
+  items: SalesInvoiceItem[];
+  payments: InvoicePayment[];
+}
+
+export interface DeliveryTracking {
+  id: string;
+  companyId: string;
+  companyName: string;
+  salesOrderId: string;
+  salesOrderNumber: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  dispatchId?: string | null;
+  trackingNumber: string;
+  status: DeliveryStatus;
+  carrierName?: string | null;
+  vehicleNumber?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  estimatedDeliveryUtc?: string | null;
+  actualDeliveryUtc?: string | null;
+  receivedByPerson?: string | null;
+  signatureProofUrl?: string | null;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
+  notes?: string | null;
+  createdAtUtc: string;
+  lastModifiedAtUtc?: string | null;
+}
+
+export interface TemporaryPin {
+  id: string;
+  companyId: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  purpose: string;
+  generatedByUserName: string;
+  expiresAtUtc: string;
+  isUsed: boolean;
+  usedAtUtc?: string | null;
+  createdAtUtc: string;
+  plainPin?: string | null;
+}
+
+export interface ValidateTemporaryPinResult {
+  isValid: boolean;
+  message: string;
+  pinId?: string | null;
+  validatedAtUtc?: string | null;
+}
+
+export interface ValidateLoginLocationResult {
+  isAllowed: boolean;
+  distanceMeters: number;
+  allowedRadiusMeters: number;
+  message: string;
+  requiresPinOverride: boolean;
+  targetLocationName?: string | null;
+}

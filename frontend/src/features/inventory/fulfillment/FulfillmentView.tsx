@@ -323,19 +323,19 @@ export default function FulfillmentView({ onTriggerToast }: FulfillmentViewProps
       case 'InProgress':
       case 'Picking':
       case 'Packing':
-        return <Badge variant="indigo">{status === 'InProgress' ? 'In Progress' : status}</Badge>;
+        return <Badge variant="primary">{status === 'InProgress' ? 'In Progress' : status}</Badge>;
       case 'Completed':
       case 'Packed':
       case 'ReadyForDispatch':
         return <Badge variant="success">{status === 'ReadyForDispatch' ? 'Ready for Dispatch' : status}</Badge>;
       case 'Dispatched':
-        return <Badge variant="purple">{status}</Badge>;
+        return <Badge variant="info">{status}</Badge>;
       case 'PartiallyPicked':
         return <Badge variant="warning">Partially Picked</Badge>;
       case 'Cancelled':
         return <Badge variant="danger">{status}</Badge>;
       default:
-        return <Badge variant="default">{status}</Badge>;
+        return <Badge variant="neutral">{status}</Badge>;
     }
   };
 
@@ -415,7 +415,7 @@ export default function FulfillmentView({ onTriggerToast }: FulfillmentViewProps
           <SearchInput
             placeholder="Search orders, pick tasks, products..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(val) => setSearchTerm(val)}
           />
         </div>
         <div className="text-xs text-slate-500 font-medium">

@@ -52,7 +52,7 @@ export interface PutawayTask {
   status: 'Pending' | 'In Progress' | 'Completed';
 }
 
-export interface StockTransfer {
+export interface WarehouseStockTransfer {
   id: string;
   code: string;
   fromWarehouse: string;

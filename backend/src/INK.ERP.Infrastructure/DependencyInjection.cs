@@ -331,6 +331,9 @@ public static class DependencyInjection
         services.AddScoped<IPricingResolutionService, PricingResolutionService>();
         services.AddScoped<IDiscountCalculationService, DiscountCalculationService>();
         services.AddScoped<ISfaRepository, SfaRepository>();
+        services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
+        services.AddScoped<IDeliveryTrackingRepository, DeliveryTrackingRepository>();
+        services.AddScoped<ITemporaryPinRepository, TemporaryPinRepository>();
 
         // 9. Register Current User Abstraction & Context Accessor
         services.AddHttpContextAccessor();

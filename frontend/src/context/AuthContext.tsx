@@ -48,7 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : access.permissions) as UserPermission[];
 
           try {
-            const devRes = await authService.devLogin(parsed.email || 'admin@inkerp.com', resolvedRole, resolvedPermissions);
+            const permissionCodes = resolvedPermissions.map(p => typeof p === 'string' ? p : (p as any).code || (p as any).id);
+            const devRes = await authService.devLogin(parsed.email || 'admin@inkerp.com', resolvedRole, permissionCodes);
             if (devRes.accessToken) {
               const updatedUser = {
                 ...parsed,
@@ -168,7 +169,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       : access.permissions) as UserPermission[];
 
     try {
-      const devRes = await authService.devLogin(userEmail, resolvedRole, resolvedPermissions);
+      const permissionCodes = resolvedPermissions.map(p => typeof p === 'string' ? p : (p as any).code || (p as any).id);
+      const devRes = await authService.devLogin(userEmail, resolvedRole, permissionCodes);
       if (devRes.accessToken) {
         const fullUser: UserProfile = {
           id: devRes.user.id || actualId || 'USR-1001',

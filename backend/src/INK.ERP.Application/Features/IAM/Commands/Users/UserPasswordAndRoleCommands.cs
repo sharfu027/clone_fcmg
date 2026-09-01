@@ -166,20 +166,21 @@ public sealed class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand
         var user = await userRepo.GetByIdAsync(request.UserId, cancellationToken);
         var role = await roleRepo.GetByIdAsync(request.RoleId, cancellationToken);
 
-        // Security Protection: Only one system Super Admin account is permitted
         var targetRoleName = role?.Name ?? role?.Code ?? string.Empty;
+        var isSuperAdmin = _currentUserService.Roles.Any(r => r.Equals("Super Admin", StringComparison.OrdinalIgnoreCase) || r.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase));
+
+        if (!isSuperAdmin && (targetRoleName.Contains("Super Admin", StringComparison.OrdinalIgnoreCase) || targetRoleName.Contains("Super Administrator", StringComparison.OrdinalIgnoreCase) || targetRoleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || targetRoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result.Failure<Unit>(Error.Unauthorized("IAM.PrivilegeEscalation", "Only Super Admins can create or assign administrative roles."));
+        }
+
+        // Security Protection: Only one system Super Admin account is permitted
         if (targetRoleName.Equals("Super Administrator", StringComparison.OrdinalIgnoreCase) ||
             targetRoleName.Equals("Super Admin", StringComparison.OrdinalIgnoreCase) ||
             targetRoleName.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase) ||
             targetRoleName.Equals("SUPERADMIN", StringComparison.OrdinalIgnoreCase))
         {
             return Result.Failure<Unit>(Error.Validation("IAM.SuperAdminSingletonRestriction", "Only one system Super Admin account is permitted. Additional Super Admin accounts cannot be created or assigned."));
-        }
-
-        var isSuperAdmin = _currentUserService.Roles.Contains("Super Administrator");
-        if (!isSuperAdmin && (targetRoleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || targetRoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
-        {
-            return Result.Failure<Unit>(Error.Unauthorized("IAM.PrivilegeEscalation", "Only Super Admins can create or assign administrative roles."));
         }
 
         var userRole = new UserRole

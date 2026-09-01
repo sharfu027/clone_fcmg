@@ -29,6 +29,7 @@ import { CustomerDto, ProductDto } from '../../types/masterData';
 import { sfaService } from '../../services/sfaService';
 import { fetchCustomers, fetchProducts } from '../../services/masterDataService';
 import { salesService } from '../../services/salesService';
+import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../../components/ui/Badge';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { StatCard } from '../../components/ui/StatCard';
@@ -40,6 +41,7 @@ interface SfaModuleProps {
 }
 
 export default function SfaModule({ onTriggerToast }: SfaModuleProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'reps' | 'beats' | 'visits' | 'orders' | 'assignments'
   >('dashboard');
@@ -186,10 +188,14 @@ export default function SfaModule({ onTriggerToast }: SfaModuleProps) {
       ctx.drawImage(videoRef.current, 0, 0, 320, 240);
       const base64 = canvas.toDataURL('image/jpeg');
       try {
-        const res = await salesService.verifyFaceBiometrics(base64);
-        if (res.isMatch) {
+        const res = await salesService.verifyFaceBiometrics({
+          userId: (user as any)?.id || 'sales-rep',
+          imageBase64: base64
+        });
+        if (res.isMatch || res.success) {
           setCheckInFaceVerified(true);
-          onTriggerToast('success', 'Biometrics Verified', `Face Match: ${(res.confidence * 100).toFixed(1)}%`);
+          const score = res.confidence ?? res.score ?? 1;
+          onTriggerToast('success', 'Biometrics Verified', `Face Match: ${(score * 100).toFixed(1)}%`);
         } else {
           onTriggerToast('error', 'Verification Failed', res.message || 'Face did not match enrolled template.');
         }
@@ -363,7 +369,11 @@ export default function SfaModule({ onTriggerToast }: SfaModuleProps) {
     }
 
     try {
-      const res = await salesService.resolvePrice(cust.companyId, orderCustId, prodId);
+      const res = await salesService.resolvePrice({
+        companyId: cust.companyId,
+        customerId: orderCustId,
+        productId: prodId
+      });
       setResolvedPrice(res.resolvedPrice);
     } catch {
       setResolvedPrice(prod?.basePrice ?? 0);
@@ -376,7 +386,11 @@ export default function SfaModule({ onTriggerToast }: SfaModuleProps) {
       const cust = customers.find(c => c.id === custId);
       if (cust) {
         try {
-          const res = await salesService.resolvePrice(cust.companyId, custId, selectedProdId);
+          const res = await salesService.resolvePrice({
+            companyId: cust.companyId,
+            customerId: custId,
+            productId: selectedProdId
+          });
           setResolvedPrice(res.resolvedPrice);
         } catch {
           const prod = products.find(p => p.id === selectedProdId);
@@ -907,7 +921,7 @@ export default function SfaModule({ onTriggerToast }: SfaModuleProps) {
               </div>
               <div>
                 <label className="block font-bold mb-1">Assign Stores</label>
-                <select multiple value={beatCustIds} onChange={e => setBeatCustIds(Array.from(e.target.selectedOptions, o => o.value))} className="w-full p-2 border rounded border-brand-border h-24">
+                <select multiple value={beatCustIds} onChange={e => setBeatCustIds(Array.from(e.target.selectedOptions, (o: HTMLOptionElement) => o.value))} className="w-full p-2 border rounded border-brand-border h-24">
                   {customers.map(c => <option key={c.id} value={c.id}>{c.legalName}</option>)}
                 </select>
               </div>

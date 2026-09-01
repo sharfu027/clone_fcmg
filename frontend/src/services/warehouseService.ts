@@ -4,7 +4,7 @@ import {
   WarehouseBin,
   ReceivingOperation,
   PutawayTask,
-  StockTransfer,
+  WarehouseStockTransfer,
   PickList,
   PackingSlip,
   DispatchOrder,
@@ -31,17 +31,22 @@ export const warehouseService = {
     return apiClient.get<ReceivingOperation[]>('/api/v1/warehouse/receiving');
   },
 
+  // Stock Transfers
+  async getTransfers(): Promise<WarehouseStockTransfer[]> {
+    return apiClient.get<WarehouseStockTransfer[]>('/api/v1/warehouse/transfers');
+  },
+
   async getPutawayTasks(): Promise<PutawayTask[]> {
     return apiClient.get<PutawayTask[]>('/api/v1/warehouse/putaway');
   },
 
   // Internal Transfers
-  async getStockTransfers(): Promise<StockTransfer[]> {
-    return apiClient.get<StockTransfer[]>('/api/v1/warehouse/transfers');
+  async getStockTransfers(): Promise<WarehouseStockTransfer[]> {
+    return apiClient.get<WarehouseStockTransfer[]>('/api/v1/warehouse/transfers');
   },
 
-  async createStockTransfer(payload: Partial<StockTransfer>): Promise<StockTransfer> {
-    return apiClient.post<StockTransfer>('/api/v1/warehouse/transfers', payload);
+  async createStockTransfer(payload: Partial<WarehouseStockTransfer>): Promise<WarehouseStockTransfer> {
+    return apiClient.post<WarehouseStockTransfer>('/api/v1/warehouse/transfers', payload);
   },
 
   // Picking & Packing
