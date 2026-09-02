@@ -44,7 +44,7 @@ interface AuthScreensProps {
 }
 
 export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScreensProps) {
-  const { loginAsUser } = useAuth();
+  const { loginAsUser, restoreSession } = useAuth();
   const [activeScreen, setActiveScreen] = useState<
     | 'login'
     | 'forgot'
@@ -126,21 +126,15 @@ export default function AuthScreens({ onLoginSuccess, onTriggerToast }: AuthScre
 
   const triggerLoginSuccess = async () => {
     try {
+      await restoreSession();
       const data = localStorage.getItem('ink_erp_user_profile') || localStorage.getItem('ink_user_profile');
       const storedUser = data ? JSON.parse(data) : null;
-      const isSuper = email.toLowerCase().includes('superadmin') ||
-                      storedUser?.email?.toLowerCase().includes('superadmin') ||
-                      storedUser?.userName?.toLowerCase().includes('superadmin') ||
-                      storedUser?.username?.toLowerCase().includes('superadmin');
+      const rawRole = storedUser?.roles?.[0] || storedUser?.role || 'Sales Representative';
+      const roleName = rawRole === 'SALES_REP' || rawRole === 'Sales Representative'
+        ? 'Sales Representative'
+        : (rawRole === 'Super Administrator' ? 'Super Admin' : (rawRole === 'Administrator' ? 'Admin' : rawRole));
+      const displayName = storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User');
 
-      const userEmail = email || storedUser?.email || '';
-      const userAccess = getUserAccessSettings(storedUser?.id, userEmail, storedUser?.role || 'Admin');
-      const userRoleSetting = userAccess.roleName;
-
-      const displayName = isSuper ? 'Super Admin' : (storedUser?.displayName || storedUser?.name || (email ? email.split('@')[0] : 'Enterprise User'));
-      const roleName = isSuper ? 'Super Admin' : userRoleSetting;
-
-      await loginAsUser(displayName, roleName, userEmail, storedUser?.id);
       onLoginSuccess(displayName, roleName);
     } catch {
       const isSuper = email.toLowerCase().includes('superadmin');

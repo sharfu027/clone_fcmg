@@ -75,6 +75,13 @@ public class FaceEnrollmentWorkflow : IFaceEnrollmentWorkflow
             return Result.Failure<FaceProfileDto>(new Error("SECURITY.FACE.ENROLLMENT_FAILED", ex.Message, ErrorType.Conflict));
         }
 
+        _logger.LogInformation(
+            "[BUILD_ID: 2026-09-01-RUNTIME-AUDIT-v1] [PRE-SAVE ENROLL] UserId: {UserId} | FaceProfileId: {FaceProfileId} | ActiveVersion: {Version} | Templates: [{Templates}]",
+            profile.UserId,
+            profile.Id,
+            profile.ActiveTemplateVersion,
+            string.Join(", ", profile.Templates.Select(t => $"Id={t.Id}, V={t.Version}, Active={t.IsActive}")));
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var latestTemplate = profile.Templates.OrderByDescending(t => t.Version).FirstOrDefault();

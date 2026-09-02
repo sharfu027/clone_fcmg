@@ -156,11 +156,21 @@ public static class IamDbSeeder
                 ALTER TABLE procurement.purchase_requisition_status_histories 
                 ADD COLUMN IF NOT EXISTS ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text;
 
+                ALTER TABLE iam.face_profiles ADD COLUMN IF NOT EXISTS ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text;
+                ALTER TABLE iam.face_profiles ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
+                ALTER TABLE iam.face_profiles ADD COLUMN IF NOT EXISTS ""IsActive"" boolean NOT NULL DEFAULT TRUE;
+
+                ALTER TABLE iam.face_templates ADD COLUMN IF NOT EXISTS ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text;
+                ALTER TABLE iam.face_templates ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT FALSE;
+                ALTER TABLE iam.face_templates ADD COLUMN IF NOT EXISTS ""IsActive"" boolean NOT NULL DEFAULT TRUE;
+
                 UPDATE procurement.purchase_requisitions SET ""ConcurrencyToken"" = gen_random_uuid()::text WHERE ""ConcurrencyToken"" IS NULL OR ""ConcurrencyToken"" = '';
                 UPDATE procurement.purchase_requisition_items SET ""ConcurrencyToken"" = gen_random_uuid()::text WHERE ""ConcurrencyToken"" IS NULL OR ""ConcurrencyToken"" = '';
                 UPDATE procurement.purchase_requisition_status_histories SET ""ConcurrencyToken"" = gen_random_uuid()::text WHERE ""ConcurrencyToken"" IS NULL OR ""ConcurrencyToken"" = '';
+                UPDATE iam.face_profiles SET ""ConcurrencyToken"" = gen_random_uuid()::text WHERE ""ConcurrencyToken"" IS NULL OR ""ConcurrencyToken"" = '';
+                UPDATE iam.face_templates SET ""ConcurrencyToken"" = gen_random_uuid()::text WHERE ""ConcurrencyToken"" IS NULL OR ""ConcurrencyToken"" = '';
             ");
-            logger.LogInformation("Ensured PostgreSQL procurement.purchase_requisition_items & status_histories schema columns exist.");
+            logger.LogInformation("Ensured PostgreSQL procurement & IAM face security schema columns exist.");
         }
         catch (Exception ex)
         {
@@ -787,6 +797,29 @@ public static class IamDbSeeder
                     ""ModifiedBy"" character varying(100) NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS sfa.sales_rep_location_enrollments (
+                    ""Id"" uuid PRIMARY KEY,
+                    ""CompanyId"" uuid NOT NULL REFERENCES organization.companies (""Id"") ON DELETE RESTRICT,
+                    ""EmployeeId"" uuid NOT NULL REFERENCES hr.employees (""Id"") ON DELETE CASCADE,
+                    ""UserId"" uuid NULL,
+                    ""LocationName"" character varying(200) NOT NULL,
+                    ""Latitude"" double precision NOT NULL,
+                    ""Longitude"" double precision NOT NULL,
+                    ""AllowedRadiusMeters"" double precision NOT NULL DEFAULT 50.0,
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""EnrolledAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""EnrolledByUserId"" uuid NULL,
+                    ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                    ""CreatedBy"" character varying(100) NULL,
+                    ""LastModifiedAtUtc"" timestamp with time zone NULL,
+                    ""LastModifiedBy"" character varying(100) NULL,
+                    ""DeletedAtUtc"" timestamp with time zone NULL,
+                    ""DeletedBy"" character varying(100) NULL,
+                    ""IsDeleted"" boolean NOT NULL DEFAULT false,
+                    ""ConcurrencyToken"" character varying(200) NULL DEFAULT gen_random_uuid()::text,
+                    ""ModifiedBy"" character varying(100) NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS ""IX_sales_beats_CompanyId"" ON sfa.sales_beats (""CompanyId"");
                 CREATE INDEX IF NOT EXISTS ""IX_sales_beats_SalesEmployeeId"" ON sfa.sales_beats (""SalesEmployeeId"");
                 CREATE INDEX IF NOT EXISTS ""IX_sales_beat_customers_SalesBeatId"" ON sfa.sales_beat_customers (""SalesBeatId"");
@@ -795,6 +828,8 @@ public static class IamDbSeeder
                 CREATE INDEX IF NOT EXISTS ""IX_sales_visits_CompanyId"" ON sfa.sales_visits (""CompanyId"");
                 CREATE INDEX IF NOT EXISTS ""IX_sales_visits_SalesEmployeeId"" ON sfa.sales_visits (""SalesEmployeeId"");
                 CREATE INDEX IF NOT EXISTS ""IX_sales_visits_CustomerId"" ON sfa.sales_visits (""CustomerId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_rep_location_enrollments_EmployeeId"" ON sfa.sales_rep_location_enrollments (""EmployeeId"");
+                CREATE INDEX IF NOT EXISTS ""IX_sales_rep_location_enrollments_CompanyId"" ON sfa.sales_rep_location_enrollments (""CompanyId"");
             ");
             logger.LogInformation("Ensured PostgreSQL fulfillment, customer coordinates, sales, and SFA tables exist.");
         }
@@ -823,7 +858,7 @@ public static class IamDbSeeder
 
         foreach (var r in defaultRoles)
         {
-            if (!await roleManager.RoleExistsAsync(r.Name) && !await context.Roles.AnyAsync(existing => existing.NormalizedName == r.Name.ToUpperInvariant()))
+            if (!await roleManager.RoleExistsAsync(r.Name) && !await context.Roles.AnyAsync(existing => existing.NormalizedName == r.Name.ToUpperInvariant() || existing.Code == r.Code))
             {
                 try
                 {
@@ -945,7 +980,14 @@ public static class IamDbSeeder
             ("O2C", "sales:cancel", "Cancel Sales Order", "Cancel sales orders and release inventory reservations", 39),
             ("O2C", "sales:field-order", "Field Sales Order Capture", "Capture field sales orders with GPS and biometric face verification", 40),
             ("SFA", "sfa:visit", "Record Store Visit", "Record geofenced store visits and GPS check-ins", 41),
-            ("SFA", "sfa:beat:manage", "Manage Sales Beats", "Create and assign sales beats and customer sequences", 42)
+            ("SFA", "sfa:beat:manage", "Manage Sales Beats", "Create and assign sales beats and customer sequences", 42),
+            ("SFA", "sales_team:view", "View Sales Team", "View company sales representatives and their assigned customers", 43),
+            ("SFA", "sales_team:manage", "Manage Sales Team", "Create, edit, reset password, and assign customers to sales reps", 44),
+            ("SFA", "sfa:view", "View Field Sales Activity", "View assigned store visits and field activities", 45),
+            ("MASTERS", "masters:customer:view", "View Assigned Customers", "View assigned customer stores and registries", 46),
+            ("MASTERS", "masters:product:view", "View Product Catalog", "View available products and units of measure", 47),
+            ("PRICING", "pricing:resolve", "Resolve Customer Pricing", "Resolve customer-specific pricing and volume discounts", 48),
+            ("SFA", "sfa:collections:view", "View Field Collections", "View representative field payment collections", 49)
         };
 
         var allPermissionIds = new List<Guid>();
@@ -1000,6 +1042,50 @@ public static class IamDbSeeder
                 }
             }
             await context.SaveChangesAsync();
+        }
+
+        // 4.1. Link Least-Privilege Granular Permissions to SALES_REP Role
+        var salesRepRole = await roleManager.FindByNameAsync("Sales Representative") 
+            ?? await context.Roles.FirstOrDefaultAsync(r => r.Code == "SALES_REP" || r.NormalizedName == "SALES REPRESENTATIVE");
+        if (salesRepRole != null)
+        {
+            var salesRepPermissionCodes = new[]
+            {
+                "read:dashboard",
+                "sales:view",
+                "sales:create",
+                "sales:submit",
+                "sales:field-order",
+                "sfa:visit",
+                "sfa:view",
+                "masters:customer:view",
+                "masters:customer",
+                "masters:product:view",
+                "masters:product",
+                "pricing:resolve",
+                "sfa:collections:view"
+            };
+
+            var salesRepPermissions = await context.Permissions
+                .Where(p => salesRepPermissionCodes.Contains(p.Code) && !p.IsDeleted)
+                .ToListAsync();
+
+            foreach (var perm in salesRepPermissions)
+            {
+                var exists = await context.RolePermissions.AnyAsync(rp => rp.RoleId == salesRepRole.Id && rp.PermissionId == perm.Id && !rp.IsDeleted);
+                if (!exists)
+                {
+                    context.RolePermissions.Add(new RolePermission
+                    {
+                        Id = Guid.NewGuid(),
+                        RoleId = salesRepRole.Id,
+                        PermissionId = perm.Id,
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                }
+            }
+            await context.SaveChangesAsync();
+            logger.LogInformation("Seeded and synchronized least-privilege RolePermissions for SALES_REP role.");
         }
 
         // 5. Seed Super Admin User

@@ -72,11 +72,22 @@ public class GetCustomersPagedQueryHandler : IRequestHandler<GetCustomersPagedQu
 {
     private readonly ICustomerRepository _customerRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly ISfaRepository _sfaRepository;
+    private readonly IUserRepository _userRepository;
 
-    public GetCustomersPagedQueryHandler(ICustomerRepository customerRepository, ICompanyAccessResolver companyAccessResolver)
+    public GetCustomersPagedQueryHandler(
+        ICustomerRepository customerRepository,
+        ICompanyAccessResolver companyAccessResolver,
+        ICurrentUserService currentUserService,
+        ISfaRepository sfaRepository,
+        IUserRepository userRepository)
     {
         _customerRepository = customerRepository;
         _companyAccessResolver = companyAccessResolver;
+        _currentUserService = currentUserService;
+        _sfaRepository = sfaRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<Result<IReadOnlyList<CustomerDto>>> Handle(GetCustomersPagedQuery request, CancellationToken cancellationToken)
@@ -94,6 +105,29 @@ public class GetCustomersPagedQueryHandler : IRequestHandler<GetCustomersPagedQu
         if (effectiveCompanyId.HasValue)
         {
             query = query.Where(c => c.CompanyId == effectiveCompanyId.Value);
+        }
+
+        // Sales Representative Scoping: Check if user is a Sales Rep without administrative clearance
+        var isSuperAdmin = await _companyAccessResolver.IsSuperAdminAsync(cancellationToken);
+        var isAdmin = _currentUserService.Roles.Any(r =>
+            r.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||
+            r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+            r.Equals("SUPER_ADMIN", StringComparison.OrdinalIgnoreCase));
+
+        if (!isSuperAdmin && !isAdmin && Guid.TryParse(_currentUserService.UserId, out var currentUserId))
+        {
+            var currentUser = await _userRepository.GetByIdAsync(currentUserId, cancellationToken);
+            if (currentUser?.EmployeeId != null && effectiveCompanyId.HasValue)
+            {
+                var assignments = await _sfaRepository.GetCustomerAssignmentsAsync(
+                    new List<Guid> { effectiveCompanyId.Value },
+                    currentUser.EmployeeId.Value,
+                    null,
+                    cancellationToken);
+
+                var assignedCustomerIds = assignments.Where(a => a.IsActive).Select(a => a.CustomerId).ToHashSet();
+                query = query.Where(c => assignedCustomerIds.Contains(c.Id));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))

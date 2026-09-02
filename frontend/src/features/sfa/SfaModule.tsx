@@ -509,11 +509,15 @@ export default function SfaModule({ onTriggerToast }: SfaModuleProps) {
         <div className="flex flex-wrap gap-1">
           {[
             { id: 'dashboard', label: 'Live Dashboard', icon: TrendingUp },
-            { id: 'reps', label: 'Sales Rep Master', icon: Users },
+            ...((user?.role === 'Sales Representative' || user?.role === 'SALES_REP' || (!user?.permissions?.includes('sfa:manage') && !user?.permissions?.includes('manage:sfa') && !user?.permissions?.includes('sales_team:manage')))
+              ? []
+              : [{ id: 'reps', label: 'Sales Rep Master', icon: Users }]),
             { id: 'beats', label: 'Beat & Route Planning', icon: Compass },
             { id: 'visits', label: 'Visits & GPS Check-in', icon: MapPin },
             { id: 'orders', label: 'Field Order Booking', icon: FileSpreadsheet },
-            { id: 'assignments', label: 'Customer Assignments', icon: Store }
+            ...((user?.role === 'Sales Representative' || user?.role === 'SALES_REP' || (!user?.permissions?.includes('sfa:manage') && !user?.permissions?.includes('manage:sfa') && !user?.permissions?.includes('sales_team:manage')))
+              ? []
+              : [{ id: 'assignments', label: 'Customer Assignments', icon: Store }])
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

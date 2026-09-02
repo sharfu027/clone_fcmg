@@ -133,6 +133,13 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy("Masters.Supplier", policy =>
         policy.RequireAssertion(ctx => hasMasterSubmodule(ctx, "masters:supplier")));
+
+    // Sales Team Management Policies (Company-Scoped)
+    options.AddPolicy("SalesTeam.View", policy =>
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "sales_team:view") || ctx.User.HasClaim("permission", "sfa:manage") || ctx.User.HasClaim("permission", "manage:all")));
+
+    options.AddPolicy("SalesTeam.Manage", policy =>
+        policy.RequireAssertion(ctx => isSuperOrAdmin(ctx) || ctx.User.HasClaim("permission", "sales_team:manage") || ctx.User.HasClaim("permission", "sfa:manage") || ctx.User.HasClaim("permission", "manage:all")));
 });
 
 // 6. Configure SignalR Hubs
@@ -332,6 +339,7 @@ lock (Program.StartupDbLock)
 
             // Seed IAM data
             INK.ERP.Infrastructure.Persistence.Seeding.IamDbSeeder.SeedAsync(context, userManager, roleManager, logger).GetAwaiter().GetResult();
+            logger.LogInformation("[BACKEND RUNTIME VERIFICATION] BUILD_ID: {BuildId} | StartedAt: {Timestamp}", "2026-09-01-RUNTIME-AUDIT-v1", DateTime.UtcNow);
         }
         catch (Exception ex)
         {

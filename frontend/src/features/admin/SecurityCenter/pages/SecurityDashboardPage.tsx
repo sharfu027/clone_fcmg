@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   Key,
+  KeyRound,
   Users,
   Clock,
   Unlock,
@@ -28,6 +29,7 @@ import { adminService } from '../../../../services/adminService';
 import { SecurityEventDetailsDrawer } from '../components/SecurityEventDetailsDrawer';
 import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../components/EmployeeSecurityDetailsDrawer';
 import { FaceVerificationHistoryModal } from '../components/FaceVerificationHistoryModal';
+import { TemporaryPinGeneratorModal } from '../components/TemporaryPinGeneratorModal';
 
 interface SecurityDashboardPageProps {
   exceptions?: any[];
@@ -60,6 +62,7 @@ export default function SecurityDashboardPage({
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
 
   const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [biometricModalEmployee, setBiometricModalEmployee] = useState<{ id: string; userId?: string; fullName: string; employeeCode: string }>({
     id: '',
     fullName: 'All Users',
@@ -297,6 +300,14 @@ export default function SecurityDashboardPage({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsPinModalOpen(true)}
+            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <KeyRound size={14} />
+            <span>Generate Auth PIN</span>
+          </button>
+
           <button
             onClick={() => loadDashboardData()}
             disabled={isLoading || isRefreshing}
@@ -585,6 +596,12 @@ export default function SecurityDashboardPage({
         isOpen={isBiometricModalOpen}
         onClose={() => setIsBiometricModalOpen(false)}
         employee={biometricModalEmployee}
+      />
+
+      <TemporaryPinGeneratorModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onTriggerToast={onTriggerToast}
       />
 
     </div>

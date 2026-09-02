@@ -36,6 +36,15 @@ public interface ISfaRepository
     // Dashboard
     Task<(int TotalVisits, int CompletedVisits, int OrdersCount, decimal OrdersValue, int GpsVerifiedVisits)> GetDashboardMetricsAsync(List<Guid> companyIds, Guid? salesEmployeeId = null, CancellationToken cancellationToken = default);
 
+    // Location Enrollments
+    Task<SalesRepLocationEnrollment?> GetLocationEnrollmentAsync(Guid employeeId, CancellationToken cancellationToken = default);
+    Task<SalesRepLocationEnrollment?> GetLocationEnrollmentByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task AddLocationEnrollmentAsync(SalesRepLocationEnrollment enrollment, CancellationToken cancellationToken = default);
+    Task UpdateLocationEnrollmentAsync(SalesRepLocationEnrollment enrollment, CancellationToken cancellationToken = default);
+    Task DeleteLocationEnrollmentAsync(SalesRepLocationEnrollment enrollment, CancellationToken cancellationToken = default);
+    Task<Dictionary<Guid, bool>> GetLocationEnrollmentStatusAsync(List<Guid> employeeIds, CancellationToken cancellationToken = default);
+
     // Save
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
+

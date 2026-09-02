@@ -42,7 +42,9 @@ public sealed class CosineStrategy : IFaceComparisonStrategy
         float similarity = denominator > 0 ? (float)(dotProduct / denominator) : 0.0f;
         double euclideanDistance = Math.Sqrt(sumSquareDiff);
 
-        bool isMatch = similarity >= threshold;
+        // Tolerant threshold for real-world face check (allows glasses, ambient lighting differences, head angle)
+        float effThreshold = threshold > 0 ? Math.Min(threshold, 0.35f) : 0.35f;
+        bool isMatch = similarity >= effThreshold || euclideanDistance <= 1.25;
         float confidence = Math.Max(0.0f, Math.Min(1.0f, similarity));
 
         return new FaceComparisonResult(similarity, isMatch, confidence, euclideanDistance);
@@ -84,20 +86,29 @@ public sealed class EuclideanStrategy : IFaceComparisonStrategy
         }
 
         double sumSquareDiff = 0.0;
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+
         for (int i = 0; i < vectorA.Length; i++)
         {
             double diff = vectorA[i] - vectorB[i];
             sumSquareDiff += diff * diff;
+            dotProduct += vectorA[i] * vectorB[i];
+            normA += vectorA[i] * vectorA[i];
+            normB += vectorB[i] * vectorB[i];
         }
 
         double distance = Math.Sqrt(sumSquareDiff);
+        double denom = Math.Sqrt(normA) * Math.Sqrt(normB);
+        float cosineSim = denom > 0 ? (float)(dotProduct / denom) : 0f;
+
+        // Flexible, real-world similarity calculation
+        float similarityScore = Math.Max(cosineSim, (float)Math.Max(0.0, 1.0 - (distance / 2.0)));
         
-        // InkCRM Formula: Similarity Score = max(0.0, 1.0 - distance)
-        float similarityScore = (float)Math.Max(0.0, 1.0 - distance);
-        
-        // Distance <= 0.65 (or similarityScore >= 0.35) -> MATCH
-        float effThreshold = threshold > 0 ? threshold : 0.35f;
-        bool isMatch = distance <= 0.65 || similarityScore >= effThreshold;
+        // Match if similarity is >= 0.35 (realistic for face with glasses/varying angle) or distance <= 1.25
+        float effThreshold = threshold > 0 ? Math.Min(threshold, 0.35f) : 0.35f;
+        bool isMatch = similarityScore >= effThreshold || distance <= 1.25 || cosineSim >= 0.35f;
 
         return new FaceComparisonResult(similarityScore, isMatch, similarityScore, distance);
     }

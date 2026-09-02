@@ -228,8 +228,59 @@ public sealed class SfaRepository : ISfaRepository
         return (totalVisits, completedVisits, ordersCount, ordersValue, gpsVerifiedVisits);
     }
 
+    public async Task<SalesRepLocationEnrollment?> GetLocationEnrollmentAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.SalesRepLocationEnrollments
+            .Where(e => e.EmployeeId == employeeId && e.IsActive && !e.IsDeleted)
+            .OrderByDescending(e => e.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<SalesRepLocationEnrollment?> GetLocationEnrollmentByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.SalesRepLocationEnrollments
+            .Where(e => (e.UserId == userId || e.EmployeeId == userId) && e.IsActive && !e.IsDeleted)
+            .OrderByDescending(e => e.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task AddLocationEnrollmentAsync(SalesRepLocationEnrollment enrollment, CancellationToken cancellationToken = default)
+    {
+        await _context.SalesRepLocationEnrollments.AddAsync(enrollment, cancellationToken);
+    }
+
+    public Task UpdateLocationEnrollmentAsync(SalesRepLocationEnrollment enrollment, CancellationToken cancellationToken = default)
+    {
+        _context.SalesRepLocationEnrollments.Update(enrollment);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteLocationEnrollmentAsync(SalesRepLocationEnrollment enrollment, CancellationToken cancellationToken = default)
+    {
+        enrollment.IsActive = false;
+        enrollment.IsDeleted = true;
+        enrollment.DeletedAtUtc = DateTime.UtcNow;
+        _context.SalesRepLocationEnrollments.Update(enrollment);
+        return Task.CompletedTask;
+    }
+
+    public async Task<Dictionary<Guid, bool>> GetLocationEnrollmentStatusAsync(List<Guid> employeeIds, CancellationToken cancellationToken = default)
+    {
+        if (employeeIds.Count == 0) return new Dictionary<Guid, bool>();
+
+        var enrolledEmployeeIds = await _context.SalesRepLocationEnrollments
+            .Where(e => employeeIds.Contains(e.EmployeeId) && e.IsActive && !e.IsDeleted)
+            .Select(e => e.EmployeeId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var set = enrolledEmployeeIds.ToHashSet();
+        return employeeIds.ToDictionary(id => id, id => set.Contains(id));
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);
     }
 }
+

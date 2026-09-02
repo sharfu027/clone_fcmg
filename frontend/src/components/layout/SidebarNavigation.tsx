@@ -70,33 +70,60 @@ export default function SidebarNavigation({
     setOpenSubMenus(prev => ({ ...prev, [title]: !prev[title] }));
   };
 
+  const userPermCodes = React.useMemo(() => {
+    if (!user || !user.permissions) return [];
+    return user.permissions.map((p: any) => (typeof p === 'string' ? p : p.code || '')).filter(Boolean);
+  }, [user]);
+
   // Dedicated Master Data Effective Access Evaluator
   const hasMasterDataSubmoduleAccess = (subCode: string): boolean => {
-    if (!user || !user.permissions || user.permissions.length === 0) return false;
+    if (userPermCodes.length === 0) return false;
 
     // Root Super Admin bypass
     const isRootSuper = user.role === 'Super Admin' ||
                         user.role === 'Super Administrator' ||
-                        user.permissions.includes('manage:all') ||
+                        userPermCodes.includes('manage:all') ||
                         (user.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;
 
-    // Dual-Check Rule: ParentPermission(masters:manage) AND ChildPermission(masters:<submodule>)
-    const hasParent = user.permissions.includes('masters:manage');
-    const hasChild = user.permissions.includes(subCode);
-    return hasParent && hasChild;
+    // Dual-Check Rule: ParentPermission(masters:manage) AND ChildPermission(masters:<submodule>) OR direct granular permission
+    const hasParent = userPermCodes.includes('masters:manage');
+    const hasChild = userPermCodes.includes(subCode) || userPermCodes.includes(`${subCode}:view`);
+    return (hasParent && hasChild) || userPermCodes.includes(subCode) || userPermCodes.includes(`${subCode}:view`);
   };
 
   // Permission-Driven Clearance Resolver (API-First Navigation)
   const hasPermission = (item: NavItem): boolean => {
     if (item.href === 'dashboard') return true;
-    if (!user || !user.permissions || user.permissions.length === 0) return false;
+    if (userPermCodes.length === 0) return false;
 
     const isRootSuper = user.role === 'Super Admin' ||
                         user.role === 'Super Administrator' ||
-                        user.permissions.includes('manage:all') ||
+                        userPermCodes.includes('manage:all') ||
                         (user.email && user.email.toLowerCase().includes('superadmin'));
     if (isRootSuper) return true;
+
+    // Restrict Sales Team Management to Company Admins, Admins, and Managers (while hiding strictly from field sales reps)
+    if (item.href === 'sales-team' || item.href.startsWith('sales-team')) {
+      const isFieldRep = user.role === 'Sales Representative' || user.role === 'SALES_REP';
+      if (isFieldRep) return false;
+      return isRootSuper ||
+             user.role === 'Admin' ||
+             user.role === 'Company Admin' ||
+             user.role === 'Company Administrator' ||
+             user.role === 'Sales Manager' ||
+             userPermCodes.includes('sales_team:manage') ||
+             userPermCodes.includes('sales_team:view') ||
+             userPermCodes.includes('sfa:manage') ||
+             userPermCodes.includes('manage:sales') ||
+             userPermCodes.includes('admin:manage_users') ||
+             userPermCodes.includes('manage:security');
+    }
+
+    // Restrict Administration & Security Center to Admins
+    if (item.href === 'admin' || item.href.startsWith('admin/')) {
+      return isRootSuper || user.role === 'Admin' || userPermCodes.includes('iam:manage') || userPermCodes.includes('manage:security');
+    }
 
     if (item.href.startsWith('masters/')) {
       const subSlug = item.href.split('/')[1];
@@ -125,7 +152,12 @@ export default function SidebarNavigation({
       return branchPermissions.some(b => hasMasterDataSubmoduleAccess(b));
     }
 
-    return item.requiredPermissions.some(perm => user.permissions?.includes(perm));
+    // Restrict global User Management to Super Admin only (Company Admin uses Sales Team Management)
+    if (item.href === 'admin/security-center/user-management' || item.href.includes('user-management')) {
+      return isRootSuper;
+    }
+
+    return item.requiredPermissions.some(perm => userPermCodes.includes(perm));
   };
 
   const filteredMenu = NAVIGATION_MENU.filter(hasPermission);

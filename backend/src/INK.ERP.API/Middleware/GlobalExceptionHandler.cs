@@ -94,8 +94,23 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 problemDetails.Detail = "A database constraint violation occurred while processing your request.";
             }
         }
-        else if (exception is DbUpdateException)
+        else if (exception is DbUpdateConcurrencyException concurrencyEx)
         {
+            var entriesInfo = string.Join("; ", concurrencyEx.Entries.Select(e =>
+                $"Entity: {e.Entity.GetType().Name}, State: {e.State}, Keys: [{string.Join(", ", e.Properties.Where(p => p.Metadata.IsPrimaryKey()).Select(p => $"{p.Metadata.Name}={p.CurrentValue}"))}]"));
+            _logger.LogError(concurrencyEx, "DbUpdateConcurrencyException Details: {EntriesInfo}", entriesInfo);
+
+            problemDetails.Status = StatusCodes.Status500InternalServerError;
+            problemDetails.Title = "Database Operation Error";
+            problemDetails.Detail = "An unexpected error occurred while saving database changes. Please try again or contact support.";
+        }
+        else if (exception is DbUpdateException dbUpdateExGeneric)
+        {
+            var entriesInfo = string.Join("; ", dbUpdateExGeneric.Entries.Select(e =>
+                $"Entity: {e.Entity.GetType().Name}, State: {e.State}"));
+            _logger.LogError(dbUpdateExGeneric, "DbUpdateException Details: {EntriesInfo} | Inner: {InnerMessage}",
+                entriesInfo, dbUpdateExGeneric.InnerException?.Message);
+
             problemDetails.Status = StatusCodes.Status500InternalServerError;
             problemDetails.Title = "Database Operation Error";
             problemDetails.Detail = "An unexpected error occurred while saving database changes. Please try again or contact support.";

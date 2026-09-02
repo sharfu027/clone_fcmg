@@ -185,23 +185,89 @@ public sealed class FaceEmbeddingService : IFaceEmbeddingService
         return res;
     }
 
+    private static Mat ExtractFaceRoi(Mat inputMat)
+    {
+        try
+        {
+            // 1. Locate the face skin region using HSV skin bounds
+            using var hsv = new Mat();
+            Cv2.CvtColor(inputMat, hsv, ColorConversionCodes.BGR2HSV);
+
+            using var skinMask = new Mat();
+            Cv2.InRange(hsv, new Scalar(0, 20, 60), new Scalar(25, 255, 255), skinMask);
+
+            // Morphological smoothing to connect face features
+            using var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(5, 5));
+            Cv2.MorphologyEx(skinMask, skinMask, MorphTypes.Close, kernel);
+
+            Cv2.FindContours(skinMask, out var contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+
+            Rect bestFaceRect = new Rect();
+            double maxArea = 0;
+            int minFaceArea = (inputMat.Width * inputMat.Height) / 50; // At least 2% of frame
+
+            foreach (var contour in contours)
+            {
+                var rect = Cv2.BoundingRect(contour);
+                double area = (double)rect.Width * rect.Height;
+
+                // Face aspect ratio check (typically between 0.55 and 1.7)
+                double aspectRatio = (double)rect.Width / Math.Max(1, rect.Height);
+                if (area > minFaceArea && area > maxArea && aspectRatio >= 0.50 && aspectRatio <= 1.80)
+                {
+                    maxArea = area;
+                    bestFaceRect = rect;
+                }
+            }
+
+            // If a valid face bounding box was found, expand slightly to capture facial contour (without background/clothes)
+            if (bestFaceRect.Width >= 25 && bestFaceRect.Height >= 25)
+            {
+                int marginX = (int)(bestFaceRect.Width * 0.10);
+                int marginY = (int)(bestFaceRect.Height * 0.10);
+
+                int x = Math.Max(0, bestFaceRect.X - marginX);
+                int y = Math.Max(0, bestFaceRect.Y - marginY);
+                int w = Math.Min(inputMat.Width - x, bestFaceRect.Width + (2 * marginX));
+                int h = Math.Min(inputMat.Height - y, bestFaceRect.Height + (2 * marginY));
+
+                return new Mat(inputMat, new Rect(x, y, w, h)).Clone();
+            }
+        }
+        catch
+        {
+            // Fall through to center-face crop
+        }
+
+        // Fallback: Crop center 75% of frame (standard webcam face framing, discards surrounding background edges & clothes)
+        int cropW = Math.Max(20, (int)(inputMat.Width * 0.75));
+        int cropH = Math.Max(20, (int)(inputMat.Height * 0.75));
+        int startX = Math.Max(0, (inputMat.Width - cropW) / 2);
+        int startY = Math.Max(0, (inputMat.Height - cropH) / 2);
+
+        return new Mat(inputMat, new Rect(startX, startY, cropW, cropH)).Clone();
+    }
+
     private static float[] ExtractOpenCvFeatures(byte[] imageBytes, int dimension)
     {
         var floats = new float[dimension];
 
         try
         {
-            using var mat = Cv2.ImDecode(imageBytes, ImreadModes.Color);
-            if (mat != null && !mat.Empty() && mat.Width >= 20 && mat.Height >= 20)
+            using var rawMat = Cv2.ImDecode(imageBytes, ImreadModes.Color);
+            if (rawMat != null && !rawMat.Empty() && rawMat.Width >= 20 && rawMat.Height >= 20)
             {
+                // Crop strictly to the face region to eliminate background, walls, and clothing
+                using var faceMat = ExtractFaceRoi(rawMat);
+
                 using var gray = new Mat();
-                Cv2.CvtColor(mat, gray, ColorConversionCodes.BGR2GRAY);
+                Cv2.CvtColor(faceMat, gray, ColorConversionCodes.BGR2GRAY);
 
                 // 1. Equalize histogram to eliminate ambient light and shadow variations
                 using var equalized = new Mat();
                 Cv2.EqualizeHist(gray, equalized);
 
-                // 2. Resize to 128x128 facial canonical matrix
+                // 2. Resize to canonical 128x128 facial matrix
                 using var resized = new Mat();
                 Cv2.Resize(equalized, resized, new Size(128, 128));
 

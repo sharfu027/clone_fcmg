@@ -35,7 +35,7 @@ public sealed class FaceTemplate : AuditableEntity
 
     public FaceTemplate(int version, FaceEmbedding embedding, string? provider = null, string? checksum = null)
     {
-        Id = Guid.Empty;
+        Id = Guid.NewGuid();
         Version = version;
         VectorData = embedding.VectorData;
         AlgorithmVersion = embedding.AlgorithmVersion;
@@ -76,7 +76,7 @@ public sealed class FaceVerificationLog : BaseEntity
 
     public FaceVerificationLog(Guid faceProfileId, float matchScore, bool isSuccessful, string? deviceId = null, string? failureReason = null)
     {
-        Id = Guid.Empty;
+        Id = Guid.NewGuid();
         FaceProfileId = faceProfileId;
         MatchScore = matchScore;
         IsSuccessful = isSuccessful;
@@ -87,18 +87,25 @@ public sealed class FaceVerificationLog : BaseEntity
 
 public sealed class FaceEnrollmentLog : BaseEntity
 {
+    public Guid FaceProfileId { get; private set; }
     public int TemplateVersion { get; private set; }
     public FaceEnrollmentStatus Status { get; private set; }
     public string? Notes { get; private set; }
 
     private FaceEnrollmentLog() { }
 
-    public FaceEnrollmentLog(int templateVersion, FaceEnrollmentStatus status, string? notes = null)
+    public FaceEnrollmentLog(Guid faceProfileId, int templateVersion, FaceEnrollmentStatus status, string? notes = null)
     {
-        Id = Guid.Empty;
+        Id = Guid.NewGuid();
+        FaceProfileId = faceProfileId;
         TemplateVersion = templateVersion;
         Status = status;
         Notes = notes;
+    }
+
+    public FaceEnrollmentLog(int templateVersion, FaceEnrollmentStatus status, string? notes = null)
+        : this(Guid.Empty, templateVersion, status, notes)
+    {
     }
 }
 
@@ -121,25 +128,42 @@ public sealed class FaceProfile : AuditableEntity
 
     public FaceProfile(Guid userId)
     {
+        Id = Guid.NewGuid();
         UserId = userId;
         Status = FaceEnrollmentStatus.Pending;
         IsActive = true;
     }
 
+    public void DeactivateProfile()
+    {
+        IsActive = false;
+        Status = FaceEnrollmentStatus.Pending;
+        foreach (var t in _templates.Where(t => t.IsActive))
+        {
+            t.Archive();
+        }
+        _enrollmentLogs.Add(new FaceEnrollmentLog(Id, ActiveTemplateVersion, FaceEnrollmentStatus.Pending, "Face Template Deactivated / Deleted by Admin"));
+    }
+
+    public void ClearTemplates()
+    {
+        IsActive = false;
+        Status = FaceEnrollmentStatus.Pending;
+        foreach (var t in _templates.Where(t => t.IsActive))
+        {
+            t.Archive();
+        }
+        _enrollmentLogs.Add(new FaceEnrollmentLog(Id, ActiveTemplateVersion, FaceEnrollmentStatus.Pending, "Face Template Deleted by Admin"));
+    }
+
     public void Enroll(FaceEmbedding embedding)
     {
-        if (!IsActive) IsActive = true;
+        IsActive = true;
+        IsDeleted = false;
 
         foreach (var template in _templates.Where(t => t.IsActive))
         {
             template.Archive();
-        }
-
-        while (_templates.Count >= 10)
-        {
-            var oldestArchived = _templates.FirstOrDefault(t => !t.IsActive);
-            if (oldestArchived != null) _templates.Remove(oldestArchived);
-            else break;
         }
 
         ActiveTemplateVersion++;
@@ -147,7 +171,7 @@ public sealed class FaceProfile : AuditableEntity
         _templates.Add(newTemplate);
 
         Status = FaceEnrollmentStatus.Enrolled;
-        _enrollmentLogs.Add(new FaceEnrollmentLog(ActiveTemplateVersion, FaceEnrollmentStatus.Enrolled, "Single Template Enrolled"));
+        _enrollmentLogs.Add(new FaceEnrollmentLog(Id, ActiveTemplateVersion, FaceEnrollmentStatus.Enrolled, "Single Template Enrolled"));
         AddDomainEvent(new FaceEnrolledEvent(UserId, Id, ActiveTemplateVersion));
     }
 

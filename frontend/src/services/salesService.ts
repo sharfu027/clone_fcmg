@@ -187,3 +187,4 @@ export const salesService = {
     return apiClient.post<ValidateTemporaryPinResult>('/api/v1/security/pins/validate', payload);
   }
 };
+

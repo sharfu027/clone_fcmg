@@ -15,7 +15,12 @@ public class FaceProfileRepository : GenericRepository<FaceProfile>, IFaceProfil
 
     public async Task<FaceProfile?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await SecurityCompiledQueries.GetFaceProfileByUserId(_context, userId);
+        return await _context.Set<FaceProfile>()
+            .Include(p => p.Templates)
+            .Include(p => p.VerificationLogs)
+            .Include(p => p.EnrollmentLogs)
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
     }
 
     public async Task<FaceTemplate?> GetActiveTemplateAsync(Guid userId, CancellationToken cancellationToken = default)

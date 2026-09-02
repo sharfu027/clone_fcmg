@@ -94,18 +94,24 @@ export interface UpdateRealSalesOrderRequest {
 export interface VerifyFieldLocationRequest {
   companyId: string;
   customerId: string;
+  salesEmployeeId?: string | null;
   captureLatitude: number;
   captureLongitude: number;
   accuracyMeters?: number | null;
+  faceImageBase64?: string | null;
+  requireFaceVerification?: boolean;
 }
 
 export interface VerifyFieldLocationResult {
   success: boolean;
   distanceMeters: number;
   isWithinRange: boolean;
+  isFaceVerified: boolean;
+  faceSimilarityScore?: number | null;
   message: string;
   customerName?: string | null;
   verificationProof?: string | null;
+  verifiedAtUtc?: string | null;
 }
 
 export interface PriceResolutionResult {

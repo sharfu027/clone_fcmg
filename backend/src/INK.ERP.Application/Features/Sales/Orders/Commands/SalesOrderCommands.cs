@@ -15,27 +15,45 @@ using INK.ERP.Domain.ValueObjects.Security;
 namespace INK.ERP.Application.Features.Sales.Orders.Commands;
 
 // ----------------------------------------------------
-// 0. VERIFY FIELD SALES LOCATION COMMAND
+// 0. VERIFY FIELD SALES LOCATION & BIOMETRICS COMMAND
 // ----------------------------------------------------
 public record VerifyFieldSalesOrderLocationCommand(
     Guid CompanyId,
     Guid CustomerId,
-    double CaptureLatitude,
-    double CaptureLongitude,
-    double? AccuracyMeters = null
+    Guid? SalesEmployeeId = null,
+    double CaptureLatitude = 0.0,
+    double CaptureLongitude = 0.0,
+    double? AccuracyMeters = null,
+    string? FaceImageBase64 = null,
+    bool RequireFaceVerification = false
 ) : IRequest<Result<VerifyFieldLocationResultDto>>;
 
 public class VerifyFieldSalesOrderLocationCommandHandler : IRequestHandler<VerifyFieldSalesOrderLocationCommand, Result<VerifyFieldLocationResultDto>>
 {
     private readonly ICustomerRepository _customerRepository;
+    private readonly IEmployeeRepository _employeeRepository;
+    private readonly ISfaRepository _sfaRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ISender _mediator;
 
     public VerifyFieldSalesOrderLocationCommandHandler(
         ICustomerRepository customerRepository,
-        ICompanyAccessResolver companyAccessResolver)
+        IEmployeeRepository employeeRepository,
+        ISfaRepository sfaRepository,
+        ICompanyAccessResolver companyAccessResolver,
+        ICurrentUserService currentUserService,
+        IUnitOfWork unitOfWork,
+        ISender mediator)
     {
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
+        _sfaRepository = sfaRepository ?? throw new ArgumentNullException(nameof(sfaRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
     }
 
     public async Task<Result<VerifyFieldLocationResultDto>> Handle(VerifyFieldSalesOrderLocationCommand request, CancellationToken cancellationToken)
@@ -51,6 +69,45 @@ public class VerifyFieldSalesOrderLocationCommandHandler : IRequestHandler<Verif
         if (customer == null || customer.CompanyId != request.CompanyId)
             return Result<VerifyFieldLocationResultDto>.Failure(Error.NotFound("SalesOrder.CustomerNotFound", "Customer not found or does not belong to specified company."));
 
+        if (!customer.IsActive)
+            return Result<VerifyFieldLocationResultDto>.Failure(Error.Validation("SalesOrder.InactiveCustomer", "Customer is inactive."));
+
+        // 1. Resolve & Validate Sales Representative and Assignment
+        Guid? resolvedEmployeeId = request.SalesEmployeeId;
+        Guid? resolvedUserId = null;
+
+        if (Guid.TryParse(_currentUserService.UserId, out var currentUserId) && currentUserId != Guid.Empty)
+        {
+            resolvedUserId = currentUserId;
+            if (!resolvedEmployeeId.HasValue || resolvedEmployeeId.Value == Guid.Empty)
+            {
+                var userRepo = _unitOfWork.Repository<ApplicationUser>();
+                var currentUser = await userRepo.GetByIdAsync(currentUserId, cancellationToken);
+                if (currentUser != null && currentUser.EmployeeId.HasValue)
+                {
+                    resolvedEmployeeId = currentUser.EmployeeId.Value;
+                }
+            }
+        }
+
+        if (resolvedEmployeeId.HasValue && resolvedEmployeeId.Value != Guid.Empty)
+        {
+            var assignments = await _sfaRepository.GetCustomerAssignmentsAsync(
+                new List<Guid> { request.CompanyId },
+                resolvedEmployeeId.Value,
+                null,
+                cancellationToken);
+
+            var activeAssignments = assignments.Where(a => a.IsActive).ToList();
+            if (activeAssignments.Count > 0 && !activeAssignments.Any(a => a.CustomerId == request.CustomerId))
+            {
+                return Result<VerifyFieldLocationResultDto>.Failure(Error.Validation(
+                    "SalesOrder.UnassignedCustomer",
+                    $"Store '{customer.TradeName ?? customer.LegalName}' is not assigned to your territory route."));
+            }
+        }
+
+        // 2. Validate Live Geolocation against Customer/Store Registered GPS (<= 50 meters)
         if (double.IsNaN(request.CaptureLatitude) || double.IsNaN(request.CaptureLongitude) ||
             request.CaptureLatitude < -90.0 || request.CaptureLatitude > 90.0 ||
             request.CaptureLongitude < -180.0 || request.CaptureLongitude > 180.0)
@@ -60,40 +117,134 @@ public class VerifyFieldSalesOrderLocationCommandHandler : IRequestHandler<Verif
                 "Latitude must be between -90 and 90, and Longitude must be between -180 and 180."));
         }
 
-        if (!customer.Latitude.HasValue || !customer.Longitude.HasValue)
+        double distanceMeters = 0.0;
+        bool isWithinRange = false;
+
+        if (customer.Latitude.HasValue && customer.Longitude.HasValue)
         {
-            // Customer has no coordinates enrolled yet - initial capture mode permitted
-            return Result.Success(new VerifyFieldLocationResultDto(
-                Success: true,
-                DistanceMeters: 0.0,
-                IsWithinRange: true,
-                Message: "Customer has no prior GPS coordinates. First-time field location tagged.",
-                CustomerName: customer.TradeName ?? customer.LegalName,
-                VerificationProof: $"FIRST_CAPTURE:{request.CustomerId}:{DateTime.UtcNow:O}"
-            ));
+            var repCoord = new GpsCoordinate(request.CaptureLatitude, request.CaptureLongitude);
+            var custCoord = new GpsCoordinate(customer.Latitude.Value, customer.Longitude.Value);
+            distanceMeters = repCoord.DistanceToMeters(custCoord);
+
+            isWithinRange = distanceMeters <= 50.0;
+            if (!isWithinRange)
+            {
+                return Result<VerifyFieldLocationResultDto>.Failure(Error.Validation(
+                    "SalesOrder.GpsOutOfRange",
+                    $"Store location check failed. You are {distanceMeters:F1} meters from {customer.TradeName ?? customer.LegalName}. Maximum allowed distance is 50 meters."));
+            }
+        }
+        else
+        {
+            // Initial coordinate tagging if customer had no GPS
+            customer.Latitude = request.CaptureLatitude;
+            customer.Longitude = request.CaptureLongitude;
+            await _customerRepository.UpdateAsync(customer, cancellationToken);
+            distanceMeters = 0.0;
+            isWithinRange = true;
         }
 
-        var repCoord = new GpsCoordinate(request.CaptureLatitude, request.CaptureLongitude);
-        var custCoord = new GpsCoordinate(customer.Latitude.Value, customer.Longitude.Value);
-        double distanceMeters = repCoord.DistanceToMeters(custCoord);
+        // 3. Biometric Face Verification using the SAME enrolled biometric profile
+        bool isFaceVerified = false;
+        float? faceSimilarity = null;
 
-        bool isWithinRange = distanceMeters <= 50.0;
-        string message = isWithinRange
-            ? $"GPS Verified. You are {distanceMeters:F1} meters from {customer.TradeName ?? customer.LegalName} (Maximum allowed: 50m)."
-            : $"Sales order cannot be confirmed. You are {distanceMeters:F1} meters from the customer location. Maximum allowed distance is 50 meters.";
+        if (!string.IsNullOrWhiteSpace(request.FaceImageBase64))
+        {
+            byte[] imageBytes = ParseImageData(request.FaceImageBase64);
+            if (imageBytes.Length > 0 && resolvedUserId.HasValue)
+            {
+                var faceCommand = new INK.ERP.Application.Features.Security.Face.VerifyFaceBiometricsCommand(
+                    resolvedUserId.Value,
+                    imageBytes,
+                    null,
+                    null,
+                    null);
 
-        var result = new VerifyFieldLocationResultDto(
-            Success: isWithinRange,
+                var faceResult = await _mediator.Send(faceCommand, cancellationToken);
+                if (faceResult.IsSuccess && faceResult.Value != null)
+                {
+                    isFaceVerified = faceResult.Value.Success;
+                    faceSimilarity = faceResult.Value.SimilarityScore;
+
+                    if (!isFaceVerified)
+                    {
+                        return Result<VerifyFieldLocationResultDto>.Failure(Error.Validation(
+                            "SalesOrder.FaceMismatch",
+                            $"Biometric face verification failed: {faceResult.Value.Message} (Score: {faceResult.Value.SimilarityScore:P0})"));
+                    }
+                }
+                else
+                {
+                    return Result<VerifyFieldLocationResultDto>.Failure(Error.Validation(
+                        "SalesOrder.FaceVerificationError",
+                        faceResult.Error.Description ?? "Could not verify biometric face template."));
+                }
+            }
+        }
+        else if (request.RequireFaceVerification)
+        {
+            return Result<VerifyFieldLocationResultDto>.Failure(Error.Validation(
+                "SalesOrder.FaceRequired",
+                "Facial biometric capture is required to authorize this customer store visit."));
+        }
+
+        // 4. Record Verification Audit Trail in SFA Visit
+        if (resolvedEmployeeId.HasValue)
+        {
+            var visit = new INK.ERP.Domain.Entities.SFA.SalesVisit
+            {
+                Id = Guid.NewGuid(),
+                CompanyId = request.CompanyId,
+                SalesEmployeeId = resolvedEmployeeId.Value,
+                CustomerId = request.CustomerId,
+                VisitDateUtc = DateTime.UtcNow.Date,
+                CheckInLatitude = request.CaptureLatitude,
+                CheckInLongitude = request.CaptureLongitude,
+                DistanceToCustomerMeters = distanceMeters,
+                IsGpsVerified = isWithinRange,
+                IsFaceVerified = isFaceVerified,
+                CheckInAtUtc = DateTime.UtcNow,
+                Outcome = "StoreVisitVerified",
+                Notes = $"Verified at store '{customer.TradeName ?? customer.LegalName}' (Distance: {distanceMeters:F1}m, Face: {(isFaceVerified ? "Matched" : "N/A")})",
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            await _sfaRepository.AddSalesVisitAsync(visit, cancellationToken);
+            await _sfaRepository.SaveChangesAsync(cancellationToken);
+        }
+
+        var verificationProof = $"FIELD_SECURE:{customer.Id}:{resolvedEmployeeId}:{distanceMeters:F1}m:FACE_{(isFaceVerified ? "VERIFIED" : "NONE")}:{DateTime.UtcNow:O}";
+        var message = $"Store visit verified at {customer.TradeName ?? customer.LegalName} ({distanceMeters:F1}m away). Face biometric: {(isFaceVerified ? "Verified ✓" : "N/A")}.";
+
+        var resultDto = new VerifyFieldLocationResultDto(
+            Success: isWithinRange && (!request.RequireFaceVerification || isFaceVerified),
             DistanceMeters: distanceMeters,
             IsWithinRange: isWithinRange,
+            IsFaceVerified: isFaceVerified,
+            FaceSimilarityScore: faceSimilarity,
             Message: message,
             CustomerName: customer.TradeName ?? customer.LegalName,
-            VerificationProof: isWithinRange ? $"GPS_VERIFIED:{request.CustomerId}:{distanceMeters:F2}:{DateTime.UtcNow:O}" : null
+            VerificationProof: verificationProof,
+            VerifiedAtUtc: DateTime.UtcNow
         );
 
-        return Result.Success(result);
+        return Result.Success(resultDto);
+    }
+
+    private static byte[] ParseImageData(string base64Payload)
+    {
+        try
+        {
+            var data = base64Payload.Contains(',') ? base64Payload.Substring(base64Payload.IndexOf(',') + 1) : base64Payload;
+            return Convert.FromBase64String(data);
+        }
+        catch
+        {
+            return Array.Empty<byte>();
+        }
     }
 }
+
 
 // ----------------------------------------------------
 // 1. CREATE SALES ORDER COMMAND

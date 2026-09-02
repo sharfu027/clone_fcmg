@@ -38,17 +38,26 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
     private readonly ICompanyRepository _companyRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICompanyAccessResolver _companyAccessResolver;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IUserRepository _userRepository;
+    private readonly ISfaRepository _sfaRepository;
 
     public CreateCustomerCommandHandler(
         ICustomerRepository customerRepository,
         ICompanyRepository companyRepository,
         IUnitOfWork unitOfWork,
-        ICompanyAccessResolver companyAccessResolver)
+        ICompanyAccessResolver companyAccessResolver,
+        ICurrentUserService currentUserService,
+        IUserRepository userRepository,
+        ISfaRepository sfaRepository)
     {
         _customerRepository = customerRepository;
         _companyRepository = companyRepository;
         _unitOfWork = unitOfWork;
         _companyAccessResolver = companyAccessResolver;
+        _currentUserService = currentUserService;
+        _userRepository = userRepository;
+        _sfaRepository = sfaRepository;
     }
 
     public async Task<Result<CustomerDto>> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
@@ -99,6 +108,26 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
         };
 
         await _customerRepository.AddAsync(customer, cancellationToken);
+
+        // If created by a Sales Representative / Employee, auto-assign this customer to them
+        if (Guid.TryParse(_currentUserService.UserId, out var currentUserId))
+        {
+            var currentUser = await _userRepository.GetByIdAsync(currentUserId, cancellationToken);
+            if (currentUser?.EmployeeId != null)
+            {
+                var assignment = new INK.ERP.Domain.Entities.SFA.SalesRepCustomerAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    CompanyId = targetCompanyId,
+                    EmployeeId = currentUser.EmployeeId.Value,
+                    CustomerId = customer.Id,
+                    AssignedFromUtc = DateTime.UtcNow,
+                    IsActive = true
+                };
+                await _sfaRepository.AddCustomerAssignmentAsync(assignment, cancellationToken);
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = new CustomerDto(

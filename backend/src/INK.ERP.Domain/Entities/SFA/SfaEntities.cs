@@ -67,3 +67,22 @@ public sealed class SalesVisit : AuditableEntity
     public Employee? SalesEmployee { get; set; }
     public Customer? Customer { get; set; }
 }
+
+public sealed class SalesRepLocationEnrollment : AuditableEntity
+{
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid? UserId { get; set; }
+    public string LocationName { get; set; } = string.Empty;
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public double AllowedRadiusMeters { get; set; } = 50.0;
+    public bool IsActive { get; set; } = true;
+    public DateTime EnrolledAtUtc { get; set; } = DateTime.UtcNow;
+    public Guid? EnrolledByUserId { get; set; }
+
+    // Navigation Properties
+    public Company? Company { get; set; }
+    public Employee? Employee { get; set; }
+}
+

@@ -106,3 +106,30 @@ public class SalesVisitConfiguration : IEntityTypeConfiguration<SalesVisit>
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public class SalesRepLocationEnrollmentConfiguration : IEntityTypeConfiguration<SalesRepLocationEnrollment>
+{
+    public void Configure(EntityTypeBuilder<SalesRepLocationEnrollment> builder)
+    {
+        builder.ToTable("sales_rep_location_enrollments", "sfa");
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.LocationName).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Latitude).IsRequired();
+        builder.Property(x => x.Longitude).IsRequired();
+        builder.Property(x => x.AllowedRadiusMeters).IsRequired().HasDefaultValue(50.0);
+        builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
+        builder.Property(x => x.EnrolledAtUtc).IsRequired();
+
+        builder.HasOne(x => x.Company)
+            .WithMany()
+            .HasForeignKey(x => x.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Employee)
+            .WithMany()
+            .HasForeignKey(x => x.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+

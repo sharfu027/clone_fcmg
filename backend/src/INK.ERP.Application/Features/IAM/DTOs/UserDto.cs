@@ -24,4 +24,5 @@ public sealed record UserDto(
     IReadOnlyList<string> Roles,
     Guid? AssignedCompanyId = null,
     string? AssignedCompanyName = null,
-    string? AssignedCompanyCode = null);
+    string? AssignedCompanyCode = null,
+    IReadOnlyList<string>? Permissions = null);

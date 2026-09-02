@@ -181,7 +181,11 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, string[]> = {
     'manage:sales', 'manage:finance', 'manage:security', 'manage:users'
   ],
   'Admin': [
-    'read:dashboard'
+    'read:dashboard', 'masters:manage', 'procurement:manage', 'wms:manage',
+    'inventory:manage', 'sfa:manage', 'o2c:manage', 'pricing:manage',
+    'finance:manage', 'crm:manage', 'bi:manage', 'workflow:manage',
+    'manage:masters', 'manage:procurement', 'manage:warehouse', 'manage:inventory',
+    'manage:sales', 'manage:finance', 'manage:security', 'sales_team:manage', 'sales_team:view'
   ],
   'Procurement Manager': [
     'read:dashboard', 'procurement:manage', 'returns:manage', 'masters:manage',
@@ -200,8 +204,19 @@ export const ROLE_PERMISSIONS_MAP: Record<UserRole, string[]> = {
     'manage:sales', 'manage:pricing', 'manage:sfa', 'manage:crm'
   ],
   'Sales Representative': [
-    'read:dashboard', 'sfa:manage', 'o2c:manage', 'crm:manage',
-    'manage:sales', 'manage:sfa', 'manage:crm'
+    'read:dashboard',
+    'sales:view',
+    'sales:create',
+    'sales:submit',
+    'sales:field-order',
+    'sfa:visit',
+    'sfa:view',
+    'masters:customer:view',
+    'masters:customer',
+    'masters:product:view',
+    'masters:product',
+    'pricing:resolve',
+    'sfa:collections:view'
   ],
   'Finance Manager': [
     'read:dashboard', 'finance:manage', 'o2c:manage', 'procurement:manage', 'bi:manage',

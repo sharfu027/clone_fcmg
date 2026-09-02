@@ -27,7 +27,8 @@ import {
   Phone,
   Building,
   MapPin,
-  ArrowUpDown
+  ArrowUpDown,
+  KeyRound
 } from 'lucide-react';
 import { adminService } from '../../../services/adminService';
 import { authService } from '../../../services/authService';
@@ -44,6 +45,7 @@ import { EmployeeSecurityDetailsDrawer, EmployeeSecurityDetails } from '../Secur
 import { WebcamEnrollmentModal } from '../SecurityCenter/components/WebcamEnrollmentModal';
 import { FaceVerificationHistoryModal } from '../SecurityCenter/components/FaceVerificationHistoryModal';
 import { LocationEnrollmentModal } from '../SecurityCenter/components/LocationEnrollmentModal';
+import { TemporaryPinGeneratorModal } from '../SecurityCenter/components/TemporaryPinGeneratorModal';
 import { getUserAccessSettings } from '../../../services/userPermissionsService';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -77,6 +79,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [editUserTarget, setEditUserTarget] = useState<any | null>(null);
   const [assignRoleTarget, setAssignRoleTarget] = useState<any | null>(null);
   const [assignCompanyTarget, setAssignCompanyTarget] = useState<any | null>(null);
@@ -557,6 +560,14 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
                 <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
               </button>
             </Tooltip>
+
+            <button
+              onClick={() => setIsPinModalOpen(true)}
+              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <KeyRound size={14} />
+              <span>Generate Auth PIN</span>
+            </button>
 
             <button
               onClick={() => setIsCreateModalOpen(true)}
@@ -1190,6 +1201,12 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ onTr
           targetUser={assignCompanyTarget}
         />
       )}
+
+      <TemporaryPinGeneratorModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onTriggerToast={onTriggerToast}
+      />
 
     </div>
   );

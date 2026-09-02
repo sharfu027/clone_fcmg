@@ -68,7 +68,7 @@ export const NAVIGATION_MENU: NavItem[] = [
     title: 'Pricing & Promotions', 
     href: 'pricing', 
     icon: 'Tag',
-    requiredPermissions: ['pricing:manage', 'manage:pricing']
+    requiredPermissions: ['pricing:manage', 'manage:pricing', 'pricing:resolve']
   },
   {
     title: 'Procurement',
@@ -120,32 +120,33 @@ export const NAVIGATION_MENU: NavItem[] = [
     title: 'Sales Force Automation',
     href: 'sfa',
     icon: 'MapPin',
-    requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales'],
+    requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales', 'sales_team:view', 'sfa:view', 'sfa:visit'],
     children: [
-      { title: 'Beat Planning', href: 'sfa/beat-planning', icon: 'Layers', requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales'] },
-      { title: 'Store Visits', href: 'sfa/visits', icon: 'Layers', requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales'] },
-      { title: 'DCR Collections', href: 'sfa/collections', icon: 'Layers', requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales'] }
+      { title: 'Sales Team Management', href: 'sales-team', icon: 'Users2', requiredPermissions: ['sales_team:manage', 'sales_team:view', 'sfa:manage', 'manage:sales', 'manage:security', 'admin:manage_users'] },
+      { title: 'Beat Planning', href: 'sfa/beat-planning', icon: 'Layers', requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales', 'sfa:view'] },
+      { title: 'Store Visits', href: 'sfa/visits', icon: 'Layers', requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales', 'sfa:visit', 'sfa:view'] },
+      { title: 'DCR Collections', href: 'sfa/collections', icon: 'Layers', requiredPermissions: ['sfa:manage', 'manage:sfa', 'manage:sales', 'sfa:collections:view'] }
     ]
   },
   {
     title: 'Order-to-Cash',
     href: 'sales',
     icon: 'FileSpreadsheet',
-    requiredPermissions: ['o2c:manage', 'manage:sales'],
+    requiredPermissions: ['o2c:manage', 'manage:sales', 'sales:view', 'sales:create', 'sales:field-order'],
     children: [
-      { title: 'Quotations', href: 'sales/quotations', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales'] },
-      { title: 'Sales Orders', href: 'sales/orders', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales'] },
-      { title: 'Delivery Challans', href: 'sales/delivery-notes', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales'] },
-      { title: 'GST Invoices', href: 'sales/invoices', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales'] }
+      { title: 'Quotations', href: 'sales/quotations', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales', 'sales:view'] },
+      { title: 'Sales Orders', href: 'sales/orders', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales', 'sales:view', 'sales:create', 'sales:field-order'] },
+      { title: 'Delivery Challans', href: 'sales/delivery-notes', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales', 'sales:view'] },
+      { title: 'GST Invoices', href: 'sales/invoices', icon: 'Layers', requiredPermissions: ['o2c:manage', 'manage:sales', 'sales:view'] }
     ]
   },
   {
     title: 'Returns Management',
     href: 'returns',
     icon: 'Undo2',
-    requiredPermissions: ['returns:manage', 'manage:returns', 'manage:sales'],
+    requiredPermissions: ['returns:manage', 'manage:returns', 'manage:sales', 'sales:view'],
     children: [
-      { title: 'Sales Returns (RMA)', href: 'returns/sales', icon: 'Layers', requiredPermissions: ['returns:manage', 'manage:sales'] },
+      { title: 'Sales Returns (RMA)', href: 'returns/sales', icon: 'Layers', requiredPermissions: ['returns:manage', 'manage:sales', 'sales:view'] },
       { title: 'Purchase Returns (RTV)', href: 'returns/purchase', icon: 'Layers', requiredPermissions: ['returns:manage', 'manage:procurement'] },
       { title: 'QC Inspection Staging', href: 'returns/inspection', icon: 'Layers', requiredPermissions: ['returns:manage', 'manage:warehouse'] }
     ]

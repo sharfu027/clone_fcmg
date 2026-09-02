@@ -157,8 +157,16 @@ class ApiClient {
           errorData = response.statusText;
         }
 
+        let friendlyMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+        if (typeof errorData === 'object' && errorData !== null) {
+          const errObj = errorData as Record<string, any>;
+          friendlyMessage = errObj.detail || errObj.message || errObj.error || errObj.title || friendlyMessage;
+        } else if (typeof errorData === 'string' && errorData.trim().length > 0 && errorData.length < 200) {
+          friendlyMessage = errorData;
+        }
+
         throw new ApiError(
-          `HTTP Error ${response.status}: ${response.statusText}`,
+          friendlyMessage,
           response.status,
           errorData
         );

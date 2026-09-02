@@ -13,12 +13,31 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   loginAsUser: (userName: string, role: string, actualEmail?: string, actualId?: string) => Promise<void>;
+  restoreSession: () => Promise<void>;
+  setSession: (token: string, user: UserProfile) => void;
   logout: () => Promise<void>;
   updateRole: (role: UserRole) => void;
   updatePermissions: (permissions: UserPermission[]) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const resolveEffectivePermissions = (
+  rawPermissions: any[] | undefined | null,
+  role: UserRole
+): UserPermission[] => {
+  if (role === 'Super Admin') {
+    return ROLE_PERMISSIONS_MAP['Super Admin'] as UserPermission[];
+  }
+
+  if (Array.isArray(rawPermissions) && rawPermissions.length > 0) {
+    return rawPermissions.map(p =>
+      typeof p === 'string' ? p : (p?.code || p?.id || String(p))
+    ) as UserPermission[];
+  }
+
+  return (ROLE_PERMISSIONS_MAP[role] || ['read:dashboard']) as UserPermission[];
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -45,7 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const resolvedRole = (isRootSuper ? 'Super Admin' : access.roleName) as UserRole;
           const resolvedPermissions = (isRootSuper
             ? ROLE_PERMISSIONS_MAP['Super Admin']
-            : access.permissions) as UserPermission[];
+            : (access.permissions && access.permissions.length > 0
+                ? access.permissions
+                : (ROLE_PERMISSIONS_MAP[resolvedRole] || ['read:dashboard']))) as UserPermission[];
 
           try {
             const permissionCodes = resolvedPermissions.map(p => typeof p === 'string' ? p : (p as any).code || (p as any).id);
@@ -99,9 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (validUser && storedToken) {
         const rawRole = validUser.roles?.[0] || validUser.role || '';
         const resolvedRole = (rawRole === 'Super Administrator' ? 'Super Admin' : (rawRole === 'Administrator' ? 'Admin' : rawRole)) as UserRole;
-        const resolvedPermissions = (resolvedRole === 'Super Admin'
-          ? ROLE_PERMISSIONS_MAP['Super Admin']
-          : (validUser.permissions || (ROLE_PERMISSIONS_MAP[resolvedRole] || ['read:dashboard']))) as UserPermission[];
+        const resolvedPermissions = resolveEffectivePermissions(validUser.permissions, resolvedRole);
 
         setUser({
           ...validUser,
@@ -135,9 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.accessToken && response.user) {
         const rawRole = response.user.roles?.[0] || response.user.role || '';
         const resolvedRole = (rawRole === 'Super Administrator' ? 'Super Admin' : (rawRole === 'Administrator' ? 'Admin' : rawRole)) as UserRole;
-        const resolvedPermissions = (resolvedRole === 'Super Admin'
-          ? ROLE_PERMISSIONS_MAP['Super Admin']
-          : (response.user.permissions || (ROLE_PERMISSIONS_MAP[resolvedRole] || ['read:dashboard']))) as UserPermission[];
+        const resolvedPermissions = resolveEffectivePermissions(response.user.permissions, resolvedRole);
 
         const fullUser: UserProfile = {
           ...response.user,
@@ -236,6 +253,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updatedUser);
   };
 
+  const setSession = (newToken: string, newUser: UserProfile) => {
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newToken);
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
+
   const updatePermissions = (permissions: UserPermission[]) => {
     if (!user) return;
     const updatedUser: UserProfile = {
@@ -255,6 +279,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         loginAsUser,
+        restoreSession,
+        setSession,
         logout,
         updateRole,
         updatePermissions

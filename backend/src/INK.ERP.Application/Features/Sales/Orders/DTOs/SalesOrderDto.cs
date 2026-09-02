@@ -87,16 +87,22 @@ public record UpdateSalesOrderRequest(
 public record VerifyFieldLocationRequest(
     Guid CompanyId,
     Guid CustomerId,
+    Guid? SalesEmployeeId,
     double CaptureLatitude,
     double CaptureLongitude,
-    double? AccuracyMeters = null
+    double? AccuracyMeters = null,
+    string? FaceImageBase64 = null,
+    bool RequireFaceVerification = false
 );
 
 public record VerifyFieldLocationResultDto(
     bool Success,
     double DistanceMeters,
     bool IsWithinRange,
+    bool IsFaceVerified,
+    float? FaceSimilarityScore,
     string Message,
     string? CustomerName = null,
-    string? VerificationProof = null
+    string? VerificationProof = null,
+    DateTime? VerifiedAtUtc = null
 );

@@ -17,22 +17,26 @@ public sealed class FaceProfileConfiguration : IEntityTypeConfiguration<FaceProf
         builder.Property(x => x.IsActive).IsRequired();
         builder.Property(x => x.ActiveTemplateVersion).IsRequired();
         builder.Property(x => x.ConcurrencyToken).HasMaxLength(100);
+        builder.Ignore(x => x.ModifiedBy);
 
         builder.HasIndex(x => x.UserId).IsUnique();
 
         builder.HasMany(x => x.Templates)
             .WithOne()
             .HasForeignKey("FaceProfileId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(x => x.VerificationLogs)
             .WithOne()
-            .HasForeignKey("FaceProfileId")
+            .HasForeignKey(x => x.FaceProfileId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(x => x.EnrollmentLogs)
             .WithOne()
-            .HasForeignKey("FaceProfileId")
+            .HasForeignKey(x => x.FaceProfileId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -50,6 +54,7 @@ public sealed class FaceTemplateConfiguration : IEntityTypeConfiguration<FaceTem
         builder.Property(x => x.QualityScore).IsRequired();
         builder.Property(x => x.IsActive).IsRequired();
         builder.Property(x => x.ConcurrencyToken).HasMaxLength(100);
+        builder.Ignore(x => x.ModifiedBy);
 
         // Explicitly Ignore Unmapped Metadata Fields To Prevent PostgreSQL Undefined Column Exceptions (42703)
         builder.Ignore(x => x.ModelName);
@@ -74,6 +79,7 @@ public sealed class FaceVerificationLogConfiguration : IEntityTypeConfiguration<
         builder.ToTable("face_verification_logs", "iam");
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.FaceProfileId).IsRequired();
         builder.Property(x => x.MatchScore).IsRequired();
         builder.Property(x => x.IsSuccessful).IsRequired();
         builder.Property(x => x.DeviceId).HasMaxLength(100);
@@ -90,6 +96,7 @@ public sealed class FaceEnrollmentLogConfiguration : IEntityTypeConfiguration<Fa
         builder.ToTable("face_enrollment_logs", "iam");
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.FaceProfileId).IsRequired();
         builder.Property(x => x.TemplateVersion).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.Notes).HasMaxLength(500);

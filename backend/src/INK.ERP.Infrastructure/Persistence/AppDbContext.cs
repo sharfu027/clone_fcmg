@@ -158,6 +158,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<SalesBeatCustomer> SalesBeatCustomers => Set<SalesBeatCustomer>();
     public DbSet<SalesRepCustomerAssignment> SalesRepCustomerAssignments => Set<SalesRepCustomerAssignment>();
     public DbSet<SalesVisit> SalesVisits => Set<SalesVisit>();
+    public DbSet<SalesRepLocationEnrollment> SalesRepLocationEnrollments => Set<SalesRepLocationEnrollment>();
 
     // Procurement DB Sets
     public DbSet<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition> PurchaseRequisitions => Set<INK.ERP.Domain.Entities.Procurement.PurchaseRequisition>();
@@ -227,6 +228,27 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     private void UpdateAuditFields()
     {
+        // Append-only logs (FaceEnrollmentLog, FaceVerificationLog) and new FaceTemplates are never updated in-place when created.
+        // If EF Core discovers them via navigation with a pre-set Guid key and marks them as Modified,
+        // force their state to Added so EF Core issues an INSERT instead of an UPDATE.
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is FaceEnrollmentLog or FaceVerificationLog)
+            {
+                if (entry.State == EntityState.Modified)
+                {
+                    entry.State = EntityState.Added;
+                }
+            }
+            else if (entry.Entity is FaceTemplate template)
+            {
+                if (entry.State == EntityState.Modified && template.IsActive && template.ArchivedAtUtc == null)
+                {
+                    entry.State = EntityState.Added;
+                }
+            }
+        }
+
         var entries = ChangeTracker.Entries<AuditableEntity>();
 
         foreach (var entry in entries)
@@ -253,7 +275,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 if (entry.Entity is INK.ERP.Domain.Entities.Procurement.PurchaseRequisitionItem ||
                     entry.Entity is INK.ERP.Domain.Entities.Procurement.PurchaseRequisitionStatusHistory ||
                     entry.Entity is INK.ERP.Domain.Entities.Procurement.RfqItem ||
-                    entry.Entity is INK.ERP.Domain.Entities.Procurement.RfqSupplier)
+                    entry.Entity is INK.ERP.Domain.Entities.Procurement.RfqSupplier ||
+                    entry.Entity is INK.ERP.Domain.Entities.Security.FaceTemplate)
                 {
                     continue;
                 }

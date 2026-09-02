@@ -36,6 +36,7 @@ const ReportsModule = lazy(() => import('./features/reports/ReportsModule'));
 const AdminModule = lazy(() => import('./features/admin/AdminModule'));
 const BusinessIntelligenceModule = lazy(() => import('./features/bi/BusinessIntelligenceModule'));
 const SupplierModule = lazy(() => import('./features/supplier/SupplierManagementModule'));
+const SalesTeamManagementModule = lazy(() => import('./features/sales-team/SalesTeamManagementModule'));
 
 function ModuleLoader() {
   return (
@@ -99,6 +100,7 @@ function AppContent() {
     else if (view.startsWith('procurement')) navigate(`/${view}`);
     else if (view.startsWith('warehouse')) navigate(`/${view}`);
     else if (view.startsWith('inventory')) navigate(`/${view}`);
+    else if (view.startsWith('sales-team')) navigate('/sales-team');
     else if (view.startsWith('sfa')) navigate(`/${view}`);
     else if (view.startsWith('sales')) navigate(`/${view}`);
     else if (view.startsWith('returns')) navigate(`/${view}`);
@@ -162,6 +164,10 @@ function AppContent() {
                       <Route path="/docs" element={<DesignSystemDocs onTriggerToast={triggerToast} />} />
                       <Route path="/admin" element={<AdminModule onTriggerToast={triggerToast} />} />
                       <Route path="/admin/*" element={<AdminModule onTriggerToast={triggerToast} />} />
+                      <Route path="/sales-team" element={<SalesTeamManagementModule onTriggerToast={triggerToast} />} />
+                      <Route path="/sales-team/*" element={<SalesTeamManagementModule onTriggerToast={triggerToast} />} />
+                      <Route path="/sales/team" element={<SalesTeamManagementModule onTriggerToast={triggerToast} />} />
+                      <Route path="/sales/team/*" element={<SalesTeamManagementModule onTriggerToast={triggerToast} />} />
                       <Route path="/pricing" element={<PricingModule onTriggerToast={triggerToast} />} />
                       <Route path="/pricing/*" element={<PricingModule onTriggerToast={triggerToast} />} />
                       <Route path="/procurement" element={<ProcurementModule onTriggerToast={triggerToast} />} />

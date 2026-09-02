@@ -165,7 +165,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, Result<A
             user.FirstName, user.LastName, user.DisplayName, user.EmployeeId, user.IsActive,
             user.IsLocked, user.IsDeleted, user.LastLoginUtc, user.TwoFactorEnabled, user.EmailConfirmed,
             user.RequirePasswordChange, user.PreferredLanguage, user.TimeZone, user.ProfileImageUrl,
-            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames);
+            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames, Permissions: permissions);
 
         _logger.LogInformation("[AUDIT LOG] Ultra-Fast Login Completed | UserId: {UserId} ({Username}) | Roles: {Roles}", user.Id, user.UserName, string.Join(", ", roleNames));
 
@@ -195,12 +195,14 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITokenService _tokenService;
+    private readonly IPermissionResolver _permissionResolver;
     private readonly IDateTime _dateTime;
 
-    public RefreshTokenCommandHandler(IUnitOfWork unitOfWork, ITokenService tokenService, IDateTime dateTime)
+    public RefreshTokenCommandHandler(IUnitOfWork unitOfWork, ITokenService tokenService, IPermissionResolver permissionResolver, IDateTime dateTime)
     {
         _unitOfWork = unitOfWork;
         _tokenService = tokenService;
+        _permissionResolver = permissionResolver;
         _dateTime = dateTime;
     }
 
@@ -224,12 +226,24 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
         var roles = await roleRepo.FindAsync(r => roleIds.Contains(r.Id) && !r.IsDeleted, cancellationToken);
         var roleNames = roles.Select(r => r.Name ?? r.Code).ToList();
 
+        var isSuperAdminUser = roleNames.Contains("Super Administrator");
+        var permissions = isSuperAdminUser
+            ? new List<string> {
+                "manage:all", "read:dashboard", "iam:manage", "admin:manage_users", "masters:manage",
+                "pricing:manage", "procurement:manage", "wms:manage", "inventory:manage", "sfa:manage",
+                "o2c:manage", "returns:manage", "finance:manage", "workflow:manage", "hrms:manage",
+                "crm:manage", "logistics:manage", "reports:manage", "bi:manage",
+                "manage:masters", "manage:procurement", "manage:warehouse", "manage:inventory",
+                "manage:sales", "manage:finance", "manage:security", "manage:users"
+              }
+            : await _permissionResolver.GetPermissionsForUserAsync(user!.Id, cancellationToken);
+
         var userDto = new UserDto(
             user!.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty, user.PhoneNumber,
             user.FirstName, user.LastName, user.DisplayName, user.EmployeeId, user.IsActive,
             user.IsLocked, user.IsDeleted, user.LastLoginUtc, user.TwoFactorEnabled, user.EmailConfirmed,
             user.RequirePasswordChange, user.PreferredLanguage, user.TimeZone, user.ProfileImageUrl,
-            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames);
+            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames, Permissions: permissions);
 
         return Result.Success(new AuthResponseDto(
             AccessToken: newAccessToken,
@@ -455,7 +469,7 @@ public sealed class DevLoginCommandHandler : IRequestHandler<DevLoginCommand, Re
             user.FirstName, user.LastName, user.DisplayName, user.EmployeeId, user.IsActive,
             user.IsLocked, user.IsDeleted, user.LastLoginUtc, user.TwoFactorEnabled, user.EmailConfirmed,
             user.RequirePasswordChange, user.PreferredLanguage, user.TimeZone, user.ProfileImageUrl,
-            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames);
+            user.CreatedAtUtc, user.LastModifiedAtUtc, roleNames, Permissions: permissions);
 
         var response = new AuthResponseDto(
             accessToken,

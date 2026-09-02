@@ -103,9 +103,12 @@ public class SalesOrdersController : BaseApiController
         var command = new VerifyFieldSalesOrderLocationCommand(
             request.CompanyId,
             request.CustomerId,
+            request.SalesEmployeeId,
             request.CaptureLatitude,
             request.CaptureLongitude,
-            request.AccuracyMeters);
+            request.AccuracyMeters,
+            request.FaceImageBase64,
+            request.RequireFaceVerification);
 
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);

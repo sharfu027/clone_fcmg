@@ -17,12 +17,36 @@ export interface SessionValidationStrategy {
   validateSession: () => Promise<UserProfile | null>;
 }
 
+function extractPermissions(user: any, token?: string): string[] {
+  let perms: string[] = [];
+  if (user && user.permissions && Array.isArray(user.permissions)) {
+    perms = user.permissions.map((p: any) => (typeof p === 'string' ? p : p.code || '')).filter(Boolean);
+  }
+  if (perms.length === 0 && token) {
+    try {
+      const payloadBase64 = token.split('.')[1];
+      if (payloadBase64) {
+        const decodedJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+        const decoded = JSON.parse(decodedJson);
+        const tokenPerms = decoded.permission || decoded.permissions || [];
+        perms = (Array.isArray(tokenPerms) ? tokenPerms : [tokenPerms]).filter(Boolean);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return perms;
+}
+
 function storeSession(response: AuthResponse): AuthResponse {
   localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.accessToken);
   localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
 
+  const permissions = extractPermissions(response.user, response.accessToken);
+
   const userObj: UserProfile = {
     ...response.user,
+    permissions,
     name: response.user.name
       || response.user.displayName
       || `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim()
@@ -87,7 +111,7 @@ export const authService = {
     }
 
     try {
-      const userProfile: UserProfile = JSON.parse(userJson);
+      let userProfile: UserProfile = JSON.parse(userJson);
 
       // Client-side JWT exp validation
       const payloadBase64 = token.split('.')[1];
@@ -96,6 +120,12 @@ export const authService = {
         const decoded = JSON.parse(decodedJson);
         if (decoded.exp && decoded.exp * 1000 < Date.now()) {
           return null;
+        }
+
+        if (!userProfile.permissions || userProfile.permissions.length === 0) {
+          const tokenPerms = decoded.permission || decoded.permissions || [];
+          userProfile.permissions = (Array.isArray(tokenPerms) ? tokenPerms : [tokenPerms]).filter(Boolean);
+          localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(userProfile));
         }
       }
 

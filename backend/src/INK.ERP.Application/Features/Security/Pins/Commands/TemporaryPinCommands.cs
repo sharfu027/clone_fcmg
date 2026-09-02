@@ -206,15 +206,18 @@ public class ValidateLoginLocationCommandHandler : IRequestHandler<ValidateLogin
 {
     private readonly IBranchRepository _branchRepository;
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly ISfaRepository _sfaRepository;
     private readonly ICompanyAccessResolver _companyAccessResolver;
 
     public ValidateLoginLocationCommandHandler(
         IBranchRepository branchRepository,
         IEmployeeRepository employeeRepository,
+        ISfaRepository sfaRepository,
         ICompanyAccessResolver companyAccessResolver)
     {
         _branchRepository = branchRepository ?? throw new ArgumentNullException(nameof(branchRepository));
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
+        _sfaRepository = sfaRepository ?? throw new ArgumentNullException(nameof(sfaRepository));
         _companyAccessResolver = companyAccessResolver ?? throw new ArgumentNullException(nameof(companyAccessResolver));
     }
 
@@ -230,14 +233,45 @@ public class ValidateLoginLocationCommandHandler : IRequestHandler<ValidateLogin
             return Result<ValidateLoginLocationResultDto>.Failure(Error.Validation("Location.InvalidCoordinates", "Invalid latitude or longitude values."));
         }
 
-        double allowedRadius = request.MaxAllowedRadiusMeters ?? 50.0; // Default: 50 meters
-
-        // Find work locations / branches for the company or employee
-        var branches = await _branchRepository.FindAsync(b => b.CompanyId == request.CompanyId, cancellationToken);
         var userCoord = new GpsCoordinate(request.Latitude, request.Longitude);
-
         double closestDistance = double.MaxValue;
         string? targetName = null;
+        double allowedRadius = request.MaxAllowedRadiusMeters ?? 50.0; // Default: 50 meters
+
+        // 1. Check if the sales representative has a dedicated enrolled location
+        if (request.EmployeeId.HasValue && request.EmployeeId.Value != Guid.Empty)
+        {
+            var enrollment = await _sfaRepository.GetLocationEnrollmentAsync(request.EmployeeId.Value, cancellationToken);
+            if (enrollment == null)
+            {
+                enrollment = await _sfaRepository.GetLocationEnrollmentByUserIdAsync(request.EmployeeId.Value, cancellationToken);
+            }
+
+            if (enrollment != null && enrollment.IsActive)
+            {
+                var enrolledCoord = new GpsCoordinate(enrollment.Latitude, enrollment.Longitude);
+                closestDistance = userCoord.DistanceToMeters(enrolledCoord);
+                targetName = enrollment.LocationName;
+                allowedRadius = enrollment.AllowedRadiusMeters > 0 ? enrollment.AllowedRadiusMeters : 50.0;
+
+                bool isEnrolledAllowed = closestDistance <= allowedRadius;
+                string enrolledMessage = isEnrolledAllowed
+                    ? $"Location verified within enrolled geofence '{targetName}' ({closestDistance:F1}m <= {allowedRadius:F0}m)."
+                    : $"Location check failed ({closestDistance:F1}m from enrolled location '{targetName}', exceeds allowed radius of {allowedRadius:F0}m). Admin temporary PIN required.";
+
+                return Result.Success(new ValidateLoginLocationResultDto(
+                    IsAllowed: isEnrolledAllowed,
+                    DistanceMeters: Math.Round(closestDistance, 1),
+                    AllowedRadiusMeters: allowedRadius,
+                    Message: enrolledMessage,
+                    RequiresPinOverride: !isEnrolledAllowed,
+                    TargetLocationName: targetName
+                ));
+            }
+        }
+
+        // 2. Fallback: Find work locations / branches for the company
+        var branches = await _branchRepository.FindAsync(b => b.CompanyId == request.CompanyId, cancellationToken);
 
         if (branches.Count > 0)
         {
